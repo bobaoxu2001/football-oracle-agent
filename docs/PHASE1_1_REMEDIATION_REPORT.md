@@ -21,7 +21,7 @@ Limitations: 2026-27 fixtures still uningested (Phase 2A); HA/ρ remain training
 | Item | Value |
 | --- | --- |
 | Starting SHA | `9e540b34fec244efe3be1c0ee9c0ea29d0ada6e3` |
-| Ending SHA | see git log after this report is committed; work is Phase 1.1 on the same clone |
+| Ending SHA | `a23d4ee822832fcd13a3c763d53d2b9fead886d2` |
 | World Cup repo | HEAD + `archive/worldcup-2026-v1` = `9e540b3…`, tree clean except pre-existing untracked audit |
 | Frozen Phase 1 backtest | `data/processed/premier-league/backtest-heldout.phase1-frozen.json` |
 
