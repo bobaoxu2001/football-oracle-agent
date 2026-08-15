@@ -8,8 +8,10 @@
  */
 
 import { resolveTeams, resolvePlayer } from "./matchResolver";
+import { resolveAllClubSlugs } from "@/lib/competitions/premier-league/clubs";
 import { looksLikeRulesQuestion } from "./rulesExplain";
 import type { AgentIntent } from "./types";
+import type { CompetitionId } from "@/lib/competitions/types";
 
 export interface Plan {
   intent: AgentIntent;
@@ -17,6 +19,7 @@ export interface Plan {
   player?: { player: string; slug: string };
   /** Group letter ("A".."L") when the question names one. */
   group?: string;
+  competition: CompetitionId;
   /** Human-readable plan steps shown before execution. */
   planLabels: string[];
 }
@@ -57,15 +60,22 @@ function detectGroupLetter(query: string): string | undefined {
   return m ? m[1].toUpperCase() : undefined;
 }
 
-// Other competitions are out of scope — this agent only models the FIFA World
-// Cup 2026. A question about the Euros/CL/etc. must NOT be silently answered
-// with World Cup odds.
+// Competitions this product does not model. Premier League is IN SCOPE.
+// World Cup remains a first-class plugin. Other Big Five leagues stay out
+// of Phase 1 on purpose.
 const OTHER_COMP_RE =
-  /\b(euros?\s*(20\d\d)?|uefa euro|champions league|europa league|premier league|la liga|serie a|bundesliga|copa am[eé]rica|nations league|club world cup|olympics?|gold cup|afcon)\b/i;
+  /\b(euros?\s*(20\d\d)?|uefa euro|champions league|europa league|la liga|serie a|bundesliga|ligue\s*1|copa am[eé]rica|nations league|club world cup|olympics?|gold cup|afcon)\b/i;
 const WC_RE = /world cup|世界杯|ワールドカップ/i;
+const PL_RE =
+  /\b(premier league|\bepl\b|english premier)\b/i;
+
+export function isPremierLeagueQuery(query: string): boolean {
+  return PL_RE.test(query);
+}
 
 export function isOutOfScopeCompetition(query: string): boolean {
-  return OTHER_COMP_RE.test(query) && !WC_RE.test(query);
+  if (WC_RE.test(query) || PL_RE.test(query)) return false;
+  return OTHER_COMP_RE.test(query);
 }
 
 // Match-result language (EN + 中文): "X vs Y", "who wins X against Y",
@@ -100,8 +110,12 @@ export function planQuery(
   isFollowUp = false,
   hasContextMatchup = false
 ): Plan {
-  const teams = resolveTeams(query);
-  const teamSlugs = teams.map((t) => t.slug);
+  const clubs = resolveAllClubSlugs(query);
+  const nations = resolveTeams(query);
+  const preferPremier =
+    isPremierLeagueQuery(query) || (clubs.length >= 2 && !WC_RE.test(query));
+  const competition: CompetitionId = preferPremier ? "premier-league" : "world-cup";
+  const teamSlugs = preferPremier ? clubs.slice(0, 2) : nations.map((t) => t.slug);
   const player = resolvePlayer(query) ?? undefined;
 
   const group = detectGroupLetter(query);
@@ -114,18 +128,20 @@ export function planQuery(
       intent,
       teamSlugs: [],
       player,
+      competition,
       planLabels: ["Detect competition scope", "Redirect to supported questions"],
     };
   }
 
   // A named non-qualified nation (Italy, China, …) → honest "not in the field"
-  // answer, never the generic champion board.
-  if (detectNonQualifiedTeam(query)) {
+  // answer, never the generic champion board. World Cup only.
+  if (competition === "world-cup" && detectNonQualifiedTeam(query)) {
     intent = "unknown";
     return {
       intent,
       teamSlugs: [],
       player,
+      competition,
       planLabels: ["Check the 2026 finals field", "Explain the limitation"],
     };
   }
@@ -187,19 +203,26 @@ export function planQuery(
     intent = "unknown";
   }
 
-  const planLabels = planLabelsFor(intent);
-  return { intent, teamSlugs, player, group, planLabels };
+  const planLabels = planLabelsFor(intent, competition);
+  return { intent, teamSlugs, player, group, competition, planLabels };
 }
 
-function planLabelsFor(intent: AgentIntent): string[] {
+function planLabelsFor(intent: AgentIntent, competition: CompetitionId = "world-cup"): string[] {
   switch (intent) {
     case "champion-odds":
-      return [
-        "Identify the question scope (full tournament)",
-        "Load all 48 team profiles & Elo ratings",
-        "Run 10,000 full-tournament Monte Carlo simulations",
-        "Rank contenders & generate the title report",
-      ];
+      return competition === "premier-league"
+        ? [
+            "Identify Premier League title question",
+            "Load walk-forward club Elo (as-of today)",
+            "Simulate remaining / full-season table (Dixon-Coles samples)",
+            "Rank champion and expected-position odds",
+          ]
+        : [
+            "Identify the question scope (full tournament)",
+            "Load all 48 team profiles & Elo ratings",
+            "Run 10,000 full-tournament Monte Carlo simulations",
+            "Rank contenders & generate the title report",
+          ];
     case "scenario":
       return [
         "Detect the scenario change vs the base matchup",

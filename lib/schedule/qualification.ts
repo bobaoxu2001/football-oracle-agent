@@ -29,7 +29,7 @@ import {
   type RankedTeam,
   type ResolvedR32Match,
   type ThirdSlotId,
-} from "@/lib/prediction-engine/bracket-2026";
+} from "@/lib/competitions/world-cup/bracket-2026";
 
 /** Games in a 4-team round-robin group. */
 const GROUP_GAMES = 6;

@@ -52,7 +52,7 @@
  */
 
 import { getUpdatedRating } from "./ratingUpdates";
-import { getConfederationDelta } from "./confederationForm";
+import { getConfederationDelta } from "@/lib/competitions/world-cup/confederationForm";
 
 /**
  * Max absolute Elo a team's accumulated availability signal may move it.

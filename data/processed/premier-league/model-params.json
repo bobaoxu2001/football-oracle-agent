@@ -1,0 +1,17 @@
+{
+  "competition": "premier-league",
+  "modelVersion": "pl-baseline-v0.1.0",
+  "homeAdvantage": 72,
+  "dcRho": -0.061,
+  "drawBias": 1,
+  "goalScale": 350,
+  "baseGoals": 1.35,
+  "awayHomeShare": 0,
+  "kFactor": 20,
+  "fittedAt": "2026-08-15",
+  "trainingWindow": {
+    "from": "2018-08-01",
+    "to": "2025-05-31"
+  },
+  "notes": "Grid optimum HA=75 ρ=-0.04 (LL 0.9763) shrunk 0.35 toward prior HA=65 ρ=-0.1. Training 2018-19–2024-25 only. Held-out 2025-26 unused."
+}

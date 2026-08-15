@@ -29,9 +29,9 @@ import {
   positionLabel,
   type Position,
   type GroupLetter,
-} from "@/lib/prediction-engine/bracket-2026";
+} from "@/lib/competitions/world-cup/bracket-2026";
 import { GROUPS, getTeam, groupOf } from "@/lib/seed/world-cup-2026-groups";
-import { computeDisciplineRisk, type DisciplineRisk } from "@/lib/prediction-engine/discipline";
+import { computeDisciplineRisk, type DisciplineRisk } from "@/lib/competitions/world-cup/discipline";
 import type { TeamNewsItem } from "@/lib/news/types";
 import type { GroupSimRow } from "@/lib/types";
 import type { GroupTableData, StructuredFactor, TeamRef } from "./types";
@@ -59,8 +59,8 @@ function strengthProfile(slug: string) {
   return {
     elo,
     rank: eloRank(slug),
-    attack: expectedGoals(elo, med, 0), // xG vs median team
-    defense: expectedGoals(med, elo, 0), // xG conceded vs median team (lower = better)
+    attack: expectedGoals(elo, med, 0), // expected goals vs median team
+    defense: expectedGoals(med, elo, 0), // expected goals conceded vs median team (lower = better)
   };
 }
 
@@ -369,8 +369,8 @@ export function buildTeamAnalysis(team: TeamRef, news: TeamNewsItem[]) {
 
   const factors: StructuredFactor[] = [
     { label: "Elo / team strength", value: `${prof.elo} (#${prof.rank} of 48)`, weight: "high" },
-    { label: "Attack rating (proxy)", value: `${prof.attack.toFixed(2)} xG vs median`, weight: "medium" },
-    { label: "Defense rating (proxy)", value: `${prof.defense.toFixed(2)} xGA vs median`, weight: "medium" },
+    { label: "Attack rating (proxy)", value: `${prof.attack.toFixed(2)} EG vs median`, weight: "medium" },
+    { label: "Defense rating (proxy)", value: `${prof.defense.toFixed(2)} EGA vs median`, weight: "medium" },
     { label: `Group ${group.name} advance`, value: pct(mine.advance), weight: "high" },
     ...(odds ? [{ label: "Championship probability", value: pct(odds.champion, 1), weight: "high" as const }] : []),
     { label: "Discipline / suspension risk", value: discipline.level, weight: "low" },
@@ -413,8 +413,8 @@ export function buildTeamComparison(a: TeamRef, b: TeamRef) {
   const lines: string[] = [];
   lines.push(`**${a.flag} ${a.name} vs ${b.flag} ${b.name} — side-by-side.**\n`);
   lines.push(row("Elo / strength", `${pa.elo} (#${pa.rank})`, `${pb.elo} (#${pb.rank})`));
-  lines.push(row("Attack (proxy xG vs median)", pa.attack.toFixed(2), pb.attack.toFixed(2)));
-  lines.push(row("Defense (proxy xGA vs median)", pa.defense.toFixed(2), pb.defense.toFixed(2)));
+  lines.push(row("Attack (proxy EG vs median)", pa.attack.toFixed(2), pb.attack.toFixed(2)));
+  lines.push(row("Defense (proxy EGA vs median)", pa.defense.toFixed(2), pb.defense.toFixed(2)));
   if (oa && ob) lines.push(row("Champion probability", pct(oa.champion, 1), pct(ob.champion, 1)));
   lines.push(
     `\n**If they met on neutral ground:** ${a.name} ${pct(neutral.winA)} · draw ${pct(neutral.draw)} · ${b.name} ${pct(neutral.winB)}.`

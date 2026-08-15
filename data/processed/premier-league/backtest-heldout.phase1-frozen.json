@@ -1,0 +1,79 @@
+{
+  "modelVersion": "pl-baseline-v0.1.0",
+  "homeAdvantage": 72,
+  "dcRho": -0.061,
+  "fittedAt": "2026-08-15",
+  "trainingWindow": {
+    "from": "2018-08-01",
+    "to": "2025-05-31"
+  },
+  "heldOut": {
+    "from": "2025-08-01",
+    "to": "2026-06-01",
+    "n": 380
+  },
+  "metrics": {
+    "uniform": {
+      "n": 380,
+      "brier": "0.6667",
+      "rps": "0.2322",
+      "logloss": "1.0986",
+      "ece": "0.0%",
+      "topPick": "27.4%",
+      "drawPred": "33.3%",
+      "drawAct": "27.4%"
+    },
+    "eloHa": {
+      "n": 380,
+      "brier": "0.6202",
+      "rps": "0.2097",
+      "logloss": "1.0304",
+      "ece": "2.5%",
+      "topPick": "47.6%",
+      "drawPred": "23.0%",
+      "drawAct": "27.4%"
+    },
+    "candidate": {
+      "n": 380,
+      "brier": "0.6188",
+      "rps": "0.2095",
+      "logloss": "1.0276",
+      "ece": "2.2%",
+      "topPick": "47.6%",
+      "drawPred": "24.3%",
+      "drawAct": "27.4%"
+    }
+  },
+  "calibration": [
+    {
+      "bucket": "00–20%",
+      "predictedMean": 0.14786451501839407,
+      "empiricalRate": 0.1487603305785124,
+      "count": 121
+    },
+    {
+      "bucket": "20–40%",
+      "predictedMean": 0.2733602320057636,
+      "empiricalRate": 0.29069767441860467,
+      "count": 688
+    },
+    {
+      "bucket": "40–60%",
+      "predictedMean": 0.48331088563525015,
+      "empiricalRate": 0.4505928853754941,
+      "count": 253
+    },
+    {
+      "bucket": "60–80%",
+      "predictedMean": 0.6568338231284513,
+      "empiricalRate": 0.6,
+      "count": 75
+    },
+    {
+      "bucket": "80–100%",
+      "predictedMean": 0.8321210874855685,
+      "empiricalRate": 1,
+      "count": 3
+    }
+  ]
+}

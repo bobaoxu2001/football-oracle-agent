@@ -51,7 +51,7 @@ export {
   applyDrawPropensity,
   drawPropensityMeta,
   type DrawAdjusted,
-} from "./drawPropensity";
+} from "@/lib/competitions/world-cup/drawPropensity";
 export {
   getBounceBack,
   bounceBackDelta,
@@ -59,7 +59,7 @@ export {
   QUALITY_FLOOR,
   GAP_FLOOR,
   BOUNCE_CAP,
-} from "./bounceBack";
+} from "@/lib/competitions/world-cup/bounceBack";
 export {
   classifyStakes,
   matchStakesDelta,
@@ -73,7 +73,7 @@ export {
   ROTATION_WEIGHT,
   DEFAULT_ROTATION_TENDENCY,
   type StakesState,
-} from "./matchStakes";
+} from "@/lib/competitions/world-cup/matchStakes";
 export {
   projectSeeding,
   knockoutPath,
@@ -83,7 +83,7 @@ export {
   type KnockoutPath,
   type PathStep,
   type QuarterField,
-} from "./bracketPath";
+} from "@/lib/competitions/world-cup/bracketPath";
 export {
   classifyMatchType,
   COINFLIP_FAV_CEIL,
@@ -114,13 +114,16 @@ export {
   getConfederationDelta,
   confederationFormMeta,
   type ConfederationFormRow,
-} from "./confederationForm";
+} from "@/lib/competitions/world-cup/confederationForm";
 export {
   matchProb,
+  matchProbFromGoals,
   sampleMatch,
+  sampleFromGrid,
   expectedScore,
   expectedGoals,
   scorelineGrid,
+  scorelineGridFromGoals,
   mulberry32,
 } from "./elo";
 export {

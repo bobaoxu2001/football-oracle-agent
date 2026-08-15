@@ -25,18 +25,18 @@ import {
   getAvailabilityDelta,
   getAvailabilityAdjustments,
 } from "./availabilityAdjustments";
-import { getConfederationDelta } from "./confederationForm";
+import { getConfederationDelta } from "@/lib/competitions/world-cup/confederationForm";
 import { getTacticalMatchup, getStyle } from "./tacticalMatchups";
 import { classifyMatchType } from "./matchType";
-import { applyDrawPropensity } from "./drawPropensity";
+import { applyDrawPropensity } from "@/lib/competitions/world-cup/drawPropensity";
 import {
   getIntelDelta,
   getConfirmedIntel,
   getIntelUncertainty,
   intelEloImpact,
 } from "./preMatchIntelligence";
-import { getBounceBack } from "./bounceBack";
-import { getMatchStakes, getMatchStakesState, describeStakes } from "./matchStakes";
+import { getBounceBack } from "@/lib/competitions/world-cup/bounceBack";
+import { getMatchStakes, getMatchStakesState, describeStakes } from "@/lib/competitions/world-cup/matchStakes";
 import { gapCalibration, GAP_SCALE, GAP_CAL_CAP, type GapCalibration } from "./confidenceCalibration";
 import {
   GROUPS,
@@ -52,7 +52,7 @@ import {
   resolvePosition,
   type GroupLetter,
   type RankedTeam,
-} from "./bracket-2026";
+} from "@/lib/competitions/world-cup/bracket-2026";
 import type {
   MatchPrediction,
   ModelFactor,
@@ -263,7 +263,7 @@ function buildFactors(
 
   factors.push({
     label: "Expected goals (Dixon-Coles)",
-    detail: `Model projects ${p.expectedGoalsA.toFixed(2)} xG for ${a.name} and ${p.expectedGoalsB.toFixed(2)} for ${b.name}, with a low-score draw correction (ρ = −0.13).`,
+    detail: `Model projects ${p.expectedGoalsA.toFixed(2)} expected goals for ${a.name} and ${p.expectedGoalsB.toFixed(2)} for ${b.name}, with a low-score draw correction (ρ = −0.13). This is an Elo-mapped goal expectation, not shot-based xG.`,
     weight: "medium",
   });
 

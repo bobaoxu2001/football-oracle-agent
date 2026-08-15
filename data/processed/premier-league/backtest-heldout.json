@@ -1,0 +1,79 @@
+{
+  "modelVersion": "pl-baseline-v0.1.0",
+  "homeAdvantage": 72,
+  "dcRho": -0.061,
+  "fittedAt": "2026-08-15",
+  "trainingWindow": {
+    "from": "2018-08-01",
+    "to": "2025-05-31"
+  },
+  "heldOut": {
+    "from": "2025-08-01",
+    "to": "2026-06-01",
+    "n": 380
+  },
+  "metrics": {
+    "uniform": {
+      "n": 380,
+      "brier": "0.6667",
+      "rps": "0.2322",
+      "logloss": "1.0986",
+      "pooledReliabilityMae": "0.0%",
+      "confidenceEce": "6.0%",
+      "topPick": "27.4%",
+      "drawPred": "33.3%",
+      "drawAct": "27.4%"
+    },
+    "eloHa": {
+      "n": 380,
+      "brier": "0.6201",
+      "rps": "0.2098",
+      "logloss": "1.0309",
+      "pooledReliabilityMae": "1.9%",
+      "confidenceEce": "2.9%",
+      "topPick": "48.2%",
+      "drawPred": "23.1%",
+      "drawAct": "27.4%"
+    },
+    "candidate": {
+      "n": 380,
+      "brier": "0.6187",
+      "rps": "0.2095",
+      "logloss": "1.0281",
+      "pooledReliabilityMae": "2.1%",
+      "confidenceEce": "4.1%",
+      "topPick": "48.2%",
+      "drawPred": "24.4%",
+      "drawAct": "27.4%"
+    }
+  },
+  "pooledReliabilityMae": 0.020710917506053833,
+  "confidenceEce": 0.04134776448222892,
+  "bootstrap": {
+    "nMatches": 380,
+    "nBootstrap": 20000,
+    "seed": 20260816,
+    "brier": {
+      "delta": -0.001400574909797725,
+      "lo": -0.0032285408459053347,
+      "hi": 0.00037898189607482715,
+      "nBootstrap": 20000,
+      "seed": 20260816
+    },
+    "rps": {
+      "delta": -0.00023342915163276912,
+      "lo": -0.0005380901409842291,
+      "hi": 0.0000631636493457992,
+      "nBootstrap": 20000,
+      "seed": 20260816
+    },
+    "logLoss": {
+      "delta": -0.0027496376082145613,
+      "lo": -0.006117818397680408,
+      "hi": 0.0005749778629204864,
+      "nBootstrap": 20000,
+      "seed": 20260816
+    }
+  },
+  "interpretation": "DC produced a small point-estimate improvement on the held-out season, but the improvement is not statistically distinguishable from noise under the current sample."
+}

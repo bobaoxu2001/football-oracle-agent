@@ -24,7 +24,7 @@ import {
   type GroupLetter,
   type RankedTeam,
   type ThirdSlotId,
-} from "@/lib/prediction-engine/bracket-2026";
+} from "@/lib/competitions/world-cup/bracket-2026";
 import { getChampionProbabilities, simulateTournament } from "@/lib/prediction-engine";
 
 let failures = 0;

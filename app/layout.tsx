@@ -11,9 +11,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
-  title: "WorldCup Oracle Agent — AI Agent for World Cup 2026 Predictions",
+  title: "Football Oracle — Premier League forecasts + World Cup plugin",
   description:
-    "An AI agent that understands a football question, plans the analysis, runs 10,000 Monte Carlo simulations, explains its reasoning, remembers past predictions, and answers follow-ups in real time.",
+    "An AI agent that forecasts Premier League matches with walk-forward Elo and Dixon-Coles, and still runs the preserved World Cup 2026 plugin.",
   keywords: [
     "World Cup 2026",
     "AI agent",
@@ -41,8 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="flex-1">{children}</main>
           <footer className="border-t border-white/5 py-8 text-center text-xs text-muted-foreground">
             <p>
-              WorldCup Oracle Agent · Elo + Dixon-Coles + Monte Carlo · Built for the Google Cloud
-              Rapid Agent Hackathon.
+              Football Oracle · Premier League baseline + World Cup plugin · Elo + Dixon-Coles.
             </p>
             <p className="mt-1">
               Predictions are model estimates for entertainment & informational use only.

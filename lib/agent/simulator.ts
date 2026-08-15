@@ -11,7 +11,7 @@
 
 import { sampleMatch, mulberry32 } from "@/lib/prediction-engine/elo";
 import { HOME_ADVANTAGE } from "@/lib/prediction-engine/ratings";
-import { applyDrawPropensity } from "@/lib/prediction-engine/drawPropensity";
+import { applyDrawPropensity } from "@/lib/competitions/world-cup/drawPropensity";
 import { HOST_SLUGS } from "@/lib/seed/world-cup-2026-groups";
 import type { SimulationResult, TeamRef } from "./types";
 
@@ -26,12 +26,21 @@ function homeBonus(a: string, b: string): number {
 export function runSimulation(
   teamA: TeamRef,
   teamB: TeamRef,
-  opts: { sims?: number; eloA?: number; eloB?: number } = {}
+  opts: {
+    sims?: number;
+    eloA?: number;
+    eloB?: number;
+    homeBonus?: number;
+    applyWorldCupDraw?: boolean;
+    rho?: number;
+    awayHomeShare?: number;
+  } = {}
 ): SimulationResult {
   const sims = opts.sims ?? DEFAULT_SIMS;
   const eloA = opts.eloA ?? teamA.elo;
   const eloB = opts.eloB ?? teamB.elo;
-  const hb = homeBonus(teamA.slug, teamB.slug);
+  const hb = opts.homeBonus ?? homeBonus(teamA.slug, teamB.slug);
+  const goalOpts = { rho: opts.rho, awayHomeShare: opts.awayHomeShare };
 
   // Seed from the two slugs so the same fixture always simulates identically.
   const seed =
@@ -46,7 +55,7 @@ export function runSimulation(
   const scoreTally: Record<string, number> = {};
 
   for (let i = 0; i < sims; i++) {
-    const { goalsA: ga, goalsB: gb } = sampleMatch(eloA, eloB, hb, true, rng);
+    const { goalsA: ga, goalsB: gb } = sampleMatch(eloA, eloB, hb, true, rng, goalOpts);
     goalsA += ga;
     goalsB += gb;
     if (ga > gb) aWins++;
@@ -65,11 +74,11 @@ export function runSimulation(
   // Raw sampled shares, then the SAME group-stage draw correction the
   // closed-form prediction applies, so the two views stay consistent (the
   // goal tally / most-likely scoreline below stay raw — they are goal-level).
-  const adj = applyDrawPropensity(
-    { winA: aWins / sims, draw: draws / sims, winB: bWins / sims },
-    teamA.slug,
-    teamB.slug
-  );
+  const raw = { winA: aWins / sims, draw: draws / sims, winB: bWins / sims };
+  const adj =
+    opts.applyWorldCupDraw === false
+      ? raw
+      : applyDrawPropensity(raw, teamA.slug, teamB.slug);
   const teamAWin = adj.winA;
   const drawShare = adj.draw;
   const teamBWin = adj.winB;

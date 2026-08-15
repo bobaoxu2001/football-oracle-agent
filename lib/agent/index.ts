@@ -23,6 +23,13 @@ import {
   getCompletedFixture,
   completedFixtureNote,
 } from "@/lib/prediction-engine";
+import { predictPremierLeagueMatch, snapshotPremierLeagueMatch } from "@/lib/prediction-engine/league-engine";
+import { getClub } from "@/lib/competitions/premier-league/clubs";
+import { remainingPremierLeagueFixtures } from "@/lib/competitions/premier-league/season";
+import { ratingsAsOf } from "@/lib/competitions/premier-league/ratings";
+import { simulateLeagueSeason } from "@/lib/competitions/premier-league/simulate";
+import { loadPremierLeagueParams } from "@/lib/prediction-engine/model-params";
+import { PRESEASON_BASELINE_CAVEAT, isPreseasonBaseline } from "@/lib/competitions/premier-league/honesty";
 import { freshnessFootnote } from "@/lib/data-truth/freshness";
 import {
   getTournamentState,
@@ -83,6 +90,7 @@ import type {
   ChampionAnswer,
   NewsImpactReport,
   StructuredResult,
+  TeamRef,
 } from "./types";
 
 export interface AgentInput {
@@ -751,6 +759,67 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
     };
   }
 
+  // ---- PREMIER LEAGUE TITLE ODDS ----------------------------------------
+  if (
+    plan.competition === "premier-league" &&
+    plan.intent === "champion-odds" &&
+    plan.teamSlugs.length < 2
+  ) {
+    const params = loadPremierLeagueParams();
+    const field = remainingPremierLeagueFixtures();
+    const asOf = new Date().toISOString().slice(0, 10);
+    const ratings = ratingsAsOf(asOf).ratings;
+    const sim = simulateLeagueSeason({
+      ratings,
+      played: field.played,
+      remaining: field.remaining,
+      clubSlugs: field.clubSlugs,
+      sims: 4000,
+    });
+    const answer: ChampionAnswer = {
+      simulationsRun: sim.sims,
+      contenders: sim.clubs.slice(0, 8).map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        flag: "⚽️",
+        champion: c.champion,
+        elo: Math.round(c.elo),
+      })),
+    };
+    const steps: ReasoningStep[] = [
+      step("plan", "Plan the analysis", "Premier League title question."),
+      step("data", "Load walk-forward club Elo", `As-of ${asOf}. ${field.clubSlugs.length} clubs. Model ${params.modelVersion}.`),
+      step(
+        "sim",
+        "Simulate the league table",
+        `${sim.sims.toLocaleString()} season paths. Remaining fixtures sampled from the Dixon-Coles grid. No World Cup bracket.`
+      ),
+      step("report", "Rank title odds", `${answer.contenders[0]?.name ?? "—"} leads the title board.`),
+    ];
+    const lines = sim.clubs.slice(0, 8).map((c, i) =>
+      `${i + 1}. ${c.name} — ${(c.champion * 100).toFixed(1)}% title · expected finish ${c.expectedPosition.toFixed(1)}`
+    );
+    const caveat = isPreseasonBaseline() ? `${PRESEASON_BASELINE_CAVEAT}\n\n` : "";
+    const explanation =
+      caveat +
+      `Premier League title probabilities (${params.modelVersion}). ` +
+      `This is a league-table Monte Carlo, not a knockout tournament.\n\n` +
+      lines.join("\n") +
+      `\n\nProbability estimate, not a guaranteed outcome.`;
+    return {
+      intent: "champion-odds",
+      query,
+      reasoningSteps: steps,
+      champions: answer,
+      explanation,
+      fanInsight: `⚽️ ${answer.contenders[0]?.name ?? "The field"} lead the Premier League title board at ${((answer.contenders[0]?.champion ?? 0) * 100).toFixed(1)}%.`,
+      llmEnhanced: false,
+      persisted: "none",
+      createdAt: createdAt.toISOString(),
+      language: lang,
+    };
+  }
+
   // ---- CHAMPION ODDS ----------------------------------------------------
   if (plan.intent === "champion-odds" && plan.teamSlugs.length < 2) {
     // Deterministic tournament state gates the model: eliminated teams cannot win.
@@ -885,6 +954,84 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
     slugs = input.contextTeams;
   }
 
+  if (slugs.length === 2 && plan.competition === "premier-league") {
+    const params = loadPremierLeagueParams();
+    const asOf = new Date().toISOString().slice(0, 10);
+    const pred = predictPremierLeagueMatch(slugs[0], slugs[1], { asOf });
+    snapshotPremierLeagueMatch(slugs[0], slugs[1], {
+      asOf,
+      fixtureId: pred.matchId,
+      season: isPreseasonBaseline() ? "2025-26" : "2026-27",
+    });
+    const home = getClub(slugs[0]);
+    const away = getClub(slugs[1]);
+    const teamA: TeamRef = { slug: home.slug, name: home.name, flag: "⚽️", elo: pred.eloA };
+    const teamB: TeamRef = { slug: away.slug, name: away.name, flag: "⚽️", elo: pred.eloB };
+    const simulation = runSimulation(teamA, teamB, {
+      eloA: pred.eloA,
+      eloB: pred.eloB,
+      homeBonus: params.homeAdvantage,
+      applyWorldCupDraw: false,
+      rho: params.dcRho,
+      awayHomeShare: params.awayHomeShare,
+    });
+    const bundle: PredictionBundle = { prediction: pred, teamA, teamB, simulation };
+    const result = toPredictionResult(bundle);
+    const steps: ReasoningStep[] = [
+      step("plan", "Plan the analysis", "Premier League match prediction."),
+      step("data", "Walk-forward club Elo", `As-of ${asOf}. Home ${home.name} ${Math.round(pred.eloA)}, away ${away.name} ${Math.round(pred.eloB)}.`),
+      step(
+        "model",
+        "Dixon-Coles 1X2",
+        `True home advantage +${params.homeAdvantage} Elo. ρ = ${params.dcRho}. Model ${params.modelVersion}.`
+      ),
+      step("sim", "Sample the same scoreline grid", simulation.summary),
+    ];
+    const caveat = isPreseasonBaseline() ? `${PRESEASON_BASELINE_CAVEAT}\n\n` : "";
+    const explanation =
+      caveat +
+      `${home.name} (home) vs ${away.name} (away) — featured orientation, not an official 2026-27 fixture listing.\n` +
+      `Home ${(pred.teamAWinProbability * 100).toFixed(1)}% · Draw ${(pred.drawProbability * 100).toFixed(1)}% · Away ${(pred.teamBWinProbability * 100).toFixed(1)}%\n` +
+      `Goal expectation ${pred.expectedScore}. Most likely score ${pred.mostLikelyScoreline}.\n` +
+      `Model ${params.modelVersion}. Preseason baseline from last completed season's ratings, not an as-of-kickoff fixture forecast.\n` +
+      `Probability estimate, not a guaranteed outcome.`;
+    return {
+      intent: "match-prediction",
+      query,
+      reasoningSteps: steps,
+      prediction: result,
+      simulation,
+      explanation,
+      fanInsight: `${home.name} ${(pred.teamAWinProbability * 100).toFixed(0)}% / draw ${(pred.drawProbability * 100).toFixed(0)}% / ${away.name} ${(pred.teamBWinProbability * 100).toFixed(0)}%.`,
+      llmEnhanced: false,
+      persisted: persist
+        ? await savePrediction({
+            userQuery: query,
+            intent: "match-prediction",
+            teams: slugs,
+            prediction: {
+              teamAWin: pred.teamAWinProbability,
+              draw: pred.drawProbability,
+              teamBWin: pred.teamBWinProbability,
+              confidence: pred.confidenceScore,
+            },
+            simulationResult: {
+              simulationsRun: simulation.simulationsRun,
+              mostLikelyScore: simulation.mostLikelyScore,
+              upsetProbability: simulation.upsetProbability,
+              summary: simulation.summary,
+            },
+            reasoningSteps: steps.map((s) => s.title),
+            explanation,
+            followUpContext: `${home.name} vs ${away.name}`,
+            createdAt,
+          })
+        : "none",
+      createdAt: createdAt.toISOString(),
+      language: lang,
+    };
+  }
+
   if (slugs.length < 2) {
     // Could not find a matchup — return a helpful "unknown" response.
     const steps: ReasoningStep[] = [
@@ -911,7 +1058,7 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
         ? `**${nonQualified.zh}** 不在本模型的 2026 世界杯 48 强决赛圈名单中，因此无法夺冠，也无法参与对阵模拟。可以问我已晋级的球队（如阿根廷、西班牙、法国）。\n\n`
         : `**${nonQualified.en}** is not in the 2026 World Cup finals field (48 teams) in this model, so it can't win the tournament or be simulated in a matchup. Ask about a qualified team (e.g. Argentina, Spain, France).\n\n`
       : outOfScope
-        ? "This agent is focused on the **FIFA World Cup 2026** — I don't model other competitions (Euros, Champions League, …), so I won't answer that with World Cup numbers.\n\n"
+        ? "This agent models the **Premier League** and the **FIFA World Cup 2026**. I don't model other competitions (Euros, Champions League, La Liga, …) in Phase 1.\n\n"
         : "";
     const explanationEn =
       scopeNote +

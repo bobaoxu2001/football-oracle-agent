@@ -1,8 +1,8 @@
 {
-  "name": "worldcup-oracle-agent",
-  "version": "1.0.0",
+  "name": "football-oracle-agent",
+  "version": "0.1.0",
   "private": true,
-  "description": "WorldCup Oracle Agent — an AI agent that analyzes World Cup 2026 matchups, runs Monte Carlo simulations, explains predictions, and answers follow-up questions.",
+  "description": "Football Oracle — Premier League baseline forecasts plus the preserved World Cup 2026 plugin.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -36,7 +36,13 @@
     "dc:backtest": "tsx scripts/export-results-csv.ts betting-backtest/data && python3 betting-backtest/dc_model.py betting-backtest/data",
     "dc:selftest": "python3 betting-backtest/dc_model.py --selftest",
     "dc:nightly": "bash betting-backtest/run_nightly.sh",
-    "setup:mongo": "tsx scripts/setup-mongo.ts"
+    "setup:mongo": "tsx scripts/setup-mongo.ts",
+    "data:import-pl": "tsx scripts/import-pl-results.ts",
+    "fit:pl": "tsx scripts/fit-pl-params.ts",
+    "backtest:pl": "tsx scripts/backtest-pl.ts",
+    "test:phase1": "tsx scripts/test-phase1-core.ts",
+    "test:phase1-1": "tsx scripts/test-phase1-1.ts",
+    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.1",

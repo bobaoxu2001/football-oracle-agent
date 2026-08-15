@@ -1,0 +1,14 @@
+{
+  "sources": [
+    {
+      "id": "football-data-co-uk-premier-league",
+      "name": "football-data.co.uk English Premier League results (E0)",
+      "url": "https://www.football-data.co.uk/englandm.php",
+      "license": "Public historical results tables; used as community-maintained structured scores",
+      "official": false,
+      "trust": "community-verified",
+      "description": "Date, home, away, full-time goals for Premier League (E0) and Championship (E1). Goal data only — no shot-based xG. Used for club Elo training and walk-forward evaluation. Never mixed with martj42 internationals.",
+      "files": ["data/raw/premier-league/*.csv", "data/processed/premier-league/fixtures.json"]
+    }
+  ]
+}

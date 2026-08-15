@@ -56,6 +56,11 @@ export interface MatchPrediction {
   matchType?: MatchTypeClassification;
   modelSummary: string; // short free-preview line
   fullReport: string; // full AI-generated explanation (premium)
+  /** Engine identity. Required for league snapshots; optional on legacy WC cards. */
+  modelVersion?: string;
+  /** Date the prediction was computed as-of (YYYY-MM-DD). */
+  asOf?: string;
+  competition?: "world-cup" | "premier-league";
 }
 
 /** V5.1 match archetype, derived from the favourite's edge, kill power and the underdog's resistance. */

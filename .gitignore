@@ -26,3 +26,6 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# durable snapshot store (local writes; tests use SNAPSHOT_STORE_PATH)
+/data/processed/predictions/snapshots.jsonl

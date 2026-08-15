@@ -10,10 +10,10 @@ export function Navbar() {
           </span>
           <span className="flex flex-col leading-none">
             <span className="text-sm font-bold tracking-tight">
-              WorldCup <span className="neon-text">Oracle</span>
+              Football <span className="neon-text">Oracle</span>
             </span>
             <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Agent · 2026
+              PL · World Cup
             </span>
           </span>
         </Link>

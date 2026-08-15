@@ -1,3 +1,24 @@
+# Football Oracle
+
+Premier League baseline forecasts plus the preserved FIFA World Cup 2026 plugin.
+
+**Phase 1 status:** PASS WITH LIMITATIONS (see `docs/PHASE1_RELEASE_REPORT.md`).  
+**Phase 1.1:** required-fix remediation (`docs/PHASE1_1_REMEDIATION_REPORT.md`).  
+**Not yet:** official 2026-27 fixtures, other Big Five leagues, live odds.
+
+Current 2026-27 agent answers are a **temporary preseason baseline** from last season's 20-club field. They are not a live fixture forecast.
+
+```bash
+npm ci
+npm test          # Phase 1 + 1.1 gates
+npm run backtest:pl
+npm run dev
+```
+
+World Cup product notes continue below.
+
+---
+
 # 🔮 WorldCup Oracle Agent
 
 > **A daily news-aware AI agent that analyzes World Cup 2026 matchups, factors in the latest injuries & squad news, runs simulations, explains its predictions, and answers follow-up questions in real time.**

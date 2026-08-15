@@ -9,7 +9,7 @@ import {
   BRACKET_2026,
   positionLabel,
   type Round,
-} from "@/lib/prediction-engine/bracket-2026";
+} from "@/lib/competitions/world-cup/bracket-2026";
 import { ALL_MATCH_RESULTS } from "@/lib/seed/recorded-match-results";
 import type { ManualMatchResult } from "@/lib/seed/manual-match-results";
 import type { LiveFixture } from "@/lib/live-sports/types";

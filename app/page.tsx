@@ -1,5 +1,6 @@
 import { AgentChat } from "@/components/agent/agent-chat";
 import { DailyBriefCompact } from "@/components/news/daily-brief";
+import { PremierLeagueSlate } from "@/components/premier-league/weekend-slate";
 import { getRecentPredictions } from "@/lib/db/mongodb";
 import { geminiConfigured } from "@/lib/llm/gemini";
 import { geminiAgentEnabled } from "@/lib/llm/geminiAgent";
@@ -34,8 +35,8 @@ export default async function Home({
           Google Cloud Rapid Agent Hackathon
         </div>
         <h1 className="text-balance text-4xl font-black leading-tight tracking-tight sm:text-5xl">
-          The AI agent that <span className="neon-text">predicts the World Cup</span> — with daily
-          news intelligence.
+          The AI agent that <span className="neon-text">forecasts the Premier League</span> — and
+          still runs the World Cup plugin.
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-pretty text-base text-muted-foreground sm:text-lg">
           Ask a football question in plain English. The agent plans the analysis, pulls{" "}
@@ -45,7 +46,7 @@ export default async function Home({
         </p>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs">
-          <Stat label="48 teams · real 2026 draw" />
+          <Stat label="Premier League + World Cup plugin" />
           <Stat label="Elo + Dixon-Coles + Monte Carlo" />
           <Stat label={liveNews ? "Live news-aware" : "Daily news-aware"} on={liveNews} />
           <Stat label={llmLabel} on={deepseek || gemini} />
@@ -53,6 +54,7 @@ export default async function Home({
         </div>
       </section>
 
+      <PremierLeagueSlate />
       <DailyBriefCompact />
 
       <AgentChat

@@ -1,15 +1,28 @@
 /**
- * Elo + Dixon-Coles bivariate Poisson — the match model.
+ * Elo + Dixon-Coles bivariate Poisson — the shared match model.
  *
- * Ported verbatim (logic preserved) from the open-source
- * `Hicruben/world-cup-2026-prediction-model` (elo.mjs).
- * References: World Football Elo; Maher (1982); Dixon & Coles (1997).
+ * Closed-form 1X2 and Monte Carlo sampling now use the SAME Dixon-Coles
+ * scoreline grid. World Cup callers keep the historic defaults
+ * (ρ = −0.13, away λ receives −homeBonus/2) so existing WC 1X2 numbers
+ * are unchanged. League callers pass GoalModelOptions.
+ *
+ * λ is a goal-expectation mapping from Elo, NOT shot-based xG.
  */
 
 export const K_FACTOR_WC = 60;
 
-// Dixon-Coles ρ — corrects vanilla Poisson's under-count of 0-0 / 1-1 draws.
+/** World Cup / international default. Do not reuse for Premier League. */
 export const DC_RHO = -0.13;
+
+export interface GoalModelOptions {
+  rho?: number;
+  /**
+   * Fraction of the home Elo bonus applied (with opposite sign) to the away λ.
+   * World Cup historic default is 0.5. Premier League uses 0 (true home/away:
+   * bonus only on the home side).
+   */
+  awayHomeShare?: number;
+}
 
 function dcTau(
   a: number,
@@ -35,16 +48,18 @@ export function expectedScore(
 }
 
 /**
- * Rating difference → expected goals (Poisson λ). Flat denominator keeps
- * single-match variance near real football upset frequency.
+ * Rating difference → expected goals (Poisson λ). This is a goal-expectation
+ * mapping from Elo, not a shot-based xG model.
  */
 export function expectedGoals(
   rating: number,
   opponent: number,
-  homeBonus = 0
+  homeBonus = 0,
+  baseGoals = 1.35,
+  goalScale = 350
 ): number {
   const diff = rating + homeBonus - opponent;
-  const lambda = 1.35 + diff / 350;
+  const lambda = baseGoals + diff / goalScale;
   return Math.max(0.3, Math.min(3.5, lambda));
 }
 
@@ -74,21 +89,37 @@ export interface MatchProb {
   expectedGoalsB: number;
 }
 
-/** 1X2 probabilities via Dixon-Coles bivariate Poisson over 0–8 goals each side. */
-export function matchProb(
+export interface ScorelineCell {
+  a: number;
+  b: number;
+  p: number;
+}
+
+function lambdasFromRatings(
   ratingA: number,
   ratingB: number,
-  homeBonusA = 0
-): MatchProb {
+  homeBonusA: number,
+  opts: GoalModelOptions = {}
+): { lambda: number; mu: number } {
+  const awayShare = opts.awayHomeShare ?? 0.5;
   const lambda = expectedGoals(ratingA, ratingB, homeBonusA);
-  const mu = expectedGoals(ratingB, ratingA, -homeBonusA / 2);
+  const mu = expectedGoals(ratingB, ratingA, -homeBonusA * awayShare);
+  return { lambda, mu };
+}
+
+/** 1X2 from already-computed expected goals (Dixon-Coles τ, 0–8 grid). */
+export function matchProbFromGoals(
+  lambda: number,
+  mu: number,
+  rho = DC_RHO
+): MatchProb {
   let winA = 0;
   let draw = 0;
   let winB = 0;
   for (let a = 0; a <= 8; a++) {
     const pA = poissonPmf(a, lambda);
     for (let b = 0; b <= 8; b++) {
-      const tau = dcTau(a, b, lambda, mu, DC_RHO);
+      const tau = dcTau(a, b, lambda, mu, rho);
       const p = pA * poissonPmf(b, mu) * tau;
       if (a > b) winA += p;
       else if (a < b) winB += p;
@@ -105,23 +136,17 @@ export function matchProb(
   };
 }
 
-/**
- * Full 9×9 scoreline probability grid (Dixon-Coles corrected, normalised).
- * Used to surface the single most-likely scoreline.
- */
-export function scorelineGrid(
-  ratingA: number,
-  ratingB: number,
-  homeBonusA = 0
-): { a: number; b: number; p: number }[] {
-  const lambda = expectedGoals(ratingA, ratingB, homeBonusA);
-  const mu = expectedGoals(ratingB, ratingA, -homeBonusA / 2);
-  const grid: { a: number; b: number; p: number }[] = [];
+/** Scoreline grid from already-computed expected goals (Dixon-Coles, normalised). */
+export function scorelineGridFromGoals(
+  lambda: number,
+  mu: number,
+  rho = DC_RHO
+): ScorelineCell[] {
+  const grid: ScorelineCell[] = [];
   let total = 0;
   for (let a = 0; a <= 8; a++) {
     for (let b = 0; b <= 8; b++) {
-      const p =
-        poissonPmf(a, lambda) * poissonPmf(b, mu) * dcTau(a, b, lambda, mu, DC_RHO);
+      const p = poissonPmf(a, lambda) * poissonPmf(b, mu) * dcTau(a, b, lambda, mu, rho);
       grid.push({ a, b, p });
       total += p;
     }
@@ -129,21 +154,61 @@ export function scorelineGrid(
   return grid.map((g) => ({ ...g, p: g.p / total }));
 }
 
+/** 1X2 probabilities via Dixon-Coles bivariate Poisson over 0–8 goals each side. */
+export function matchProb(
+  ratingA: number,
+  ratingB: number,
+  homeBonusA = 0,
+  rhoOrOpts: number | GoalModelOptions = DC_RHO
+): MatchProb {
+  const opts = typeof rhoOrOpts === "number" ? { rho: rhoOrOpts } : rhoOrOpts;
+  const rho = opts.rho ?? DC_RHO;
+  const { lambda, mu } = lambdasFromRatings(ratingA, ratingB, homeBonusA, opts);
+  return matchProbFromGoals(lambda, mu, rho);
+}
+
+/** Full 9×9 scoreline probability grid (Dixon-Coles corrected, normalised). */
+export function scorelineGrid(
+  ratingA: number,
+  ratingB: number,
+  homeBonusA = 0,
+  rhoOrOpts: number | GoalModelOptions = DC_RHO
+): ScorelineCell[] {
+  const opts = typeof rhoOrOpts === "number" ? { rho: rhoOrOpts } : rhoOrOpts;
+  const rho = opts.rho ?? DC_RHO;
+  const { lambda, mu } = lambdasFromRatings(ratingA, ratingB, homeBonusA, opts);
+  return scorelineGridFromGoals(lambda, mu, rho);
+}
+
+/** Draw a scoreline from a normalised Dixon-Coles grid. */
+export function sampleFromGrid(
+  grid: ScorelineCell[],
+  rng: () => number = Math.random
+): { goalsA: number; goalsB: number } {
+  let u = rng();
+  for (const cell of grid) {
+    u -= cell.p;
+    if (u <= 0) return { goalsA: cell.a, goalsB: cell.b };
+  }
+  const last = grid[grid.length - 1];
+  return { goalsA: last.a, goalsB: last.b };
+}
+
 /**
- * Sample a scoreline (for Monte Carlo). allowDraw=false → penalty-shootout
- * nudge toward the higher-Elo side.
+ * Sample a scoreline (for Monte Carlo) from the SAME Dixon-Coles grid used
+ * by the closed-form 1X2. allowDraw=false → extra-time/pens nudge toward
+ * the higher-Elo side (World Cup knockout only).
  */
 export function sampleMatch(
   ratingA: number,
   ratingB: number,
   homeBonusA = 0,
   allowDraw = true,
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
+  opts: GoalModelOptions = {}
 ): { goalsA: number; goalsB: number } {
-  const eA = expectedGoals(ratingA, ratingB, homeBonusA);
-  const eB = expectedGoals(ratingB, ratingA, -homeBonusA / 2);
-  let goalsA = poissonSample(eA, rng);
-  let goalsB = poissonSample(eB, rng);
+  const grid = scorelineGrid(ratingA, ratingB, homeBonusA, opts);
+  let { goalsA, goalsB } = sampleFromGrid(grid, rng);
   if (!allowDraw && goalsA === goalsB) {
     if (rng() < expectedScore(ratingA, ratingB, homeBonusA)) goalsA += 1;
     else goalsB += 1;
@@ -152,8 +217,8 @@ export function sampleMatch(
 }
 
 /**
- * Mulberry32 — tiny, fast, seedable PRNG. Used so the Monte Carlo tournament
- * simulation is reproducible across server requests (stable championship odds).
+ * Mulberry32 — tiny, fast, seedable PRNG. Used so Monte Carlo simulations
+ * are reproducible across server requests.
  */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
