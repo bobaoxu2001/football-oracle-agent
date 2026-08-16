@@ -38,7 +38,8 @@ The 380 committed LIVE_OOS snapshots were not rewritten. Three P1 production blo
 
 | Item | Value |
 | --- | --- |
-| HEAD | `6d293d0243ac68492a53b28139060620e5107ccb` |
+| Start HEAD | `6d293d0243ac68492a53b28139060620e5107ccb` |
+| Implementation SHA | `1c78f3179408bddddc17d0e914e0a486cace7147` |
 | Live tape | `data/processed/premier-league/live-oos-2026-27.jsonl` |
 | Lines | 380 |
 | Bytes | 569019 |
