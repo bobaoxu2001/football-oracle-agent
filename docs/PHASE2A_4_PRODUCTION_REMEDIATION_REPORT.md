@@ -22,7 +22,7 @@ Limitations are operational, not evidence-integrity: GitHub cron can jitter; the
 | Item | Value |
 | --- | --- |
 | Start commit | `1dab4715126410c2dd78e9fc71a8477df5214e22` |
-| End commit | `814650ddbcf032a9523963bfb64de2d52fdeeadf` |
+| End commit | `a4f17ca9882a8026a73f45907114c10f8d6eead9` |
 | Settlement implementation | `c5f7bbba8a3da3d9faba297410f7e5f7ea421902` |
 | Production deployment | `dpl_8me2vnYixw8CiFkVawvD1uFnC17r` |
 | Production URL | https://football-oracle-agent.vercel.app |
