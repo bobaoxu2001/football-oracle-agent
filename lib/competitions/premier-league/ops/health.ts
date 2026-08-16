@@ -60,7 +60,9 @@ export interface HealthReport {
   };
   scheduler: {
     cadenceMs: number;
+    host: string | null;
     jobs: ReturnType<typeof jobCounts>;
+    activeJobs: number;
     nextJob: {
       jobId: string;
       stage: string;
@@ -275,7 +277,9 @@ export function buildHealthReport(now = new Date()): HealthReport {
     },
     scheduler: {
       cadenceMs: TICK_CADENCE_MS,
+      host: process.env.OPS_SCHEDULER_HOST ?? null,
       jobs: counts,
+      activeJobs: counts.PENDING + counts.ELIGIBLE + counts.RUNNING,
       nextJob: nextJob
         ? {
             jobId: nextJob.jobId,

@@ -1,0 +1,49 @@
+# Hosted production scheduler. Cadence <= 5 minutes.
+# Invokes Vercel /api/ops/tick with CRON_SECRET. Does not invent results.
+# Recurrence is GitHub-managed; overlap is serialized by the Mongo 90s lease.
+name: ops-tick
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: football-oracle-ops-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    name: production-ops-tick
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Authenticated production tick
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          OPS_TICK_URL: ${{ vars.OPS_TICK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "missing CRON_SECRET"
+            exit 1
+          fi
+          URL="${OPS_TICK_URL:-https://football-oracle-agent.vercel.app/api/ops/tick}"
+          AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          CODE="$(curl -sS -o /tmp/tick-body -w "%{http_code}" \
+            --max-time 90 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "User-Agent: football-oracle-ops-scheduler" \
+            "$URL" || true)"
+          echo "at=${AT} status=${CODE}"
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path("/tmp/tick-body").read_text(errors="replace")
+          print(text[:800])
+          PY
+          # 200 = executed, 409 = lease skip (still a successful scheduler invocation)
+          if [ "$CODE" != "200" ] && [ "$CODE" != "409" ]; then
+            echo "failure_state=http_${CODE}"
+            exit 1
+          fi
+          echo "failure_state=none"

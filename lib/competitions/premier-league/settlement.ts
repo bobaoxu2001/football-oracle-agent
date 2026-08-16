@@ -9,10 +9,10 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Fixture } from "@/lib/identity/types";
 import type { EvaluationClass, PredictionSnapshot } from "@/lib/snapshots/types";
-import { listSnapshots } from "@/lib/snapshots/store";
 import { brier3, rps3 } from "@/lib/evaluation/metrics";
 import type { Outcome } from "@/lib/evaluation/types";
 import { canonicalizeFixtureStatus } from "./ingest";
+import { listLiveSnapshots } from "./ops/live-snapshot-reader";
 
 export interface SettlementRecord {
   snapshotUniqueKey: string;
@@ -30,6 +30,7 @@ export interface SettlementRecord {
   logLoss: number;
   topPickCorrect: boolean;
   resultSource?: string;
+  verificationId?: string;
 }
 
 const DEFAULT_PATH = path.resolve(
@@ -124,17 +125,19 @@ export function persistSettlement(rec: SettlementRecord): SettlementRecord {
 export function settleFixture(
   fixture: Fixture,
   settledAt = new Date().toISOString(),
-  options: { evaluationClass?: EvaluationClass } = {}
+  options: { evaluationClass?: EvaluationClass; verificationId?: string } = {}
 ): SettlementRecord[] {
   if (!canSettle(fixture)) return [];
-  const snaps = listSnapshots().filter((s) => {
-    if (s.fixtureId !== fixture.id || s.season !== fixture.season) return false;
-    if (options.evaluationClass && (s.evaluationClass ?? null) !== options.evaluationClass) return false;
-    return true;
+  const snaps = listLiveSnapshots({
+    fixtureId: fixture.id,
+    season: fixture.season,
+    evaluationClass: options.evaluationClass,
   });
   const written: SettlementRecord[] = [];
   for (const snap of snaps) {
-    written.push(persistSettlement(settlementFromSnapshot(snap, fixture, settledAt)));
+    const rec = settlementFromSnapshot(snap, fixture, settledAt);
+    if (options.verificationId) rec.verificationId = options.verificationId;
+    written.push(persistSettlement(rec));
   }
   return written;
 }

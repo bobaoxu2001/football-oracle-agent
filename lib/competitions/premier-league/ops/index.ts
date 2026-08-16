@@ -7,3 +7,8 @@ export { liveRatingsAsOf } from "./live-ratings";
 export { applyVerifiedRatingUpdate, listRatingEvents } from "./rating-events";
 export { verifyFixtureResult, ingestAndVerifyResults, canSettleVerification } from "./result-feed";
 export { clearLiveOpsForTests } from "./reset";
+export {
+  listLiveSnapshots,
+  liveSnapshotIdentity,
+  liveSnapshotUniverse,
+} from "./live-snapshot-reader";

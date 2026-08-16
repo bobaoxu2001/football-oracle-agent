@@ -134,7 +134,10 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     };
     if (!canSettle(finished)) continue;
     try {
-      const rows = settleFixture(finished, now, { evaluationClass: "LIVE_OOS" });
+      const rows = settleFixture(finished, now, {
+        evaluationClass: "LIVE_OOS",
+        verificationId: `${v.fixtureId}::${v.verifiedAt ?? now}`,
+      });
       settled += rows.length;
     } catch (err) {
       errors.push(`settle ${v.fixtureId}: ${(err as Error).message}`);

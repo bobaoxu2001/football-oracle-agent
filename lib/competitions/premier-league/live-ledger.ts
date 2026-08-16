@@ -6,7 +6,6 @@
 
 import {
   listSnapshots,
-  loadCommittedLiveOos,
   snapshotIndexStats,
   type PredictionSnapshot,
 } from "@/lib/snapshots/store";
@@ -16,7 +15,7 @@ import { calculateBacktestMetrics } from "@/lib/evaluation/metrics";
 import type { BacktestResult, Outcome } from "@/lib/evaluation/types";
 import { loadSettlements, type SettlementRecord } from "./settlement";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "./config";
-import { loadOperationalLiveOos } from "./ops/operational-archive";
+import { liveSnapshotUniverse } from "./ops/live-snapshot-reader";
 
 export function operationalLiveOosUnion(season = PREMIER_LEAGUE_CURRENT_SEASON): {
   snapshots: PredictionSnapshot[];
@@ -24,23 +23,7 @@ export function operationalLiveOosUnion(season = PREMIER_LEAGUE_CURRENT_SEASON):
   operational: number;
   total: number;
 } {
-  const committed = loadCommittedLiveOos().filter((s) => !season || s.season === season);
-  const operational = loadOperationalLiveOos().filter((s) => {
-    if (s.evaluationClass !== "LIVE_OOS") return false;
-    if (season && s.season !== season) return false;
-    return true;
-  });
-  const byKey = new Map<string, PredictionSnapshot>();
-  for (const s of committed) byKey.set(s.provenance.uniqueKey, s);
-  for (const s of operational) {
-    if (!byKey.has(s.provenance.uniqueKey)) byKey.set(s.provenance.uniqueKey, s);
-  }
-  return {
-    snapshots: [...byKey.values()],
-    committed: committed.length,
-    operational: operational.length,
-    total: byKey.size,
-  };
+  return liveSnapshotUniverse(season);
 }
 
 export function snapshotsOfClass(

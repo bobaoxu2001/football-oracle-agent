@@ -98,6 +98,7 @@ export default async function HealthPage() {
       <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
         <h2 className="mb-3 font-semibold">Prediction jobs</h2>
         <ul className="grid grid-cols-2 gap-1 text-muted-foreground sm:grid-cols-4">
+          <li>active {h.scheduler.activeJobs}</li>
           <li>pending {h.scheduler.jobs.PENDING}</li>
           <li>eligible {h.scheduler.jobs.ELIGIBLE}</li>
           <li>succeeded {h.scheduler.jobs.SUCCEEDED}</li>
@@ -108,8 +109,9 @@ export default async function HealthPage() {
           <li>running {h.scheduler.jobs.RUNNING}</li>
         </ul>
         <p className="mt-3 text-muted-foreground">
-          Cadence {h.scheduler.cadenceMs / 60000} min. Freshness {h.scheduler.freshness}. Next
-          eligible job:{" "}
+          Cadence {h.scheduler.cadenceMs / 60000} min. Freshness {h.scheduler.freshness}.
+          {h.scheduler.host ? ` Host ${h.scheduler.host}.` : ""} Cancelled rows are historical
+          ledger noise and are not active work. Next eligible job:{" "}
           {h.scheduler.nextJob
             ? `${h.scheduler.nextJob.stage} ${h.scheduler.nextJob.fixtureId} · ${h.scheduler.nextJob.certainty ?? "?"} · kickoff ${h.scheduler.nextJob.kickoff} · window ${h.scheduler.nextJob.eligibleFrom} → ${h.scheduler.nextJob.eligibleUntil} · target ${h.scheduler.nextJob.target}`
             : "—"}

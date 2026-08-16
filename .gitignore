@@ -34,3 +34,6 @@ yarn-error.log*
 # live-ops working state (never the canonical LIVE_OOS tape)
 /data/processed/premier-league/ops/
 /data/processed/premier-league/settlements.jsonl
+
+# ops bundle exports (may contain production job/settlement state)
+/ops-backups/
