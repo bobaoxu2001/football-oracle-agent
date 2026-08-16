@@ -1,0 +1,3428 @@
+{
+  "retrievedAt": "2026-08-16T05:32:02.136Z",
+  "source": "premier-league-official",
+  "sourceId": "pl-official-fixtures-2026-27",
+  "fixtureCount": 380,
+  "fixtures": [
+    {
+      "id": "pl-2026-27-arsenal-coventry",
+      "sourceFixtureId": "pl-2026-27-arsenal-coventry",
+      "homeSlug": "arsenal",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2026-08-21T19:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-hull-manchester-united",
+      "sourceFixtureId": "pl-2026-27-hull-manchester-united",
+      "homeSlug": "hull",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2026-08-22T11:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-everton-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-everton-crystal-palace",
+      "homeSlug": "everton",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2026-08-22T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-ipswich-sunderland",
+      "sourceFixtureId": "pl-2026-27-ipswich-sunderland",
+      "homeSlug": "ipswich",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-08-22T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-leeds",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-leeds",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-08-22T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-brentford-tottenham",
+      "sourceFixtureId": "pl-2026-27-brentford-tottenham",
+      "homeSlug": "brentford",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2026-08-22T16:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-brighton-aston-villa",
+      "sourceFixtureId": "pl-2026-27-brighton-aston-villa",
+      "homeSlug": "brighton",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2026-08-23T13:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-manchester-city-bournemouth",
+      "sourceFixtureId": "pl-2026-27-manchester-city-bournemouth",
+      "homeSlug": "manchester-city",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2026-08-23T13:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-newcastle-liverpool",
+      "sourceFixtureId": "pl-2026-27-newcastle-liverpool",
+      "homeSlug": "newcastle",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2026-08-23T15:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-fulham-chelsea",
+      "sourceFixtureId": "pl-2026-27-fulham-chelsea",
+      "homeSlug": "fulham",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2026-08-24T19:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 1
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-manchester-city",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-manchester-city",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2026-08-28T19:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-liverpool-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-liverpool-nottingham-forest",
+      "homeSlug": "liverpool",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-08-29T11:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-bournemouth-everton",
+      "sourceFixtureId": "pl-2026-27-bournemouth-everton",
+      "homeSlug": "bournemouth",
+      "awaySlug": "everton",
+      "kickoffUtc": "2026-08-29T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-coventry-hull",
+      "sourceFixtureId": "pl-2026-27-coventry-hull",
+      "homeSlug": "coventry",
+      "awaySlug": "hull",
+      "kickoffUtc": "2026-08-29T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-tottenham-newcastle",
+      "sourceFixtureId": "pl-2026-27-tottenham-newcastle",
+      "homeSlug": "tottenham",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2026-08-29T16:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-chelsea-brighton",
+      "sourceFixtureId": "pl-2026-27-chelsea-brighton",
+      "homeSlug": "chelsea",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-08-30T13:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-leeds-brentford",
+      "sourceFixtureId": "pl-2026-27-leeds-brentford",
+      "homeSlug": "leeds",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2026-08-30T13:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-sunderland-fulham",
+      "sourceFixtureId": "pl-2026-27-sunderland-fulham",
+      "homeSlug": "sunderland",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2026-08-30T13:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-manchester-united-ipswich",
+      "sourceFixtureId": "pl-2026-27-manchester-united-ipswich",
+      "homeSlug": "manchester-united",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2026-08-30T15:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-aston-villa-arsenal",
+      "sourceFixtureId": "pl-2026-27-aston-villa-arsenal",
+      "homeSlug": "aston-villa",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-08-31T19:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 2
+    },
+    {
+      "id": "pl-2026-27-ipswich-liverpool",
+      "sourceFixtureId": "pl-2026-27-ipswich-liverpool",
+      "homeSlug": "ipswich",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2026-09-04T19:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-newcastle-bournemouth",
+      "sourceFixtureId": "pl-2026-27-newcastle-bournemouth",
+      "homeSlug": "newcastle",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2026-09-05T11:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-brentford-sunderland",
+      "sourceFixtureId": "pl-2026-27-brentford-sunderland",
+      "homeSlug": "brentford",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-09-05T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-brighton-leeds",
+      "sourceFixtureId": "pl-2026-27-brighton-leeds",
+      "homeSlug": "brighton",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-09-05T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-fulham-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-fulham-crystal-palace",
+      "homeSlug": "fulham",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2026-09-05T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-manchester-city-coventry",
+      "sourceFixtureId": "pl-2026-27-manchester-city-coventry",
+      "homeSlug": "manchester-city",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2026-09-05T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-tottenham",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-tottenham",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2026-09-05T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-hull-aston-villa",
+      "sourceFixtureId": "pl-2026-27-hull-aston-villa",
+      "homeSlug": "hull",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2026-09-05T16:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-everton-manchester-united",
+      "sourceFixtureId": "pl-2026-27-everton-manchester-united",
+      "homeSlug": "everton",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2026-09-06T13:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-arsenal-chelsea",
+      "sourceFixtureId": "pl-2026-27-arsenal-chelsea",
+      "homeSlug": "arsenal",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2026-09-06T15:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 3
+    },
+    {
+      "id": "pl-2026-27-bournemouth-brentford",
+      "sourceFixtureId": "pl-2026-27-bournemouth-brentford",
+      "homeSlug": "bournemouth",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2026-09-12T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-aston-villa-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-aston-villa-nottingham-forest",
+      "homeSlug": "aston-villa",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-09-12T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-chelsea-hull",
+      "sourceFixtureId": "pl-2026-27-chelsea-hull",
+      "homeSlug": "chelsea",
+      "awaySlug": "hull",
+      "kickoffUtc": "2026-09-12T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-ipswich",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-ipswich",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2026-09-12T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-liverpool-fulham",
+      "sourceFixtureId": "pl-2026-27-liverpool-fulham",
+      "homeSlug": "liverpool",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2026-09-12T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-tottenham-everton",
+      "sourceFixtureId": "pl-2026-27-tottenham-everton",
+      "homeSlug": "tottenham",
+      "awaySlug": "everton",
+      "kickoffUtc": "2026-09-12T16:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-sunderland-arsenal",
+      "sourceFixtureId": "pl-2026-27-sunderland-arsenal",
+      "homeSlug": "sunderland",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-09-12T19:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-coventry-brighton",
+      "sourceFixtureId": "pl-2026-27-coventry-brighton",
+      "homeSlug": "coventry",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-09-13T13:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-manchester-united-manchester-city",
+      "sourceFixtureId": "pl-2026-27-manchester-united-manchester-city",
+      "homeSlug": "manchester-united",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2026-09-13T15:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-leeds-newcastle",
+      "sourceFixtureId": "pl-2026-27-leeds-newcastle",
+      "homeSlug": "leeds",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2026-09-14T19:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 4
+    },
+    {
+      "id": "pl-2026-27-brentford-chelsea",
+      "sourceFixtureId": "pl-2026-27-brentford-chelsea",
+      "homeSlug": "brentford",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2026-09-18T19:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-tottenham-aston-villa",
+      "sourceFixtureId": "pl-2026-27-tottenham-aston-villa",
+      "homeSlug": "tottenham",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2026-09-19T11:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-brighton-arsenal",
+      "sourceFixtureId": "pl-2026-27-brighton-arsenal",
+      "homeSlug": "brighton",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-09-19T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-everton-ipswich",
+      "sourceFixtureId": "pl-2026-27-everton-ipswich",
+      "homeSlug": "everton",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2026-09-19T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-leeds-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-leeds-crystal-palace",
+      "homeSlug": "leeds",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2026-09-19T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-manchester-city-sunderland",
+      "sourceFixtureId": "pl-2026-27-manchester-city-sunderland",
+      "homeSlug": "manchester-city",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-09-19T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-newcastle-hull",
+      "sourceFixtureId": "pl-2026-27-newcastle-hull",
+      "homeSlug": "newcastle",
+      "awaySlug": "hull",
+      "kickoffUtc": "2026-09-19T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-coventry",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-coventry",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2026-09-19T16:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-bournemouth-liverpool",
+      "sourceFixtureId": "pl-2026-27-bournemouth-liverpool",
+      "homeSlug": "bournemouth",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2026-09-20T13:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-fulham-manchester-united",
+      "sourceFixtureId": "pl-2026-27-fulham-manchester-united",
+      "homeSlug": "fulham",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2026-09-20T15:30:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 5
+    },
+    {
+      "id": "pl-2026-27-arsenal-leeds",
+      "sourceFixtureId": "pl-2026-27-arsenal-leeds",
+      "homeSlug": "arsenal",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-aston-villa-brentford",
+      "sourceFixtureId": "pl-2026-27-aston-villa-brentford",
+      "homeSlug": "aston-villa",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-chelsea-bournemouth",
+      "sourceFixtureId": "pl-2026-27-chelsea-bournemouth",
+      "homeSlug": "chelsea",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-coventry-newcastle",
+      "sourceFixtureId": "pl-2026-27-coventry-newcastle",
+      "homeSlug": "coventry",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-nottingham-forest",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-hull-everton",
+      "sourceFixtureId": "pl-2026-27-hull-everton",
+      "homeSlug": "hull",
+      "awaySlug": "everton",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-ipswich-fulham",
+      "sourceFixtureId": "pl-2026-27-ipswich-fulham",
+      "homeSlug": "ipswich",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-liverpool-manchester-city",
+      "sourceFixtureId": "pl-2026-27-liverpool-manchester-city",
+      "homeSlug": "liverpool",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-manchester-united-tottenham",
+      "sourceFixtureId": "pl-2026-27-manchester-united-tottenham",
+      "homeSlug": "manchester-united",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-sunderland-brighton",
+      "sourceFixtureId": "pl-2026-27-sunderland-brighton",
+      "homeSlug": "sunderland",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-10-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 6
+    },
+    {
+      "id": "pl-2026-27-bournemouth-sunderland",
+      "sourceFixtureId": "pl-2026-27-bournemouth-sunderland",
+      "homeSlug": "bournemouth",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-brentford-liverpool",
+      "sourceFixtureId": "pl-2026-27-brentford-liverpool",
+      "homeSlug": "brentford",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-brighton-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-brighton-crystal-palace",
+      "homeSlug": "brighton",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-everton-chelsea",
+      "sourceFixtureId": "pl-2026-27-everton-chelsea",
+      "homeSlug": "everton",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-fulham-hull",
+      "sourceFixtureId": "pl-2026-27-fulham-hull",
+      "homeSlug": "fulham",
+      "awaySlug": "hull",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-leeds-manchester-united",
+      "sourceFixtureId": "pl-2026-27-leeds-manchester-united",
+      "homeSlug": "leeds",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-manchester-city-ipswich",
+      "sourceFixtureId": "pl-2026-27-manchester-city-ipswich",
+      "homeSlug": "manchester-city",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-newcastle-aston-villa",
+      "sourceFixtureId": "pl-2026-27-newcastle-aston-villa",
+      "homeSlug": "newcastle",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-arsenal",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-arsenal",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-tottenham-coventry",
+      "sourceFixtureId": "pl-2026-27-tottenham-coventry",
+      "homeSlug": "tottenham",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2026-10-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 7
+    },
+    {
+      "id": "pl-2026-27-arsenal-everton",
+      "sourceFixtureId": "pl-2026-27-arsenal-everton",
+      "homeSlug": "arsenal",
+      "awaySlug": "everton",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-aston-villa-manchester-city",
+      "sourceFixtureId": "pl-2026-27-aston-villa-manchester-city",
+      "homeSlug": "aston-villa",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-chelsea-tottenham",
+      "sourceFixtureId": "pl-2026-27-chelsea-tottenham",
+      "homeSlug": "chelsea",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-coventry-fulham",
+      "sourceFixtureId": "pl-2026-27-coventry-fulham",
+      "homeSlug": "coventry",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-newcastle",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-newcastle",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-hull-brentford",
+      "sourceFixtureId": "pl-2026-27-hull-brentford",
+      "homeSlug": "hull",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-ipswich-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-ipswich-nottingham-forest",
+      "homeSlug": "ipswich",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-liverpool-brighton",
+      "sourceFixtureId": "pl-2026-27-liverpool-brighton",
+      "homeSlug": "liverpool",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-manchester-united-bournemouth",
+      "sourceFixtureId": "pl-2026-27-manchester-united-bournemouth",
+      "homeSlug": "manchester-united",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-sunderland-leeds",
+      "sourceFixtureId": "pl-2026-27-sunderland-leeds",
+      "homeSlug": "sunderland",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-10-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 8
+    },
+    {
+      "id": "pl-2026-27-bournemouth-leeds",
+      "sourceFixtureId": "pl-2026-27-bournemouth-leeds",
+      "homeSlug": "bournemouth",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-aston-villa-fulham",
+      "sourceFixtureId": "pl-2026-27-aston-villa-fulham",
+      "homeSlug": "aston-villa",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-brentford-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-brentford-nottingham-forest",
+      "homeSlug": "brentford",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-chelsea-manchester-united",
+      "sourceFixtureId": "pl-2026-27-chelsea-manchester-united",
+      "homeSlug": "chelsea",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-coventry-sunderland",
+      "sourceFixtureId": "pl-2026-27-coventry-sunderland",
+      "homeSlug": "coventry",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-hull-ipswich",
+      "sourceFixtureId": "pl-2026-27-hull-ipswich",
+      "homeSlug": "hull",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-liverpool-arsenal",
+      "sourceFixtureId": "pl-2026-27-liverpool-arsenal",
+      "homeSlug": "liverpool",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-manchester-city-brighton",
+      "sourceFixtureId": "pl-2026-27-manchester-city-brighton",
+      "homeSlug": "manchester-city",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-newcastle-everton",
+      "sourceFixtureId": "pl-2026-27-newcastle-everton",
+      "homeSlug": "newcastle",
+      "awaySlug": "everton",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-tottenham-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-tottenham-crystal-palace",
+      "homeSlug": "tottenham",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2026-10-31T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 9
+    },
+    {
+      "id": "pl-2026-27-arsenal-hull",
+      "sourceFixtureId": "pl-2026-27-arsenal-hull",
+      "homeSlug": "arsenal",
+      "awaySlug": "hull",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-brighton-brentford",
+      "sourceFixtureId": "pl-2026-27-brighton-brentford",
+      "homeSlug": "brighton",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-liverpool",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-liverpool",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-everton-coventry",
+      "sourceFixtureId": "pl-2026-27-everton-coventry",
+      "homeSlug": "everton",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-fulham-newcastle",
+      "sourceFixtureId": "pl-2026-27-fulham-newcastle",
+      "homeSlug": "fulham",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-ipswich-bournemouth",
+      "sourceFixtureId": "pl-2026-27-ipswich-bournemouth",
+      "homeSlug": "ipswich",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-leeds-tottenham",
+      "sourceFixtureId": "pl-2026-27-leeds-tottenham",
+      "homeSlug": "leeds",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-manchester-united-aston-villa",
+      "sourceFixtureId": "pl-2026-27-manchester-united-aston-villa",
+      "homeSlug": "manchester-united",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-manchester-city",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-manchester-city",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-sunderland-chelsea",
+      "sourceFixtureId": "pl-2026-27-sunderland-chelsea",
+      "homeSlug": "sunderland",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2026-11-07T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 10
+    },
+    {
+      "id": "pl-2026-27-bournemouth-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-bournemouth-nottingham-forest",
+      "homeSlug": "bournemouth",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-aston-villa-sunderland",
+      "sourceFixtureId": "pl-2026-27-aston-villa-sunderland",
+      "homeSlug": "aston-villa",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-brentford-everton",
+      "sourceFixtureId": "pl-2026-27-brentford-everton",
+      "homeSlug": "brentford",
+      "awaySlug": "everton",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-chelsea-leeds",
+      "sourceFixtureId": "pl-2026-27-chelsea-leeds",
+      "homeSlug": "chelsea",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-coventry-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-coventry-crystal-palace",
+      "homeSlug": "coventry",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-hull-brighton",
+      "sourceFixtureId": "pl-2026-27-hull-brighton",
+      "homeSlug": "hull",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-liverpool-manchester-united",
+      "sourceFixtureId": "pl-2026-27-liverpool-manchester-united",
+      "homeSlug": "liverpool",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-manchester-city-fulham",
+      "sourceFixtureId": "pl-2026-27-manchester-city-fulham",
+      "homeSlug": "manchester-city",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-newcastle-arsenal",
+      "sourceFixtureId": "pl-2026-27-newcastle-arsenal",
+      "homeSlug": "newcastle",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-tottenham-ipswich",
+      "sourceFixtureId": "pl-2026-27-tottenham-ipswich",
+      "homeSlug": "tottenham",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2026-11-21T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 11
+    },
+    {
+      "id": "pl-2026-27-arsenal-manchester-city",
+      "sourceFixtureId": "pl-2026-27-arsenal-manchester-city",
+      "homeSlug": "arsenal",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-brighton-newcastle",
+      "sourceFixtureId": "pl-2026-27-brighton-newcastle",
+      "homeSlug": "brighton",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-hull",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-hull",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "hull",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-everton-liverpool",
+      "sourceFixtureId": "pl-2026-27-everton-liverpool",
+      "homeSlug": "everton",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-fulham-bournemouth",
+      "sourceFixtureId": "pl-2026-27-fulham-bournemouth",
+      "homeSlug": "fulham",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-ipswich-aston-villa",
+      "sourceFixtureId": "pl-2026-27-ipswich-aston-villa",
+      "homeSlug": "ipswich",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-leeds-coventry",
+      "sourceFixtureId": "pl-2026-27-leeds-coventry",
+      "homeSlug": "leeds",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-manchester-united-brentford",
+      "sourceFixtureId": "pl-2026-27-manchester-united-brentford",
+      "homeSlug": "manchester-united",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-chelsea",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-chelsea",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-sunderland-tottenham",
+      "sourceFixtureId": "pl-2026-27-sunderland-tottenham",
+      "homeSlug": "sunderland",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2026-11-28T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 12
+    },
+    {
+      "id": "pl-2026-27-bournemouth-brighton",
+      "sourceFixtureId": "pl-2026-27-bournemouth-brighton",
+      "homeSlug": "bournemouth",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-aston-villa-everton",
+      "sourceFixtureId": "pl-2026-27-aston-villa-everton",
+      "homeSlug": "aston-villa",
+      "awaySlug": "everton",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-brentford-arsenal",
+      "sourceFixtureId": "pl-2026-27-brentford-arsenal",
+      "homeSlug": "brentford",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-chelsea-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-chelsea-crystal-palace",
+      "homeSlug": "chelsea",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-coventry-ipswich",
+      "sourceFixtureId": "pl-2026-27-coventry-ipswich",
+      "homeSlug": "coventry",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-hull-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-hull-nottingham-forest",
+      "homeSlug": "hull",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-liverpool-sunderland",
+      "sourceFixtureId": "pl-2026-27-liverpool-sunderland",
+      "homeSlug": "liverpool",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-manchester-city-leeds",
+      "sourceFixtureId": "pl-2026-27-manchester-city-leeds",
+      "homeSlug": "manchester-city",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-newcastle-manchester-united",
+      "sourceFixtureId": "pl-2026-27-newcastle-manchester-united",
+      "homeSlug": "newcastle",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-tottenham-fulham",
+      "sourceFixtureId": "pl-2026-27-tottenham-fulham",
+      "homeSlug": "tottenham",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2026-12-02T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 13
+    },
+    {
+      "id": "pl-2026-27-bournemouth-hull",
+      "sourceFixtureId": "pl-2026-27-bournemouth-hull",
+      "homeSlug": "bournemouth",
+      "awaySlug": "hull",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-aston-villa-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-aston-villa-crystal-palace",
+      "homeSlug": "aston-villa",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-brentford-manchester-city",
+      "sourceFixtureId": "pl-2026-27-brentford-manchester-city",
+      "homeSlug": "brentford",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-chelsea-liverpool",
+      "sourceFixtureId": "pl-2026-27-chelsea-liverpool",
+      "homeSlug": "chelsea",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-everton-fulham",
+      "sourceFixtureId": "pl-2026-27-everton-fulham",
+      "homeSlug": "everton",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-leeds-ipswich",
+      "sourceFixtureId": "pl-2026-27-leeds-ipswich",
+      "homeSlug": "leeds",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-manchester-united-coventry",
+      "sourceFixtureId": "pl-2026-27-manchester-united-coventry",
+      "homeSlug": "manchester-united",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-newcastle-sunderland",
+      "sourceFixtureId": "pl-2026-27-newcastle-sunderland",
+      "homeSlug": "newcastle",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-brighton",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-brighton",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-tottenham-arsenal",
+      "sourceFixtureId": "pl-2026-27-tottenham-arsenal",
+      "homeSlug": "tottenham",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-12-05T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 14
+    },
+    {
+      "id": "pl-2026-27-arsenal-bournemouth",
+      "sourceFixtureId": "pl-2026-27-arsenal-bournemouth",
+      "homeSlug": "arsenal",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-brighton-everton",
+      "sourceFixtureId": "pl-2026-27-brighton-everton",
+      "homeSlug": "brighton",
+      "awaySlug": "everton",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-coventry-aston-villa",
+      "sourceFixtureId": "pl-2026-27-coventry-aston-villa",
+      "homeSlug": "coventry",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-manchester-united",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-manchester-united",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-fulham-brentford",
+      "sourceFixtureId": "pl-2026-27-fulham-brentford",
+      "homeSlug": "fulham",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-hull-tottenham",
+      "sourceFixtureId": "pl-2026-27-hull-tottenham",
+      "homeSlug": "hull",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-ipswich-newcastle",
+      "sourceFixtureId": "pl-2026-27-ipswich-newcastle",
+      "homeSlug": "ipswich",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-liverpool-leeds",
+      "sourceFixtureId": "pl-2026-27-liverpool-leeds",
+      "homeSlug": "liverpool",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-manchester-city-chelsea",
+      "sourceFixtureId": "pl-2026-27-manchester-city-chelsea",
+      "homeSlug": "manchester-city",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-sunderland-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-sunderland-nottingham-forest",
+      "homeSlug": "sunderland",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-12-12T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 15
+    },
+    {
+      "id": "pl-2026-27-bournemouth-coventry",
+      "sourceFixtureId": "pl-2026-27-bournemouth-coventry",
+      "homeSlug": "bournemouth",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-arsenal-manchester-united",
+      "sourceFixtureId": "pl-2026-27-arsenal-manchester-united",
+      "homeSlug": "arsenal",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-brentford-newcastle",
+      "sourceFixtureId": "pl-2026-27-brentford-newcastle",
+      "homeSlug": "brentford",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-brighton-ipswich",
+      "sourceFixtureId": "pl-2026-27-brighton-ipswich",
+      "homeSlug": "brighton",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-chelsea-aston-villa",
+      "sourceFixtureId": "pl-2026-27-chelsea-aston-villa",
+      "homeSlug": "chelsea",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-leeds-fulham",
+      "sourceFixtureId": "pl-2026-27-leeds-fulham",
+      "homeSlug": "leeds",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-liverpool-tottenham",
+      "sourceFixtureId": "pl-2026-27-liverpool-tottenham",
+      "homeSlug": "liverpool",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-manchester-city-hull",
+      "sourceFixtureId": "pl-2026-27-manchester-city-hull",
+      "homeSlug": "manchester-city",
+      "awaySlug": "hull",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-everton",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-everton",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "everton",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-sunderland-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-sunderland-crystal-palace",
+      "homeSlug": "sunderland",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2026-12-19T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 16
+    },
+    {
+      "id": "pl-2026-27-aston-villa-leeds",
+      "sourceFixtureId": "pl-2026-27-aston-villa-leeds",
+      "homeSlug": "aston-villa",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-coventry-chelsea",
+      "sourceFixtureId": "pl-2026-27-coventry-chelsea",
+      "homeSlug": "coventry",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-arsenal",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-arsenal",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-everton-sunderland",
+      "sourceFixtureId": "pl-2026-27-everton-sunderland",
+      "homeSlug": "everton",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-fulham-brighton",
+      "sourceFixtureId": "pl-2026-27-fulham-brighton",
+      "homeSlug": "fulham",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-hull-liverpool",
+      "sourceFixtureId": "pl-2026-27-hull-liverpool",
+      "homeSlug": "hull",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-ipswich-brentford",
+      "sourceFixtureId": "pl-2026-27-ipswich-brentford",
+      "homeSlug": "ipswich",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-manchester-united-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-manchester-united-nottingham-forest",
+      "homeSlug": "manchester-united",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-newcastle-manchester-city",
+      "sourceFixtureId": "pl-2026-27-newcastle-manchester-city",
+      "homeSlug": "newcastle",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-tottenham-bournemouth",
+      "sourceFixtureId": "pl-2026-27-tottenham-bournemouth",
+      "homeSlug": "tottenham",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2026-12-26T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 17
+    },
+    {
+      "id": "pl-2026-27-aston-villa-liverpool",
+      "sourceFixtureId": "pl-2026-27-aston-villa-liverpool",
+      "homeSlug": "aston-villa",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-coventry-brentford",
+      "sourceFixtureId": "pl-2026-27-coventry-brentford",
+      "homeSlug": "coventry",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-bournemouth",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-bournemouth",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-everton-manchester-city",
+      "sourceFixtureId": "pl-2026-27-everton-manchester-city",
+      "homeSlug": "everton",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-fulham-arsenal",
+      "sourceFixtureId": "pl-2026-27-fulham-arsenal",
+      "homeSlug": "fulham",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-hull-leeds",
+      "sourceFixtureId": "pl-2026-27-hull-leeds",
+      "homeSlug": "hull",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-ipswich-chelsea",
+      "sourceFixtureId": "pl-2026-27-ipswich-chelsea",
+      "homeSlug": "ipswich",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-manchester-united-sunderland",
+      "sourceFixtureId": "pl-2026-27-manchester-united-sunderland",
+      "homeSlug": "manchester-united",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-newcastle-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-newcastle-nottingham-forest",
+      "homeSlug": "newcastle",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-tottenham-brighton",
+      "sourceFixtureId": "pl-2026-27-tottenham-brighton",
+      "homeSlug": "tottenham",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2026-12-30T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 18
+    },
+    {
+      "id": "pl-2026-27-bournemouth-aston-villa",
+      "sourceFixtureId": "pl-2026-27-bournemouth-aston-villa",
+      "homeSlug": "bournemouth",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-arsenal-ipswich",
+      "sourceFixtureId": "pl-2026-27-arsenal-ipswich",
+      "homeSlug": "arsenal",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-brentford-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-brentford-crystal-palace",
+      "homeSlug": "brentford",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-brighton-manchester-united",
+      "sourceFixtureId": "pl-2026-27-brighton-manchester-united",
+      "homeSlug": "brighton",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-chelsea-newcastle",
+      "sourceFixtureId": "pl-2026-27-chelsea-newcastle",
+      "homeSlug": "chelsea",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-leeds-everton",
+      "sourceFixtureId": "pl-2026-27-leeds-everton",
+      "homeSlug": "leeds",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-liverpool-coventry",
+      "sourceFixtureId": "pl-2026-27-liverpool-coventry",
+      "homeSlug": "liverpool",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-manchester-city-tottenham",
+      "sourceFixtureId": "pl-2026-27-manchester-city-tottenham",
+      "homeSlug": "manchester-city",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-fulham",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-fulham",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-sunderland-hull",
+      "sourceFixtureId": "pl-2026-27-sunderland-hull",
+      "homeSlug": "sunderland",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-01-02T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 19
+    },
+    {
+      "id": "pl-2026-27-arsenal-brentford",
+      "sourceFixtureId": "pl-2026-27-arsenal-brentford",
+      "homeSlug": "arsenal",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-brighton-bournemouth",
+      "sourceFixtureId": "pl-2026-27-brighton-bournemouth",
+      "homeSlug": "brighton",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-chelsea",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-chelsea",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-everton-aston-villa",
+      "sourceFixtureId": "pl-2026-27-everton-aston-villa",
+      "homeSlug": "everton",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-fulham-tottenham",
+      "sourceFixtureId": "pl-2026-27-fulham-tottenham",
+      "homeSlug": "fulham",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-ipswich-coventry",
+      "sourceFixtureId": "pl-2026-27-ipswich-coventry",
+      "homeSlug": "ipswich",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-leeds-manchester-city",
+      "sourceFixtureId": "pl-2026-27-leeds-manchester-city",
+      "homeSlug": "leeds",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-manchester-united-newcastle",
+      "sourceFixtureId": "pl-2026-27-manchester-united-newcastle",
+      "homeSlug": "manchester-united",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-hull",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-hull",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-sunderland-liverpool",
+      "sourceFixtureId": "pl-2026-27-sunderland-liverpool",
+      "homeSlug": "sunderland",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-01-06T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 20
+    },
+    {
+      "id": "pl-2026-27-bournemouth-ipswich",
+      "sourceFixtureId": "pl-2026-27-bournemouth-ipswich",
+      "homeSlug": "bournemouth",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-aston-villa-manchester-united",
+      "sourceFixtureId": "pl-2026-27-aston-villa-manchester-united",
+      "homeSlug": "aston-villa",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-brentford-brighton",
+      "sourceFixtureId": "pl-2026-27-brentford-brighton",
+      "homeSlug": "brentford",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-chelsea-sunderland",
+      "sourceFixtureId": "pl-2026-27-chelsea-sunderland",
+      "homeSlug": "chelsea",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-coventry-everton",
+      "sourceFixtureId": "pl-2026-27-coventry-everton",
+      "homeSlug": "coventry",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-hull-arsenal",
+      "sourceFixtureId": "pl-2026-27-hull-arsenal",
+      "homeSlug": "hull",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-liverpool-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-liverpool-crystal-palace",
+      "homeSlug": "liverpool",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-manchester-city-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-manchester-city-nottingham-forest",
+      "homeSlug": "manchester-city",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-newcastle-fulham",
+      "sourceFixtureId": "pl-2026-27-newcastle-fulham",
+      "homeSlug": "newcastle",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-tottenham-leeds",
+      "sourceFixtureId": "pl-2026-27-tottenham-leeds",
+      "homeSlug": "tottenham",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2027-01-16T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 21
+    },
+    {
+      "id": "pl-2026-27-arsenal-newcastle",
+      "sourceFixtureId": "pl-2026-27-arsenal-newcastle",
+      "homeSlug": "arsenal",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-brighton-manchester-city",
+      "sourceFixtureId": "pl-2026-27-brighton-manchester-city",
+      "homeSlug": "brighton",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-tottenham",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-tottenham",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-everton-brentford",
+      "sourceFixtureId": "pl-2026-27-everton-brentford",
+      "homeSlug": "everton",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-fulham-aston-villa",
+      "sourceFixtureId": "pl-2026-27-fulham-aston-villa",
+      "homeSlug": "fulham",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-ipswich-hull",
+      "sourceFixtureId": "pl-2026-27-ipswich-hull",
+      "homeSlug": "ipswich",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-leeds-chelsea",
+      "sourceFixtureId": "pl-2026-27-leeds-chelsea",
+      "homeSlug": "leeds",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-manchester-united-liverpool",
+      "sourceFixtureId": "pl-2026-27-manchester-united-liverpool",
+      "homeSlug": "manchester-united",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-bournemouth",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-bournemouth",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-sunderland-coventry",
+      "sourceFixtureId": "pl-2026-27-sunderland-coventry",
+      "homeSlug": "sunderland",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-01-23T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 22
+    },
+    {
+      "id": "pl-2026-27-bournemouth-fulham",
+      "sourceFixtureId": "pl-2026-27-bournemouth-fulham",
+      "homeSlug": "bournemouth",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-aston-villa-ipswich",
+      "sourceFixtureId": "pl-2026-27-aston-villa-ipswich",
+      "homeSlug": "aston-villa",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-brentford-manchester-united",
+      "sourceFixtureId": "pl-2026-27-brentford-manchester-united",
+      "homeSlug": "brentford",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-chelsea-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-chelsea-nottingham-forest",
+      "homeSlug": "chelsea",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-coventry-leeds",
+      "sourceFixtureId": "pl-2026-27-coventry-leeds",
+      "homeSlug": "coventry",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-hull-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-hull-crystal-palace",
+      "homeSlug": "hull",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-liverpool-everton",
+      "sourceFixtureId": "pl-2026-27-liverpool-everton",
+      "homeSlug": "liverpool",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-manchester-city-arsenal",
+      "sourceFixtureId": "pl-2026-27-manchester-city-arsenal",
+      "homeSlug": "manchester-city",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-newcastle-brighton",
+      "sourceFixtureId": "pl-2026-27-newcastle-brighton",
+      "homeSlug": "newcastle",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-tottenham-sunderland",
+      "sourceFixtureId": "pl-2026-27-tottenham-sunderland",
+      "homeSlug": "tottenham",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2027-01-30T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 23
+    },
+    {
+      "id": "pl-2026-27-arsenal-liverpool",
+      "sourceFixtureId": "pl-2026-27-arsenal-liverpool",
+      "homeSlug": "arsenal",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-brighton-hull",
+      "sourceFixtureId": "pl-2026-27-brighton-hull",
+      "homeSlug": "brighton",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-coventry",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-coventry",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-everton-newcastle",
+      "sourceFixtureId": "pl-2026-27-everton-newcastle",
+      "homeSlug": "everton",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-fulham-manchester-city",
+      "sourceFixtureId": "pl-2026-27-fulham-manchester-city",
+      "homeSlug": "fulham",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-ipswich-tottenham",
+      "sourceFixtureId": "pl-2026-27-ipswich-tottenham",
+      "homeSlug": "ipswich",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-leeds-bournemouth",
+      "sourceFixtureId": "pl-2026-27-leeds-bournemouth",
+      "homeSlug": "leeds",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-manchester-united-chelsea",
+      "sourceFixtureId": "pl-2026-27-manchester-united-chelsea",
+      "homeSlug": "manchester-united",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-brentford",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-brentford",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-sunderland-aston-villa",
+      "sourceFixtureId": "pl-2026-27-sunderland-aston-villa",
+      "homeSlug": "sunderland",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-02-06T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 24
+    },
+    {
+      "id": "pl-2026-27-aston-villa-bournemouth",
+      "sourceFixtureId": "pl-2026-27-aston-villa-bournemouth",
+      "homeSlug": "aston-villa",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-coventry-liverpool",
+      "sourceFixtureId": "pl-2026-27-coventry-liverpool",
+      "homeSlug": "coventry",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-brentford",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-brentford",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-everton-leeds",
+      "sourceFixtureId": "pl-2026-27-everton-leeds",
+      "homeSlug": "everton",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-fulham-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-fulham-nottingham-forest",
+      "homeSlug": "fulham",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-hull-sunderland",
+      "sourceFixtureId": "pl-2026-27-hull-sunderland",
+      "homeSlug": "hull",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-ipswich-arsenal",
+      "sourceFixtureId": "pl-2026-27-ipswich-arsenal",
+      "homeSlug": "ipswich",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-manchester-united-brighton",
+      "sourceFixtureId": "pl-2026-27-manchester-united-brighton",
+      "homeSlug": "manchester-united",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-newcastle-chelsea",
+      "sourceFixtureId": "pl-2026-27-newcastle-chelsea",
+      "homeSlug": "newcastle",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-tottenham-manchester-city",
+      "sourceFixtureId": "pl-2026-27-tottenham-manchester-city",
+      "homeSlug": "tottenham",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-02-10T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 25
+    },
+    {
+      "id": "pl-2026-27-bournemouth-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-bournemouth-crystal-palace",
+      "homeSlug": "bournemouth",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-arsenal-fulham",
+      "sourceFixtureId": "pl-2026-27-arsenal-fulham",
+      "homeSlug": "arsenal",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-brentford-coventry",
+      "sourceFixtureId": "pl-2026-27-brentford-coventry",
+      "homeSlug": "brentford",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-brighton-tottenham",
+      "sourceFixtureId": "pl-2026-27-brighton-tottenham",
+      "homeSlug": "brighton",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-chelsea-ipswich",
+      "sourceFixtureId": "pl-2026-27-chelsea-ipswich",
+      "homeSlug": "chelsea",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-leeds-aston-villa",
+      "sourceFixtureId": "pl-2026-27-leeds-aston-villa",
+      "homeSlug": "leeds",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-liverpool-hull",
+      "sourceFixtureId": "pl-2026-27-liverpool-hull",
+      "homeSlug": "liverpool",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-manchester-city-newcastle",
+      "sourceFixtureId": "pl-2026-27-manchester-city-newcastle",
+      "homeSlug": "manchester-city",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-manchester-united",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-manchester-united",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-sunderland-everton",
+      "sourceFixtureId": "pl-2026-27-sunderland-everton",
+      "homeSlug": "sunderland",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-02-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 26
+    },
+    {
+      "id": "pl-2026-27-aston-villa-chelsea",
+      "sourceFixtureId": "pl-2026-27-aston-villa-chelsea",
+      "homeSlug": "aston-villa",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-coventry-bournemouth",
+      "sourceFixtureId": "pl-2026-27-coventry-bournemouth",
+      "homeSlug": "coventry",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-sunderland",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-sunderland",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-everton-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-everton-nottingham-forest",
+      "homeSlug": "everton",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-fulham-leeds",
+      "sourceFixtureId": "pl-2026-27-fulham-leeds",
+      "homeSlug": "fulham",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-hull-manchester-city",
+      "sourceFixtureId": "pl-2026-27-hull-manchester-city",
+      "homeSlug": "hull",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-ipswich-brighton",
+      "sourceFixtureId": "pl-2026-27-ipswich-brighton",
+      "homeSlug": "ipswich",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-manchester-united-arsenal",
+      "sourceFixtureId": "pl-2026-27-manchester-united-arsenal",
+      "homeSlug": "manchester-united",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-newcastle-brentford",
+      "sourceFixtureId": "pl-2026-27-newcastle-brentford",
+      "homeSlug": "newcastle",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-tottenham-liverpool",
+      "sourceFixtureId": "pl-2026-27-tottenham-liverpool",
+      "homeSlug": "tottenham",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-02-27T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 27
+    },
+    {
+      "id": "pl-2026-27-bournemouth-tottenham",
+      "sourceFixtureId": "pl-2026-27-bournemouth-tottenham",
+      "homeSlug": "bournemouth",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-arsenal-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-arsenal-crystal-palace",
+      "homeSlug": "arsenal",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-brentford-ipswich",
+      "sourceFixtureId": "pl-2026-27-brentford-ipswich",
+      "homeSlug": "brentford",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-brighton-fulham",
+      "sourceFixtureId": "pl-2026-27-brighton-fulham",
+      "homeSlug": "brighton",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-chelsea-coventry",
+      "sourceFixtureId": "pl-2026-27-chelsea-coventry",
+      "homeSlug": "chelsea",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-leeds-hull",
+      "sourceFixtureId": "pl-2026-27-leeds-hull",
+      "homeSlug": "leeds",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-liverpool-aston-villa",
+      "sourceFixtureId": "pl-2026-27-liverpool-aston-villa",
+      "homeSlug": "liverpool",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-manchester-city-everton",
+      "sourceFixtureId": "pl-2026-27-manchester-city-everton",
+      "homeSlug": "manchester-city",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-newcastle",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-newcastle",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-sunderland-manchester-united",
+      "sourceFixtureId": "pl-2026-27-sunderland-manchester-united",
+      "homeSlug": "sunderland",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-03-03T20:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 28
+    },
+    {
+      "id": "pl-2026-27-bournemouth-newcastle",
+      "sourceFixtureId": "pl-2026-27-bournemouth-newcastle",
+      "homeSlug": "bournemouth",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-aston-villa-hull",
+      "sourceFixtureId": "pl-2026-27-aston-villa-hull",
+      "homeSlug": "aston-villa",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-chelsea-arsenal",
+      "sourceFixtureId": "pl-2026-27-chelsea-arsenal",
+      "homeSlug": "chelsea",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-coventry-manchester-city",
+      "sourceFixtureId": "pl-2026-27-coventry-manchester-city",
+      "homeSlug": "coventry",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-fulham",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-fulham",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-leeds-brighton",
+      "sourceFixtureId": "pl-2026-27-leeds-brighton",
+      "homeSlug": "leeds",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-liverpool-ipswich",
+      "sourceFixtureId": "pl-2026-27-liverpool-ipswich",
+      "homeSlug": "liverpool",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-manchester-united-everton",
+      "sourceFixtureId": "pl-2026-27-manchester-united-everton",
+      "homeSlug": "manchester-united",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-sunderland-brentford",
+      "sourceFixtureId": "pl-2026-27-sunderland-brentford",
+      "homeSlug": "sunderland",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-tottenham-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-tottenham-nottingham-forest",
+      "homeSlug": "tottenham",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2027-03-13T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 29
+    },
+    {
+      "id": "pl-2026-27-arsenal-sunderland",
+      "sourceFixtureId": "pl-2026-27-arsenal-sunderland",
+      "homeSlug": "arsenal",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-brentford-bournemouth",
+      "sourceFixtureId": "pl-2026-27-brentford-bournemouth",
+      "homeSlug": "brentford",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-brighton-coventry",
+      "sourceFixtureId": "pl-2026-27-brighton-coventry",
+      "homeSlug": "brighton",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-everton-tottenham",
+      "sourceFixtureId": "pl-2026-27-everton-tottenham",
+      "homeSlug": "everton",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-fulham-liverpool",
+      "sourceFixtureId": "pl-2026-27-fulham-liverpool",
+      "homeSlug": "fulham",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-hull-chelsea",
+      "sourceFixtureId": "pl-2026-27-hull-chelsea",
+      "homeSlug": "hull",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-ipswich-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-ipswich-crystal-palace",
+      "homeSlug": "ipswich",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-manchester-city-manchester-united",
+      "sourceFixtureId": "pl-2026-27-manchester-city-manchester-united",
+      "homeSlug": "manchester-city",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-newcastle-leeds",
+      "sourceFixtureId": "pl-2026-27-newcastle-leeds",
+      "homeSlug": "newcastle",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-aston-villa",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-aston-villa",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-03-20T15:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 30
+    },
+    {
+      "id": "pl-2026-27-bournemouth-manchester-city",
+      "sourceFixtureId": "pl-2026-27-bournemouth-manchester-city",
+      "homeSlug": "bournemouth",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-aston-villa-brighton",
+      "sourceFixtureId": "pl-2026-27-aston-villa-brighton",
+      "homeSlug": "aston-villa",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-chelsea-fulham",
+      "sourceFixtureId": "pl-2026-27-chelsea-fulham",
+      "homeSlug": "chelsea",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-coventry-arsenal",
+      "sourceFixtureId": "pl-2026-27-coventry-arsenal",
+      "homeSlug": "coventry",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-everton",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-everton",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-leeds-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-leeds-nottingham-forest",
+      "homeSlug": "leeds",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-liverpool-newcastle",
+      "sourceFixtureId": "pl-2026-27-liverpool-newcastle",
+      "homeSlug": "liverpool",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-manchester-united-hull",
+      "sourceFixtureId": "pl-2026-27-manchester-united-hull",
+      "homeSlug": "manchester-united",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-sunderland-ipswich",
+      "sourceFixtureId": "pl-2026-27-sunderland-ipswich",
+      "homeSlug": "sunderland",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-tottenham-brentford",
+      "sourceFixtureId": "pl-2026-27-tottenham-brentford",
+      "homeSlug": "tottenham",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-04-10T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 31
+    },
+    {
+      "id": "pl-2026-27-arsenal-aston-villa",
+      "sourceFixtureId": "pl-2026-27-arsenal-aston-villa",
+      "homeSlug": "arsenal",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-brentford-leeds",
+      "sourceFixtureId": "pl-2026-27-brentford-leeds",
+      "homeSlug": "brentford",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-brighton-chelsea",
+      "sourceFixtureId": "pl-2026-27-brighton-chelsea",
+      "homeSlug": "brighton",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-everton-bournemouth",
+      "sourceFixtureId": "pl-2026-27-everton-bournemouth",
+      "homeSlug": "everton",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-fulham-sunderland",
+      "sourceFixtureId": "pl-2026-27-fulham-sunderland",
+      "homeSlug": "fulham",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-hull-coventry",
+      "sourceFixtureId": "pl-2026-27-hull-coventry",
+      "homeSlug": "hull",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-ipswich-manchester-united",
+      "sourceFixtureId": "pl-2026-27-ipswich-manchester-united",
+      "homeSlug": "ipswich",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-manchester-city-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-manchester-city-crystal-palace",
+      "homeSlug": "manchester-city",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-newcastle-tottenham",
+      "sourceFixtureId": "pl-2026-27-newcastle-tottenham",
+      "homeSlug": "newcastle",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-liverpool",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-liverpool",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-04-17T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 32
+    },
+    {
+      "id": "pl-2026-27-bournemouth-arsenal",
+      "sourceFixtureId": "pl-2026-27-bournemouth-arsenal",
+      "homeSlug": "bournemouth",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-aston-villa-coventry",
+      "sourceFixtureId": "pl-2026-27-aston-villa-coventry",
+      "homeSlug": "aston-villa",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-brentford-fulham",
+      "sourceFixtureId": "pl-2026-27-brentford-fulham",
+      "homeSlug": "brentford",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-chelsea-manchester-city",
+      "sourceFixtureId": "pl-2026-27-chelsea-manchester-city",
+      "homeSlug": "chelsea",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-everton-brighton",
+      "sourceFixtureId": "pl-2026-27-everton-brighton",
+      "homeSlug": "everton",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-leeds-liverpool",
+      "sourceFixtureId": "pl-2026-27-leeds-liverpool",
+      "homeSlug": "leeds",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-manchester-united-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-manchester-united-crystal-palace",
+      "homeSlug": "manchester-united",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-newcastle-ipswich",
+      "sourceFixtureId": "pl-2026-27-newcastle-ipswich",
+      "homeSlug": "newcastle",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-sunderland",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-sunderland",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-tottenham-hull",
+      "sourceFixtureId": "pl-2026-27-tottenham-hull",
+      "homeSlug": "tottenham",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-04-24T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 33
+    },
+    {
+      "id": "pl-2026-27-arsenal-tottenham",
+      "sourceFixtureId": "pl-2026-27-arsenal-tottenham",
+      "homeSlug": "arsenal",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-brighton-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-brighton-nottingham-forest",
+      "homeSlug": "brighton",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-coventry-manchester-united",
+      "sourceFixtureId": "pl-2026-27-coventry-manchester-united",
+      "homeSlug": "coventry",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-aston-villa",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-aston-villa",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-fulham-everton",
+      "sourceFixtureId": "pl-2026-27-fulham-everton",
+      "homeSlug": "fulham",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-hull-bournemouth",
+      "sourceFixtureId": "pl-2026-27-hull-bournemouth",
+      "homeSlug": "hull",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-ipswich-leeds",
+      "sourceFixtureId": "pl-2026-27-ipswich-leeds",
+      "homeSlug": "ipswich",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-liverpool-chelsea",
+      "sourceFixtureId": "pl-2026-27-liverpool-chelsea",
+      "homeSlug": "liverpool",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-manchester-city-brentford",
+      "sourceFixtureId": "pl-2026-27-manchester-city-brentford",
+      "homeSlug": "manchester-city",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-sunderland-newcastle",
+      "sourceFixtureId": "pl-2026-27-sunderland-newcastle",
+      "homeSlug": "sunderland",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-05-01T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 34
+    },
+    {
+      "id": "pl-2026-27-bournemouth-manchester-united",
+      "sourceFixtureId": "pl-2026-27-bournemouth-manchester-united",
+      "homeSlug": "bournemouth",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-brentford-aston-villa",
+      "sourceFixtureId": "pl-2026-27-brentford-aston-villa",
+      "homeSlug": "brentford",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-brighton-sunderland",
+      "sourceFixtureId": "pl-2026-27-brighton-sunderland",
+      "homeSlug": "brighton",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-everton-hull",
+      "sourceFixtureId": "pl-2026-27-everton-hull",
+      "homeSlug": "everton",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-fulham-ipswich",
+      "sourceFixtureId": "pl-2026-27-fulham-ipswich",
+      "homeSlug": "fulham",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-leeds-arsenal",
+      "sourceFixtureId": "pl-2026-27-leeds-arsenal",
+      "homeSlug": "leeds",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-manchester-city-liverpool",
+      "sourceFixtureId": "pl-2026-27-manchester-city-liverpool",
+      "homeSlug": "manchester-city",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-newcastle-coventry",
+      "sourceFixtureId": "pl-2026-27-newcastle-coventry",
+      "homeSlug": "newcastle",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-crystal-palace",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-tottenham-chelsea",
+      "sourceFixtureId": "pl-2026-27-tottenham-chelsea",
+      "homeSlug": "tottenham",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-05-08T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 35
+    },
+    {
+      "id": "pl-2026-27-arsenal-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-arsenal-nottingham-forest",
+      "homeSlug": "arsenal",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-aston-villa-newcastle",
+      "sourceFixtureId": "pl-2026-27-aston-villa-newcastle",
+      "homeSlug": "aston-villa",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-chelsea-everton",
+      "sourceFixtureId": "pl-2026-27-chelsea-everton",
+      "homeSlug": "chelsea",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-coventry-tottenham",
+      "sourceFixtureId": "pl-2026-27-coventry-tottenham",
+      "homeSlug": "coventry",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-brighton",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-brighton",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-hull-fulham",
+      "sourceFixtureId": "pl-2026-27-hull-fulham",
+      "homeSlug": "hull",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-ipswich-manchester-city",
+      "sourceFixtureId": "pl-2026-27-ipswich-manchester-city",
+      "homeSlug": "ipswich",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-liverpool-brentford",
+      "sourceFixtureId": "pl-2026-27-liverpool-brentford",
+      "homeSlug": "liverpool",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-manchester-united-leeds",
+      "sourceFixtureId": "pl-2026-27-manchester-united-leeds",
+      "homeSlug": "manchester-united",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-sunderland-bournemouth",
+      "sourceFixtureId": "pl-2026-27-sunderland-bournemouth",
+      "homeSlug": "sunderland",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-05-15T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 36
+    },
+    {
+      "id": "pl-2026-27-bournemouth-chelsea",
+      "sourceFixtureId": "pl-2026-27-bournemouth-chelsea",
+      "homeSlug": "bournemouth",
+      "awaySlug": "chelsea",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-brentford-hull",
+      "sourceFixtureId": "pl-2026-27-brentford-hull",
+      "homeSlug": "brentford",
+      "awaySlug": "hull",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-brighton-liverpool",
+      "sourceFixtureId": "pl-2026-27-brighton-liverpool",
+      "homeSlug": "brighton",
+      "awaySlug": "liverpool",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-everton-arsenal",
+      "sourceFixtureId": "pl-2026-27-everton-arsenal",
+      "homeSlug": "everton",
+      "awaySlug": "arsenal",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-fulham-coventry",
+      "sourceFixtureId": "pl-2026-27-fulham-coventry",
+      "homeSlug": "fulham",
+      "awaySlug": "coventry",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-leeds-sunderland",
+      "sourceFixtureId": "pl-2026-27-leeds-sunderland",
+      "homeSlug": "leeds",
+      "awaySlug": "sunderland",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-manchester-city-aston-villa",
+      "sourceFixtureId": "pl-2026-27-manchester-city-aston-villa",
+      "homeSlug": "manchester-city",
+      "awaySlug": "aston-villa",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-newcastle-crystal-palace",
+      "sourceFixtureId": "pl-2026-27-newcastle-crystal-palace",
+      "homeSlug": "newcastle",
+      "awaySlug": "crystal-palace",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-nottingham-forest-ipswich",
+      "sourceFixtureId": "pl-2026-27-nottingham-forest-ipswich",
+      "homeSlug": "nottingham-forest",
+      "awaySlug": "ipswich",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-tottenham-manchester-united",
+      "sourceFixtureId": "pl-2026-27-tottenham-manchester-united",
+      "homeSlug": "tottenham",
+      "awaySlug": "manchester-united",
+      "kickoffUtc": "2027-05-23T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 37
+    },
+    {
+      "id": "pl-2026-27-arsenal-brighton",
+      "sourceFixtureId": "pl-2026-27-arsenal-brighton",
+      "homeSlug": "arsenal",
+      "awaySlug": "brighton",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    },
+    {
+      "id": "pl-2026-27-aston-villa-tottenham",
+      "sourceFixtureId": "pl-2026-27-aston-villa-tottenham",
+      "homeSlug": "aston-villa",
+      "awaySlug": "tottenham",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    },
+    {
+      "id": "pl-2026-27-chelsea-brentford",
+      "sourceFixtureId": "pl-2026-27-chelsea-brentford",
+      "homeSlug": "chelsea",
+      "awaySlug": "brentford",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    },
+    {
+      "id": "pl-2026-27-coventry-nottingham-forest",
+      "sourceFixtureId": "pl-2026-27-coventry-nottingham-forest",
+      "homeSlug": "coventry",
+      "awaySlug": "nottingham-forest",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    },
+    {
+      "id": "pl-2026-27-crystal-palace-leeds",
+      "sourceFixtureId": "pl-2026-27-crystal-palace-leeds",
+      "homeSlug": "crystal-palace",
+      "awaySlug": "leeds",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    },
+    {
+      "id": "pl-2026-27-hull-newcastle",
+      "sourceFixtureId": "pl-2026-27-hull-newcastle",
+      "homeSlug": "hull",
+      "awaySlug": "newcastle",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    },
+    {
+      "id": "pl-2026-27-ipswich-everton",
+      "sourceFixtureId": "pl-2026-27-ipswich-everton",
+      "homeSlug": "ipswich",
+      "awaySlug": "everton",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    },
+    {
+      "id": "pl-2026-27-liverpool-bournemouth",
+      "sourceFixtureId": "pl-2026-27-liverpool-bournemouth",
+      "homeSlug": "liverpool",
+      "awaySlug": "bournemouth",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    },
+    {
+      "id": "pl-2026-27-manchester-united-fulham",
+      "sourceFixtureId": "pl-2026-27-manchester-united-fulham",
+      "homeSlug": "manchester-united",
+      "awaySlug": "fulham",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    },
+    {
+      "id": "pl-2026-27-sunderland-manchester-city",
+      "sourceFixtureId": "pl-2026-27-sunderland-manchester-city",
+      "homeSlug": "sunderland",
+      "awaySlug": "manchester-city",
+      "kickoffUtc": "2027-05-30T14:00:00.000Z",
+      "status": "SCHEDULED",
+      "matchday": 38
+    }
+  ]
+}

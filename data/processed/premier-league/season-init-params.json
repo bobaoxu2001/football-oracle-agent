@@ -1,0 +1,86 @@
+{
+  "version": "pl-season-init-v0.2.0",
+  "seasonShrink": 0.75,
+  "promotionGap": 120,
+  "leagueMean": 1600,
+  "fitted": true,
+  "fitMethod": "walk-forward log-loss grid over historical PL season transitions",
+  "fitDate": "2026-08-16",
+  "trainingWindow": {
+    "from": "2018-08-01",
+    "to": "2025-05-31"
+  },
+  "heldOutCheck": {
+    "from": "2025-08-01",
+    "to": "2026-06-01",
+    "n": 380,
+    "logLoss": 1.0296065648789976,
+    "note": "2025-26 was not used to pick coefficients."
+  },
+  "championshipFeederUsedInSearchWinner": false,
+  "placeholderComparison": {
+    "seasonShrink": 0.75,
+    "promotionGap": 80,
+    "feeder": false,
+    "trainLogLoss": 0.9784260264853052
+  },
+  "leaderboard": [
+    {
+      "shrink": 0.75,
+      "gap": 120,
+      "feeder": false,
+      "n": 2280,
+      "logLoss": 0.9765779110469149
+    },
+    {
+      "shrink": 0.85,
+      "gap": 120,
+      "feeder": false,
+      "n": 2280,
+      "logLoss": 0.9770548171124099
+    },
+    {
+      "shrink": 0.65,
+      "gap": 120,
+      "feeder": false,
+      "n": 2280,
+      "logLoss": 0.9772752986108502
+    },
+    {
+      "shrink": 0.85,
+      "gap": 80,
+      "feeder": false,
+      "n": 2280,
+      "logLoss": 0.9783577481059432
+    },
+    {
+      "shrink": 0.75,
+      "gap": 80,
+      "feeder": false,
+      "n": 2280,
+      "logLoss": 0.9784260264853052
+    },
+    {
+      "shrink": 0.85,
+      "gap": 120,
+      "feeder": true,
+      "n": 2280,
+      "logLoss": 0.9788140942687583
+    },
+    {
+      "shrink": 0.55,
+      "gap": 120,
+      "feeder": false,
+      "n": 2280,
+      "logLoss": 0.9788154570803246
+    },
+    {
+      "shrink": 0.75,
+      "gap": 120,
+      "feeder": true,
+      "n": 2280,
+      "logLoss": 0.9791949150991867
+    }
+  ],
+  "note": "Fitted on 2019-20–2024-25 walk-forward log-loss. Training optimum: shrink=0.75, gap=120, feeder OFF (LL 0.97658 vs placeholder 0.75/80 feeder-off 0.97843). Production still turns the Championship feeder ON as a declared track choice so 2026-27 promoted clubs use the explicit translation path; feeder ON was slightly worse on the historical grid (0.97919 at the same shrink/gap). 2025-26 was not used to pick coefficients. Benchmark remains placeholder 0.75/80 feeder OFF."
+}

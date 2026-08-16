@@ -49,3 +49,9 @@ If a feature cannot be proven to have existed at kickoff, it is not used.
 ## Held-out season
 
 `2025-26` is never used to pick `homeAdvantage` or `dcRho`. Those are chosen on 2018-19–2024-25 (with shrinkage toward a labeled prior) and then **frozen** before the held-out walk-forward is scored.
+
+## Phase 2A production vs benchmark
+
+The frozen `pl-baseline-v0.1.0` benchmark is unchanged. The live 2026-27 model is a **new** version (`pl-live-v0.2.0`). Season-init coefficients for production are fit on transitions through 2024-25 only. Using 2025-26 *final ratings* as the starting state for 2026-27 is previous-season information, not a retune of HA/ρ.
+
+Genuine `LIVE_OOS` snapshots are only those frozen with `asOf < kickoff`. Reconstructions are `RETROSPECTIVE` and must never enter the live ledger.

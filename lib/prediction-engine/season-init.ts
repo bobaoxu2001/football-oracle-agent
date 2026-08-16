@@ -12,19 +12,25 @@
  */
 
 import type { ClubSeason } from "@/lib/identity/types";
-import {
-  PREMIER_LEAGUE_MEAN_ELO,
-  PROMOTION_GAP,
-  SEASON_SHRINK,
-  promotedPrior,
-  shrinkTowardMean,
-} from "./rating-core";
+import { PREMIER_LEAGUE_MEAN_ELO, PROMOTION_GAP, SEASON_SHRINK } from "./rating-core";
 
 export type SeasonInitPath =
   | "staying-shrunk"
   | "promoted-from-championship"
   | "promoted-flat-prior"
   | "carried-non-member";
+
+export interface SeasonInitCoefficients {
+  seasonShrink: number;
+  promotionGap: number;
+  leagueMean: number;
+  fitted: boolean;
+  note: string;
+  version?: string;
+  trainingWindow?: { from: string; to: string };
+  fitMethod?: string;
+  fitDate?: string;
+}
 
 export interface SeasonInitInput {
   previousPlRatings: Record<string, number>;
@@ -33,26 +39,30 @@ export interface SeasonInitInput {
   /** Championship (or other feeder) ratings as-of the previous season end. */
   feederRatings?: Record<string, number>;
   mean?: number;
+  coefficients?: Partial<SeasonInitCoefficients>;
 }
 
 export interface SeasonInitResult {
   ratings: Record<string, number>;
   paths: Record<string, SeasonInitPath>;
   clubSeasons: ClubSeason[];
-  /** Coefficients actually applied — labeled placeholders. */
-  coefficients: {
-    seasonShrink: number;
-    promotionGap: number;
-    leagueMean: number;
-    fitted: false;
-    note: string;
-  };
+  /** Coefficients actually applied. */
+  coefficients: SeasonInitCoefficients;
 }
 
 export function initializeSeasonRatings(
   input: SeasonInitInput & { season?: string }
 ): SeasonInitResult {
-  const mean = input.mean ?? PREMIER_LEAGUE_MEAN_ELO;
+  const shrink = input.coefficients?.seasonShrink ?? SEASON_SHRINK;
+  const gap = input.coefficients?.promotionGap ?? PROMOTION_GAP;
+  const mean = input.mean ?? input.coefficients?.leagueMean ?? PREMIER_LEAGUE_MEAN_ELO;
+  const shrinkFn = (elo: number) => mean + shrink * (elo - mean);
+  const promotedFn = (championshipElo?: number) => {
+    if (typeof championshipElo === "number" && Number.isFinite(championshipElo)) {
+      return shrinkFn(championshipElo - gap);
+    }
+    return mean - gap;
+  };
   const prevSet = new Set(input.previousPlClubSlugs);
   const ratings: Record<string, number> = {};
   const paths: Record<string, SeasonInitPath> = {};
@@ -60,16 +70,16 @@ export function initializeSeasonRatings(
   for (const slug of input.newSeasonClubSlugs) {
     const prev = input.previousPlRatings[slug];
     if (prevSet.has(slug) && typeof prev === "number") {
-      ratings[slug] = shrinkTowardMean(prev, mean);
+      ratings[slug] = shrinkFn(prev);
       paths[slug] = "staying-shrunk";
       continue;
     }
     const feeder = input.feederRatings?.[slug];
     if (typeof feeder === "number" && Number.isFinite(feeder)) {
-      ratings[slug] = promotedPrior(feeder, mean);
+      ratings[slug] = promotedFn(feeder);
       paths[slug] = "promoted-from-championship";
     } else {
-      ratings[slug] = promotedPrior(undefined, mean);
+      ratings[slug] = promotedFn(undefined);
       paths[slug] = "promoted-flat-prior";
     }
   }
@@ -109,11 +119,17 @@ export function initializeSeasonRatings(
     paths,
     clubSeasons,
     coefficients: {
-      seasonShrink: SEASON_SHRINK,
-      promotionGap: PROMOTION_GAP,
+      seasonShrink: shrink,
+      promotionGap: gap,
       leagueMean: mean,
-      fitted: false,
-      note: "Placeholder coefficients. Not fitted. Do not treat as calibrated Premier League constants.",
+      fitted: input.coefficients?.fitted ?? false,
+      note:
+        input.coefficients?.note ??
+        "Placeholder coefficients. Not fitted. Do not treat as calibrated Premier League constants.",
+      version: input.coefficients?.version,
+      trainingWindow: input.coefficients?.trainingWindow,
+      fitMethod: input.coefficients?.fitMethod,
+      fitDate: input.coefficients?.fitDate,
     },
   };
 }

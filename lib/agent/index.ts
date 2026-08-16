@@ -28,8 +28,16 @@ import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { remainingPremierLeagueFixtures } from "@/lib/competitions/premier-league/season";
 import { ratingsAsOf } from "@/lib/competitions/premier-league/ratings";
 import { simulateLeagueSeason } from "@/lib/competitions/premier-league/simulate";
-import { loadPremierLeagueParams } from "@/lib/prediction-engine/model-params";
-import { PRESEASON_BASELINE_CAVEAT, isPreseasonBaseline } from "@/lib/competitions/premier-league/honesty";
+import { loadProductionParams } from "@/lib/competitions/premier-league/model-tracks";
+import {
+  currentHonestyText,
+  currentSeasonDisclaimer,
+  isPreseasonBaseline,
+  modelInputHonesty,
+} from "@/lib/competitions/premier-league/honesty";
+import { seasonDataVersion } from "@/lib/competitions/premier-league/data-gate";
+import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
+import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 import { freshnessFootnote } from "@/lib/data-truth/freshness";
 import {
   getTournamentState,
@@ -765,16 +773,18 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
     plan.intent === "champion-odds" &&
     plan.teamSlugs.length < 2
   ) {
-    const params = loadPremierLeagueParams();
+    const params = loadProductionParams();
     const field = remainingPremierLeagueFixtures();
-    const asOf = new Date().toISOString().slice(0, 10);
-    const ratings = ratingsAsOf(asOf).ratings;
+    const asOf = new Date().toISOString();
+    const ratings = ratingsAsOf(asOf.slice(0, 10)).ratings;
     const sim = simulateLeagueSeason({
       ratings,
       played: field.played,
       remaining: field.remaining,
       clubSlugs: field.clubSlugs,
       sims: 4000,
+      simulationAsOf: asOf,
+      seasonDataVersion: seasonDataVersion(),
     });
     const answer: ChampionAnswer = {
       simulationsRun: sim.sims,
@@ -799,13 +809,14 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
     const lines = sim.clubs.slice(0, 8).map((c, i) =>
       `${i + 1}. ${c.name} — ${(c.champion * 100).toFixed(1)}% title · expected finish ${c.expectedPosition.toFixed(1)}`
     );
-    const caveat = isPreseasonBaseline() ? `${PRESEASON_BASELINE_CAVEAT}\n\n` : "";
+    const caveat = currentSeasonDisclaimer();
     const explanation =
-      caveat +
+      (caveat ? `${caveat}\n\n` : `${currentHonestyText()}\n\n`) +
       `Premier League title probabilities (${params.modelVersion}). ` +
-      `This is a league-table Monte Carlo, not a knockout tournament.\n\n` +
+      `This is a league-table Monte Carlo of remaining fixtures with completed results fixed, not a knockout tournament.\n` +
+      `Simulation as-of ${sim.simulationAsOf}; ${sim.completedFixturesIncluded} completed fixtures fixed; ${sim.remainingFixtureCount} remaining simulated.\n\n` +
       lines.join("\n") +
-      `\n\nProbability estimate, not a guaranteed outcome.`;
+      `\n\n${modelInputHonesty()}\nProbability estimate, not a guaranteed outcome.`;
     return {
       intent: "champion-odds",
       query,
@@ -955,16 +966,28 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
   }
 
   if (slugs.length === 2 && plan.competition === "premier-league") {
-    const params = loadPremierLeagueParams();
-    const asOf = new Date().toISOString().slice(0, 10);
-    const pred = predictPremierLeagueMatch(slugs[0], slugs[1], { asOf });
-    snapshotPremierLeagueMatch(slugs[0], slugs[1], {
+    const params = loadProductionParams();
+    const asOf = new Date().toISOString();
+    const scheduled =
+      liveFixtures().find((f) => f.homeSlug === slugs[0] && f.awaySlug === slugs[1]) ??
+      liveFixtures().find((f) => f.homeSlug === slugs[1] && f.awaySlug === slugs[0]);
+    const homeSlug = scheduled?.homeSlug ?? slugs[0];
+    const awaySlug = scheduled?.awaySlug ?? slugs[1];
+    const pred = predictPremierLeagueMatch(homeSlug, awaySlug, {
       asOf,
-      fixtureId: pred.matchId,
-      season: isPreseasonBaseline() ? "2025-26" : "2026-27",
+      kickoff: scheduled?.kickoffUtc ?? undefined,
+      fixtureId: scheduled?.id,
+      season: PREMIER_LEAGUE_CURRENT_SEASON,
     });
-    const home = getClub(slugs[0]);
-    const away = getClub(slugs[1]);
+    snapshotPremierLeagueMatch(homeSlug, awaySlug, {
+      asOf,
+      kickoff: scheduled?.kickoffUtc ?? undefined,
+      fixtureId: scheduled?.id ?? pred.matchId,
+      season: PREMIER_LEAGUE_CURRENT_SEASON,
+      evaluationClass: scheduled ? "LIVE_OOS" : isPreseasonBaseline() ? undefined : "LIVE_OOS",
+    });
+    const home = getClub(homeSlug);
+    const away = getClub(awaySlug);
     const teamA: TeamRef = { slug: home.slug, name: home.name, flag: "⚽️", elo: pred.eloA };
     const teamB: TeamRef = { slug: away.slug, name: away.name, flag: "⚽️", elo: pred.eloB };
     const simulation = runSimulation(teamA, teamB, {
@@ -987,13 +1010,16 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
       ),
       step("sim", "Sample the same scoreline grid", simulation.summary),
     ];
-    const caveat = isPreseasonBaseline() ? `${PRESEASON_BASELINE_CAVEAT}\n\n` : "";
+    const honesty = currentHonestyText();
+    const fixtureLine = scheduled
+      ? `${home.name} (home) vs ${away.name} (away) — official ${PREMIER_LEAGUE_CURRENT_SEASON} fixture, kickoff ${scheduled.kickoffLocal ?? scheduled.kickoffUtc ?? scheduled.date} (${scheduled.timezone ?? "Europe/London"}).`
+      : `${home.name} (home) vs ${away.name} (away) — requested orientation; no matching official fixture was resolved.`;
     const explanation =
-      caveat +
-      `${home.name} (home) vs ${away.name} (away) — featured orientation, not an official 2026-27 fixture listing.\n` +
+      `${honesty}\n\n` +
+      `${fixtureLine}\n` +
       `Home ${(pred.teamAWinProbability * 100).toFixed(1)}% · Draw ${(pred.drawProbability * 100).toFixed(1)}% · Away ${(pred.teamBWinProbability * 100).toFixed(1)}%\n` +
       `Goal expectation ${pred.expectedScore}. Most likely score ${pred.mostLikelyScoreline}.\n` +
-      `Model ${params.modelVersion}. Preseason baseline from last completed season's ratings, not an as-of-kickoff fixture forecast.\n` +
+      `Model ${params.modelVersion}. ${modelInputHonesty()}\n` +
       `Probability estimate, not a guaranteed outcome.`;
     return {
       intent: "match-prediction",

@@ -1,16 +1,58 @@
 import type { CompetitionId } from "@/lib/competitions/types";
 
-/** How the snapshot was produced. Not a live kickoff unless a real fixture exists. */
-export type PredictionStage =
-  | "historical-as-of"
-  | "preseason-baseline"
-  | "as-of-kickoff";
+/**
+ * Stable prediction-stage enum.
+ *
+ * Phase 2A stages identify time-to-kickoff, not lineup confirmation.
+ * `T60M` does NOT mean the starting XI is known.
+ *
+ * Legacy Phase 1 strings are still accepted and canonicalized.
+ */
+export const PREDICTION_STAGES = [
+  "HISTORICAL",
+  "PRESEASON",
+  "EARLY",
+  "T24H",
+  "T2H",
+  "T60M",
+  "FINAL_PREKICK",
+  "RETROSPECTIVE",
+] as const;
+
+export type PredictionStage = (typeof PREDICTION_STAGES)[number] | LegacyPredictionStage;
+
+export type LegacyPredictionStage = "historical-as-of" | "preseason-baseline" | "as-of-kickoff";
+
+export type CanonicalPredictionStage = (typeof PREDICTION_STAGES)[number];
+
+export type EvaluationClass = "BACKTEST" | "RETROSPECTIVE" | "LIVE_OOS";
+
+const LEGACY_STAGE: Record<string, CanonicalPredictionStage> = {
+  "historical-as-of": "HISTORICAL",
+  "preseason-baseline": "PRESEASON",
+  "as-of-kickoff": "FINAL_PREKICK",
+  HISTORICAL: "HISTORICAL",
+  PRESEASON: "PRESEASON",
+  EARLY: "EARLY",
+  T24H: "T24H",
+  T2H: "T2H",
+  T60M: "T60M",
+  FINAL_PREKICK: "FINAL_PREKICK",
+  RETROSPECTIVE: "RETROSPECTIVE",
+};
+
+export function canonicalizePredictionStage(stage?: string | null): CanonicalPredictionStage {
+  if (!stage) return "HISTORICAL";
+  return LEGACY_STAGE[stage] ?? "HISTORICAL";
+}
 
 export interface SnapshotKey {
   competition: CompetitionId;
   season: string;
   fixtureId: string;
   modelVersion: string;
+  /** Optional for Phase 1 lookups; defaults to HISTORICAL. */
+  predictionStage?: PredictionStage;
   asOf: string;
 }
 
@@ -28,6 +70,7 @@ export interface PredictionSnapshot {
   dataCutoff: string;
   modelVersion: string;
   predictionStage: PredictionStage;
+  evaluationClass?: EvaluationClass;
   homeProbability: number;
   drawProbability: number;
   awayProbability: number;
@@ -65,6 +108,7 @@ export interface CreateSnapshotInput {
   kickoff?: string | null;
   modelVersion: string;
   predictionStage?: PredictionStage;
+  evaluationClass?: EvaluationClass;
   homeSlug: string;
   awaySlug: string;
   homeTeam?: string;
@@ -80,6 +124,13 @@ export interface CreateSnapshotInput {
   provenanceNotes?: string;
 }
 
+/** Current identity: includes predictionStage. */
 export function snapshotUniqueKey(k: SnapshotKey): string {
+  const stage = canonicalizePredictionStage(k.predictionStage);
+  return [k.competition, k.season, k.fixtureId, k.modelVersion, stage, k.asOf].join("::");
+}
+
+/** Phase 1.1 key (no stage). Used only to resolve pre-2A snapshots. */
+export function legacySnapshotUniqueKey(k: Omit<SnapshotKey, "predictionStage">): string {
   return [k.competition, k.season, k.fixtureId, k.modelVersion, k.asOf].join("::");
 }

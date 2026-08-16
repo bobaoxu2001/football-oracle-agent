@@ -24,7 +24,8 @@ import { PREMIER_LEAGUE_MEAN_ELO, PROMOTION_GAP } from "@/lib/prediction-engine/
 import { predictPremierLeagueMatch } from "@/lib/prediction-engine/league-engine";
 import { completedPremierLeagueFixtures } from "@/lib/competitions/premier-league/data";
 import { championshipRatingsAsOf } from "@/lib/competitions/premier-league/championship";
-import { PRESEASON_BASELINE_CAVEAT, isPreseasonBaseline } from "@/lib/competitions/premier-league/honesty";
+import { PRESEASON_BASELINE_CAVEAT, isPreseasonBaseline, currentHonestyText } from "@/lib/competitions/premier-league/honesty";
+import { evaluateDataGate } from "@/lib/competitions/premier-league/data-gate";
 import { planQuery } from "@/lib/agent/planner";
 import type { HistoricalMatch } from "@/lib/evaluation/types";
 
@@ -240,9 +241,15 @@ const flat = initializeSeasonRatings({
 check("promoted without feeder uses flat prior", flat.paths.leeds === "promoted-flat-prior");
 check("Championship tape has ratings", Object.keys(championshipRatingsAsOf("2025-08-01")).length > 10);
 
-// Honesty
-check("preseason baseline is active", isPreseasonBaseline() === true);
-check("caveat names official fixtures", PRESEASON_BASELINE_CAVEAT.includes("official fixtures"));
+// Honesty — data-driven. Official 2026-27 data turns the preseason baseline off.
+const gate = evaluateDataGate();
+if (gate.status === "DATA_BLOCKED") {
+  check("preseason baseline is active when official data is missing", isPreseasonBaseline() === true);
+} else {
+  check("preseason baseline is off when official data is ready", isPreseasonBaseline() === false);
+}
+check("blocked-state caveat names official fixtures", PRESEASON_BASELINE_CAVEAT.includes("official fixtures"));
+check("honesty text is generated from season state", currentHonestyText().length > 40);
 const titlePlan = planQuery("Who is most likely to win the Premier League?");
 check("PL title still routes", titlePlan.intent === "champion-odds" && titlePlan.competition === "premier-league");
 

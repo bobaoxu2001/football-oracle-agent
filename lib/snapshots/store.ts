@@ -16,18 +16,44 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { CreateSnapshotInput, PredictionSnapshot, SnapshotKey } from "./types";
-import { snapshotUniqueKey } from "./types";
+import {
+  canonicalizePredictionStage,
+  legacySnapshotUniqueKey,
+  snapshotUniqueKey,
+} from "./types";
 
-export type { PredictionSnapshot, CreateSnapshotInput, SnapshotKey, PredictionStage } from "./types";
-export { snapshotUniqueKey } from "./types";
+export type {
+  PredictionSnapshot,
+  CreateSnapshotInput,
+  SnapshotKey,
+  PredictionStage,
+  EvaluationClass,
+  CanonicalPredictionStage,
+} from "./types";
+export {
+  snapshotUniqueKey,
+  legacySnapshotUniqueKey,
+  canonicalizePredictionStage,
+  PREDICTION_STAGES,
+} from "./types";
 
 const DEFAULT_STORE = path.resolve(
   process.cwd(),
   "data/processed/predictions/snapshots.jsonl"
 );
 
+const LIVE_ARCHIVE = path.resolve(
+  process.cwd(),
+  "data/processed/premier-league/live-oos-2026-27.jsonl"
+);
+
 function storePath(): string {
   return process.env.SNAPSHOT_STORE_PATH || DEFAULT_STORE;
+}
+
+function archivePaths(): string[] {
+  if (process.env.SNAPSHOT_STORE_PATH) return [];
+  return [LIVE_ARCHIVE];
 }
 
 function deepFreeze<T extends object>(obj: T): T {
@@ -56,16 +82,23 @@ function loadFromDisk(): void {
   if (state.loadedFrom === file && state.byKey.size > 0) return;
   state.byKey.clear();
   state.loadedFrom = file;
-  if (!fs.existsSync(file)) return;
-  const text = fs.readFileSync(file, "utf8");
-  for (const line of text.split("\n")) {
-    if (!line.trim()) continue;
-    try {
-      const snap = JSON.parse(line) as PredictionSnapshot;
-      const key = snapshotUniqueKey(snap);
-      if (!state.byKey.has(key)) state.byKey.set(key, snap);
-    } catch {
-      /* skip corrupt line */
+  const files = [file, ...archivePaths()].filter((p, i, arr) => arr.indexOf(p) === i);
+  for (const src of files) {
+    if (!fs.existsSync(src)) continue;
+    const text = fs.readFileSync(src, "utf8");
+    for (const line of text.split("\n")) {
+      if (!line.trim()) continue;
+      try {
+        const snap = JSON.parse(line) as PredictionSnapshot;
+        const modern = snapshotUniqueKey(snap);
+        const stored = snap.provenance?.uniqueKey;
+        if (stored && !state.byKey.has(stored)) state.byKey.set(stored, snap);
+        if (!state.byKey.has(modern)) state.byKey.set(modern, snap);
+        const legacy = legacySnapshotUniqueKey(snap);
+        if (legacy !== modern && !state.byKey.has(legacy)) state.byKey.set(legacy, snap);
+      } catch {
+        /* skip corrupt line */
+      }
     }
   }
 }
@@ -93,15 +126,19 @@ async function replicateMongo(snap: PredictionSnapshot): Promise<void> {
 
 export function createSnapshot(input: CreateSnapshotInput): PredictionSnapshot {
   loadFromDisk();
+  const stage = canonicalizePredictionStage(input.predictionStage);
   const keyFields: SnapshotKey = {
     competition: input.competition,
     season: input.season,
     fixtureId: input.fixtureId,
     modelVersion: input.modelVersion,
+    predictionStage: stage,
     asOf: input.asOf,
   };
   const uniqueKey = snapshotUniqueKey(keyFields);
-  const existing = mem().byKey.get(uniqueKey);
+  const existing =
+    mem().byKey.get(uniqueKey) ??
+    mem().byKey.get(legacySnapshotUniqueKey(keyFields));
   if (existing) return cloneFrozen(existing);
 
   const snap: PredictionSnapshot = {
@@ -117,7 +154,8 @@ export function createSnapshot(input: CreateSnapshotInput): PredictionSnapshot {
     asOf: input.asOf,
     dataCutoff: input.asOf,
     modelVersion: input.modelVersion,
-    predictionStage: input.predictionStage ?? "historical-as-of",
+    predictionStage: stage,
+    evaluationClass: input.evaluationClass,
     homeProbability: input.home,
     drawProbability: input.draw,
     awayProbability: input.away,
@@ -131,7 +169,7 @@ export function createSnapshot(input: CreateSnapshotInput): PredictionSnapshot {
       uniqueKey,
       notes:
         input.provenanceNotes ??
-        "First write wins. Key = competition+season+fixtureId+modelVersion+asOf. Stored probabilities are never recomputed.",
+        "First write wins. Key = competition+season+fixtureId+modelVersion+predictionStage+asOf. Stored probabilities are never recomputed.",
     },
     market: null,
     home: input.home,
@@ -149,7 +187,9 @@ export function createSnapshot(input: CreateSnapshotInput): PredictionSnapshot {
 
 export function getSnapshotByKey(key: SnapshotKey): PredictionSnapshot | null {
   loadFromDisk();
-  const found = mem().byKey.get(snapshotUniqueKey(key));
+  const found =
+    mem().byKey.get(snapshotUniqueKey(key)) ??
+    mem().byKey.get(legacySnapshotUniqueKey(key));
   return found ? cloneFrozen(found) : null;
 }
 
@@ -189,6 +229,28 @@ export function clearSnapshotsForTests(): void {
   if (fs.existsSync(file)) fs.unlinkSync(file);
 }
 
+/** Append LIVE_OOS snapshots to the committed archive (production ingest only). */
+export function archiveLiveOosSnapshots(snaps: PredictionSnapshot[]): void {
+  if (!snaps.length) return;
+  fs.mkdirSync(path.dirname(LIVE_ARCHIVE), { recursive: true });
+  const existing = new Set<string>();
+  if (fs.existsSync(LIVE_ARCHIVE)) {
+    for (const line of fs.readFileSync(LIVE_ARCHIVE, "utf8").split("\n")) {
+      if (!line.trim()) continue;
+      try {
+        const s = JSON.parse(line) as PredictionSnapshot;
+        existing.add(s.provenance.uniqueKey);
+      } catch {
+        /* skip */
+      }
+    }
+  }
+  const lines = snaps
+    .filter((s) => s.evaluationClass === "LIVE_OOS" && !existing.has(s.provenance.uniqueKey))
+    .map((s) => JSON.stringify(s));
+  if (lines.length) fs.appendFileSync(LIVE_ARCHIVE, `${lines.join("\n")}\n`, "utf8");
+}
+
 export function assertImmutable(original: PredictionSnapshot, candidate: PredictionSnapshot): boolean {
   return (
     original.home === candidate.home &&
@@ -204,11 +266,12 @@ export function assertImmutable(original: PredictionSnapshot, candidate: Predict
 
 export function snapshotPersistenceGuarantee(): string {
   return [
-    "Snapshots are keyed by (competition, season, fixtureId, modelVersion, asOf).",
+    "Snapshots are keyed by (competition, season, fixtureId, modelVersion, predictionStage, asOf).",
     "First write wins; later writes with the same key return the original numbers.",
     "Returned objects are deep-frozen clones; mutating them does not change the store.",
     "The JSONL file at SNAPSHOT_STORE_PATH (default data/processed/predictions/snapshots.jsonl) survives process restart.",
     "MongoDB collection prediction_snapshots is an optional replica when MONGODB_URI is set.",
     "A later model version is a different key and never overwrites an older snapshot.",
+    "Phase 1 snapshots without predictionStage still resolve via the legacy 5-part key.",
   ].join(" ");
 }

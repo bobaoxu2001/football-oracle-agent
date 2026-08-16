@@ -9,18 +9,23 @@
 
 import type { MatchPrediction, ModelFactor } from "@/lib/types";
 import { matchProb, scorelineGrid } from "./elo";
-import { loadPremierLeagueParams } from "./model-params";
+import { loadProductionParams } from "@/lib/competitions/premier-league/model-tracks";
 import { ratingsAsOf } from "@/lib/competitions/premier-league/ratings";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { completedPremierLeagueFixtures } from "@/lib/competitions/premier-league/data";
 import { auditPrediction } from "@/lib/model-auditor/audit";
 import { createSnapshot, type PredictionSnapshot } from "@/lib/snapshots/store";
+import type { EvaluationClass, PredictionStage } from "@/lib/snapshots/types";
+import { evaluationClassFor, stageFromTiming } from "@/lib/competitions/premier-league/stages";
+import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 
 export interface LeaguePredictOptions {
   asOf?: string;
   kickoff?: string;
   fixtureId?: string;
   season?: string;
+  predictionStage?: PredictionStage;
+  evaluationClass?: EvaluationClass;
 }
 
 function confidenceFrom(topProb: number) {
@@ -42,11 +47,12 @@ export function predictPremierLeagueMatch(
   awaySlug: string,
   options: LeaguePredictOptions = {}
 ): MatchPrediction {
-  const params = loadPremierLeagueParams();
+  const params = loadProductionParams();
   const home = getClub(homeSlug);
   const away = getClub(awaySlug);
-  const asOf = options.asOf ?? options.kickoff?.slice(0, 10) ?? "9999-12-31";
-  const state = ratingsAsOf(asOf);
+  const asOf = options.asOf ?? options.kickoff ?? new Date().toISOString();
+  const asOfDate = asOf.slice(0, 10);
+  const state = ratingsAsOf(asOfDate);
   const eloH = state.ratings[homeSlug] ?? 1500;
   const eloA = state.ratings[awaySlug] ?? 1500;
   const goalOpts = { rho: params.dcRho, awayHomeShare: params.awayHomeShare };
@@ -77,6 +83,12 @@ export function predictPremierLeagueMatch(
     {
       label: "Model version",
       detail: `${params.modelVersion} · training window ${params.trainingWindow.from} → ${params.trainingWindow.to} · fitted ${params.fittedAt}.`,
+      weight: "low",
+    },
+    {
+      label: "Inputs in use",
+      detail:
+        "League-strength baseline, home advantage, season-transition priors and Dixon-Coles score model. Not used: market odds, injuries, lineups, transfers, or shot-based xG.",
       weight: "low",
     },
   ];
@@ -142,17 +154,26 @@ export function snapshotPremierLeagueMatch(
   options: LeaguePredictOptions = {}
 ): PredictionSnapshot {
   const pred = predictPremierLeagueMatch(homeSlug, awaySlug, options);
-  const params = loadPremierLeagueParams();
+  const params = loadProductionParams();
   const homeClub = getClub(homeSlug);
   const awayClub = getClub(awaySlug);
+  const asOf = pred.asOf ?? options.asOf ?? new Date().toISOString();
+  const kickoff = options.kickoff ?? null;
+  const stage = options.predictionStage ?? stageFromTiming(asOf, kickoff);
+  const evaluationClass = evaluationClassFor({
+    asOf,
+    kickoffUtc: kickoff,
+    intended: options.evaluationClass,
+  });
   return createSnapshot({
     fixtureId: pred.matchId,
     competition: "premier-league",
-    season: options.season ?? "2025-26",
-    asOf: pred.asOf ?? options.asOf ?? new Date().toISOString().slice(0, 10),
-    kickoff: options.kickoff ?? null,
+    season: options.season ?? PREMIER_LEAGUE_CURRENT_SEASON,
+    asOf,
+    kickoff,
     modelVersion: params.modelVersion,
-    predictionStage: options.kickoff ? "as-of-kickoff" : "preseason-baseline",
+    predictionStage: stage,
+    evaluationClass,
     homeSlug,
     awaySlug,
     homeTeam: homeClub.name,

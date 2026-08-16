@@ -1,16 +1,18 @@
 /**
  * Current Premier League field and remaining-fixture helpers.
  *
- * 2026-27 fixtures are not invented. If the processed file has no rows for
- * that season, remaining fixtures are a generated double round-robin of the
- * inferred 20-club field (2025-26 finishers minus bottom 3, plus Championship
- * promotion placeholders when those clubs are known).
+ * Production uses the official CompetitionSeason + ingested fixtures when
+ * the data gate is not blocked. The generated double round-robin remains
+ * only as a test/synthetic fallback.
  */
 
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "./config";
 import { clubSlugsInSeason, completedPremierLeagueFixtures, fixturesForSeason } from "./data";
 import { tableFromResults, type PlayedResult } from "./standings";
 import type { RemainingFixture } from "./simulate";
+import { evaluateDataGate } from "./data-gate";
+import { liveCompetitionSeason, liveFixtures } from "./fixture-store";
+import { canonicalizeFixtureStatus } from "./ingest";
 
 export function lastCompletedSeason(): string {
   const seasons = [...new Set(completedPremierLeagueFixtures().map((f) => f.season))].sort();
@@ -29,10 +31,13 @@ export function seasonTable(season: string) {
 }
 
 export function currentPremierLeagueField(): string[] {
+  const gate = evaluateDataGate();
+  const live = liveCompetitionSeason();
+  if (gate.status !== "DATA_BLOCKED" && live && live.clubIds.length === live.expectedClubCount) {
+    return [...live.clubIds];
+  }
   const current = fixturesForSeason(PREMIER_LEAGUE_CURRENT_SEASON);
   if (current.length >= 20) return clubSlugsInSeason(PREMIER_LEAGUE_CURRENT_SEASON);
-  // 2026-27 membership is not in the ingested file. Use the last completed
-  // 20-club field rather than inventing promoted sides.
   return clubSlugsInSeason(lastCompletedSeason());
 }
 
@@ -53,8 +58,32 @@ export function remainingPremierLeagueFixtures(): {
   clubSlugs: string[];
   played: PlayedResult[];
   remaining: RemainingFixture[];
+  dataSource: "REAL_2026_27_DATA" | "SYNTHETIC_PRESEASON_DATA";
 } {
   const season = PREMIER_LEAGUE_CURRENT_SEASON;
+  const gate = evaluateDataGate();
+  const live = liveFixtures();
+  if (gate.status !== "DATA_BLOCKED" && live.length > 0) {
+    const clubSlugs = currentPremierLeagueField();
+    const played: PlayedResult[] = live
+      .filter((f) => {
+        const st = canonicalizeFixtureStatus(f.status);
+        return st === "FINISHED" && f.homeGoals !== null && f.awayGoals !== null;
+      })
+      .map((f) => ({
+        homeSlug: f.homeSlug,
+        awaySlug: f.awaySlug,
+        homeGoals: f.homeGoals as number,
+        awayGoals: f.awayGoals as number,
+      }));
+    const remaining: RemainingFixture[] = live
+      .filter((f) => {
+        const st = canonicalizeFixtureStatus(f.status);
+        return st === "SCHEDULED" || st === "LIVE";
+      })
+      .map((f) => ({ homeSlug: f.homeSlug, awaySlug: f.awaySlug }));
+    return { season, clubSlugs, played, remaining, dataSource: "REAL_2026_27_DATA" };
+  }
   const rows = fixturesForSeason(season);
   if (rows.length > 0) {
     const clubSlugs = clubSlugsInSeason(season);
@@ -69,7 +98,7 @@ export function remainingPremierLeagueFixtures(): {
     const remaining: RemainingFixture[] = rows
       .filter((f) => f.status !== "completed")
       .map((f) => ({ homeSlug: f.homeSlug, awaySlug: f.awaySlug }));
-    return { season, clubSlugs, played, remaining };
+    return { season, clubSlugs, played, remaining, dataSource: "REAL_2026_27_DATA" };
   }
   const clubSlugs = currentPremierLeagueField();
   return {
@@ -77,5 +106,6 @@ export function remainingPremierLeagueFixtures(): {
     clubSlugs,
     played: [],
     remaining: generateRoundRobin(clubSlugs),
+    dataSource: "SYNTHETIC_PRESEASON_DATA",
   };
 }

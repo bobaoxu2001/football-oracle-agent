@@ -9,6 +9,21 @@
       "trust": "community-verified",
       "description": "Date, home, away, full-time goals for Premier League (E0) and Championship (E1). Goal data only — no shot-based xG. Used for club Elo training and walk-forward evaluation. Never mixed with martj42 internationals.",
       "files": ["data/raw/premier-league/*.csv", "data/processed/premier-league/fixtures.json"]
+    },
+    {
+      "id": "premier-league-official-2026-27",
+      "name": "Premier League official 2026/27 membership and fixtures",
+      "url": "https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season",
+      "license": "Public fixture list published by the Premier League",
+      "official": true,
+      "trust": "authoritative",
+      "description": "Canonical 2026-27 club membership (20 clubs; Coventry, Ipswich, Hull promoted; West Ham, Burnley, Wolves relegated) and the 380-fixture release of 19 June 2026. Kickoffs interpreted as Europe/London. Cross-checked against Wikipedia 2026–27 Premier League team list. football-data.co.uk 2627/E0 is not yet published (URL serves National League).",
+      "files": [
+        "data/raw/premier-league/official-2026-27-fixtures.csv",
+        "data/processed/premier-league/season-2026-27.json",
+        "data/processed/premier-league/fixtures-2026-27.json",
+        "data/processed/premier-league/club-seasons-2026-27.json"
+      ]
     }
   ]
 }

@@ -1,0 +1,17 @@
+{
+  "competition": "premier-league",
+  "modelVersion": "pl-live-v0.2.0",
+  "homeAdvantage": 72,
+  "dcRho": -0.061,
+  "drawBias": 1,
+  "goalScale": 350,
+  "baseGoals": 1.35,
+  "awayHomeShare": 0,
+  "kFactor": 20,
+  "fittedAt": "2026-08-15",
+  "trainingWindow": {
+    "from": "2018-08-01",
+    "to": "2025-05-31"
+  },
+  "notes": "Production track pl-live-v0.2.0. HA=72 and ρ=−0.061 are the Phase 1 training-window estimates (2018-19–2024-25), not recalibrated. Version bumped because the live stack now uses official 2026-27 membership, Championship feeder ON, and explicit offseason initialization. Model state (ratings) updates separately from this version string."
+}

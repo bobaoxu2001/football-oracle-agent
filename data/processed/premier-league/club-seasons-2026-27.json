@@ -1,0 +1,364 @@
+[
+  {
+    "clubId": "arsenal",
+    "clubSlug": "arsenal",
+    "canonicalName": "Arsenal",
+    "shortName": "Arsenal",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Arsenal",
+      "gunners",
+      "afc"
+    ]
+  },
+  {
+    "clubId": "aston-villa",
+    "clubSlug": "aston-villa",
+    "canonicalName": "Aston Villa",
+    "shortName": "Villa",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Aston Villa",
+      "villa"
+    ]
+  },
+  {
+    "clubId": "bournemouth",
+    "clubSlug": "bournemouth",
+    "canonicalName": "AFC Bournemouth",
+    "shortName": "Bournemouth",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Bournemouth",
+      "AFC Bournemouth",
+      "cherries"
+    ]
+  },
+  {
+    "clubId": "brentford",
+    "clubSlug": "brentford",
+    "canonicalName": "Brentford",
+    "shortName": "Brentford",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Brentford",
+      "bees"
+    ]
+  },
+  {
+    "clubId": "brighton",
+    "clubSlug": "brighton",
+    "canonicalName": "Brighton & Hove Albion",
+    "shortName": "Brighton",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Brighton",
+      "Brighton & Hove Albion",
+      "seagulls",
+      "brighton and hove albion"
+    ]
+  },
+  {
+    "clubId": "chelsea",
+    "clubSlug": "chelsea",
+    "canonicalName": "Chelsea",
+    "shortName": "Chelsea",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Chelsea",
+      "cfc"
+    ]
+  },
+  {
+    "clubId": "coventry",
+    "clubSlug": "coventry",
+    "canonicalName": "Coventry City",
+    "shortName": "Coventry",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "promoted",
+    "previousCompetition": "championship",
+    "previousSeason": "2025-26",
+    "promotionStatus": "promoted",
+    "aliases": [
+      "Coventry",
+      "Coventry City",
+      "sky blues"
+    ]
+  },
+  {
+    "clubId": "crystal-palace",
+    "clubSlug": "crystal-palace",
+    "canonicalName": "Crystal Palace",
+    "shortName": "Palace",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Crystal Palace",
+      "palace",
+      "eagles"
+    ]
+  },
+  {
+    "clubId": "everton",
+    "clubSlug": "everton",
+    "canonicalName": "Everton",
+    "shortName": "Everton",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Everton",
+      "toffees"
+    ]
+  },
+  {
+    "clubId": "fulham",
+    "clubSlug": "fulham",
+    "canonicalName": "Fulham",
+    "shortName": "Fulham",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Fulham",
+      "cottagers"
+    ]
+  },
+  {
+    "clubId": "hull",
+    "clubSlug": "hull",
+    "canonicalName": "Hull City",
+    "shortName": "Hull",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "promoted",
+    "previousCompetition": "championship",
+    "previousSeason": "2025-26",
+    "promotionStatus": "promoted",
+    "aliases": [
+      "Hull",
+      "Hull City",
+      "tigers"
+    ]
+  },
+  {
+    "clubId": "ipswich",
+    "clubSlug": "ipswich",
+    "canonicalName": "Ipswich Town",
+    "shortName": "Ipswich",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "promoted",
+    "previousCompetition": "championship",
+    "previousSeason": "2025-26",
+    "promotionStatus": "promoted",
+    "aliases": [
+      "Ipswich",
+      "Ipswich Town",
+      "tractor boys"
+    ]
+  },
+  {
+    "clubId": "leeds",
+    "clubSlug": "leeds",
+    "canonicalName": "Leeds United",
+    "shortName": "Leeds",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Leeds",
+      "Leeds United",
+      "whites"
+    ]
+  },
+  {
+    "clubId": "liverpool",
+    "clubSlug": "liverpool",
+    "canonicalName": "Liverpool",
+    "shortName": "Liverpool",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Liverpool",
+      "lfc"
+    ]
+  },
+  {
+    "clubId": "manchester-city",
+    "clubSlug": "manchester-city",
+    "canonicalName": "Manchester City",
+    "shortName": "Man City",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Man City",
+      "Manchester City",
+      "man city",
+      "mcfc"
+    ]
+  },
+  {
+    "clubId": "manchester-united",
+    "clubSlug": "manchester-united",
+    "canonicalName": "Manchester United",
+    "shortName": "Man United",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Man United",
+      "Manchester United",
+      "man utd",
+      "man united",
+      "mufc",
+      "red devils"
+    ]
+  },
+  {
+    "clubId": "newcastle",
+    "clubSlug": "newcastle",
+    "canonicalName": "Newcastle United",
+    "shortName": "Newcastle",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Newcastle",
+      "Newcastle United",
+      "magpies",
+      "toon"
+    ]
+  },
+  {
+    "clubId": "nottingham-forest",
+    "clubSlug": "nottingham-forest",
+    "canonicalName": "Nottingham Forest",
+    "shortName": "Forest",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Nott'm Forest",
+      "Nottingham Forest",
+      "forest",
+      "nottm forest",
+      "notts forest"
+    ]
+  },
+  {
+    "clubId": "sunderland",
+    "clubSlug": "sunderland",
+    "canonicalName": "Sunderland",
+    "shortName": "Sunderland",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Sunderland",
+      "black cats"
+    ]
+  },
+  {
+    "clubId": "tottenham",
+    "clubSlug": "tottenham",
+    "canonicalName": "Tottenham Hotspur",
+    "shortName": "Spurs",
+    "competition": "premier-league",
+    "season": "2026-27",
+    "division": "premier-league",
+    "entry": "stayed",
+    "previousCompetition": "premier-league",
+    "previousSeason": "2025-26",
+    "promotionStatus": "continuing",
+    "aliases": [
+      "Tottenham",
+      "Tottenham Hotspur",
+      "spurs",
+      "hotspur"
+    ]
+  }
+]

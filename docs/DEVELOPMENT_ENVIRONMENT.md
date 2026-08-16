@@ -39,6 +39,20 @@ On Apple Silicon, either:
 
 Do not mix an arm64 `node` with an x64 `node_modules`.
 
+### Exact x64 npm invocation on this machine
+
+`npm` itself must be on the x64 PATH. Prefix every npm/node command:
+
+```bash
+PATH="/usr/local/opt/node@22/bin:$PATH"
+hash -r
+node -p "process.arch"    # must print x64
+which npm                 # /usr/local/opt/node@22/bin/npm
+npm test
+```
+
+If `which node` is `/opt/homebrew/bin/node` (arm64) while `node_modules` is x64, esbuild will fail. That is a PATH issue, not an application bug.
+
 ## Commands
 
 | Task | Command |
@@ -51,5 +65,9 @@ Do not mix an arm64 `node` with an x64 `node_modules`.
 | PL backtest | `npm run backtest:pl` |
 | WC bracket | `npm run validate:bracket` |
 | Dev server | `npm run dev` |
+| Ingest 2026-27 | `npm run ingest:pl-2026-27` |
+| Fit season init | `npm run fit:season-init` |
+| Freeze live forecasts | `npm run freeze:live` |
+| Phase 2A gates | `npm run test:phase2a` |
 
 No extra environment variables are required for the backtest. Snapshots write to `data/processed/predictions/snapshots.jsonl` unless `SNAPSHOT_STORE_PATH` is set (tests set a temp path).

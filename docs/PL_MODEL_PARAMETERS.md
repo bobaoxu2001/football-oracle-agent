@@ -41,4 +41,14 @@ Per-season training optima span roughly **0 to −0.16**. COVID-era seasons beha
 
 ## Season initialization coefficients
 
-`SEASON_SHRINK = 0.75`, `PROMOTION_GAP = 80`, `PREMIER_LEAGUE_MEAN_ELO = 1600` are **placeholders**. They are not fitted. See `lib/prediction-engine/season-init.ts`.
+### Benchmark track (`pl-baseline-v0.1.0`)
+
+`SEASON_SHRINK = 0.75`, `PROMOTION_GAP = 80`, `PREMIER_LEAGUE_MEAN_ELO = 1600` remain **placeholders**. Championship feeder is **OFF**. This path is frozen.
+
+### Production track (`pl-live-v0.2.0`)
+
+Coefficients live in `data/processed/premier-league/season-init-params.json`. They are fitted by `scripts/fit-season-init.ts` on historical Premier League season transitions (scored seasons 2019-20–2024-25). **2025-26 is not used to pick them.** Championship feeder is **ON**. HA and ρ are the same training-window estimates as the benchmark; they were not recalibrated.
+
+A rating update after a verified 2026-27 result changes **model state**, not the model version.
+
+See `lib/competitions/premier-league/model-tracks.ts`.
