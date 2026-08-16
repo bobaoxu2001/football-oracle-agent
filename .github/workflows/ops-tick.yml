@@ -1,27 +1,38 @@
 # Hosted production scheduler. Cadence <= 5 minutes.
 # Invokes Vercel /api/ops/tick with CRON_SECRET. Does not invent results.
 # Recurrence is GitHub-managed; overlap is serialized by the Mongo 90s lease.
+#
+# Two complementary triggers:
+#   1. */5 cron — one-shot pinger (preferred once GitHub honors it)
+#   2. hourly loop — supervised worker that ticks every 5 minutes for ~55 minutes
+#      and is restarted by GitHub each hour if the previous run ended.
 name: ops-tick
 
 on:
   schedule:
     - cron: "*/5 * * * *"
+    - cron: "2 * * * *"
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "once or loop"
+        default: "loop"
 
 concurrency:
-  group: football-oracle-ops-tick
+  group: football-oracle-ops-tick-${{ github.job }}
   cancel-in-progress: false
 
 jobs:
   tick:
     name: production-ops-tick
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 58
     steps:
-      - name: Authenticated production tick
+      - name: Authenticated production ticks
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           OPS_TICK_URL: ${{ vars.OPS_TICK_URL }}
+          MODE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode || (github.event.schedule == '2 * * * *' && 'loop' || 'once') }}
         run: |
           set -euo pipefail
           if [ -z "${CRON_SECRET:-}" ]; then
@@ -29,21 +40,36 @@ jobs:
             exit 1
           fi
           URL="${OPS_TICK_URL:-https://football-oracle-agent.vercel.app/api/ops/tick}"
-          AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          CODE="$(curl -sS -o /tmp/tick-body -w "%{http_code}" \
-            --max-time 90 \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            -H "User-Agent: football-oracle-ops-scheduler" \
-            "$URL" || true)"
-          echo "at=${AT} status=${CODE}"
-          python3 - <<'PY'
+          MODE="${MODE:-once}"
+          ROUNDS=1
+          if [ "$MODE" = "loop" ]; then
+            ROUNDS=11
+          fi
+          echo "mode=${MODE} rounds=${ROUNDS}"
+          fail=0
+          for i in $(seq 1 "$ROUNDS"); do
+            AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            CODE="$(curl -sS -o /tmp/tick-body -w "%{http_code}" \
+              --max-time 90 \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              -H "User-Agent: football-oracle-ops-scheduler" \
+              "$URL" || true)"
+            echo "round=${i} at=${AT} status=${CODE}"
+            python3 - <<'PY'
           from pathlib import Path
           text = Path("/tmp/tick-body").read_text(errors="replace")
           print(text[:800])
           PY
-          # 200 = executed, 409 = lease skip (still a successful scheduler invocation)
-          if [ "$CODE" != "200" ] && [ "$CODE" != "409" ]; then
-            echo "failure_state=http_${CODE}"
+            if [ "$CODE" != "200" ] && [ "$CODE" != "409" ]; then
+              echo "failure_state=http_${CODE}"
+              fail=1
+            else
+              echo "failure_state=none"
+            fi
+            if [ "$i" -lt "$ROUNDS" ]; then
+              sleep 300
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then
             exit 1
           fi
-          echo "failure_state=none"
