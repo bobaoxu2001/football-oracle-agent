@@ -36,7 +36,7 @@ Limitations are listed in §14. None hide a failed required gate.
 | Item | Value |
 | --- | --- |
 | Start SHA | `7bc3f94e50dd172ba935bb2f99af80c366193bce` |
-| End SHA | recorded after this report is committed |
+| End SHA | `301c8b89440cb7dc60512450efe55545324a78cf` |
 | Frozen benchmark | `data/processed/premier-league/backtest-heldout.phase1-frozen.json` untouched |
 | HA / ρ | **not recalibrated** (72 / −0.061) |
 | World Cup | plugin preserved; Annex C 495/495; title 37.3 / 30.9 / 15.3 / 7.0 / 2.4 |

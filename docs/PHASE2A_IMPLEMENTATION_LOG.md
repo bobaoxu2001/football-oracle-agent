@@ -2,6 +2,7 @@
 
 **Start:** 2026-08-16  
 **Starting SHA:** `7bc3f94e50dd172ba935bb2f99af80c366193bce`  
+**Ending SHA:** `301c8b89440cb7dc60512450efe55545324a78cf`  
 **Branch:** `main`  
 **World Cup source:** untouched (`archive/worldcup-2026-v1` = `9e540b3…`)  
 **Frozen Phase 1 benchmark:** `data/processed/premier-league/backtest-heldout.phase1-frozen.json`  
