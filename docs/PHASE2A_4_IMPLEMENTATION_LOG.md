@@ -80,3 +80,55 @@ Forbidden as production scheduler: local terminal, launchd, `npm run ops:worker`
 ---
 
 ## Work log
+
+### Composite settlement reader
+
+- Added `lib/competitions/premier-league/ops/live-snapshot-reader.ts`.
+- `listLiveSnapshots()` unions frozen tape + operational archive + working store, deduped by the audited 6-part identity. Tape wins on collision.
+- `liveSnapshotUniverse()` is the `/live` / health headline view: tape + operational archive only (so working-store test rows cannot inflate the 380).
+- `settleFixture()` now enumerates via `listLiveSnapshots()`, not `listSnapshots()`.
+- Settlements remain a separate JSONL/Mongo record. Optional `verificationId` is stored on the settlement row only.
+- Isolated `/tmp` VERIFIED_FINAL: Arsenal–Coventry frozen EARLY + synthetic PRESEASON + four timed stages → 6 settlements, replay/restart still 6, tape bytes unchanged.
+- `scripts/test-phase2a-4.ts`: **62/62**.
+- Prior suites: 2A 56/56, 2A.1 45/45, 2A.2 104/104, 2A.3 15/15.
+
+### Hosted scheduler
+
+Inspected: Vercel Hobby daily cron only; no laptop worker; no Render/Fly/Railway; Grok automations cannot do 5 minutes.
+
+Deployed **GitHub Actions** on `https://github.com/bobaoxu2001/football-oracle-ops-scheduler` (public, so Actions minutes are not capped):
+
+- `*/5 * * * *` one-shot pinger
+- hourly supervised loop (`2 * * * *`) that ticks every 5 minutes and is restarted by GitHub
+- `Authorization: Bearer $CRON_SECRET`
+- Mongo 90s lease unchanged
+
+Auth/lease against production (before observation): missing secret 401, wrong secret 401, overlap 200 + 409.
+
+Automatic ticks observed **without** curling `/api/ops/tick`:
+
+| n | lastTickAt |
+| --- | --- |
+| 1 | 2026-08-16T14:11:53.831Z |
+| 2 | 2026-08-16T14:16:56.192Z |
+| 3 | 2026-08-16T14:21:59.025Z |
+| 4 | 2026-08-16T14:27:00.879Z |
+
+A GitHub `schedule` run (`31952056118`) also queued at 14:12:57Z, proving provider-managed recurrence. No local scheduler process.
+
+### Safety / regression
+
+- 1400 CANCELLED jobs left in place; `/health` now exposes `activeJobs` = PENDING+ELIGIBLE+RUNNING.
+- API-Football left optional.
+- `scripts/export-ops-bundle.ts` + `docs/OPS_BACKUP_AND_RESTORE.md`.
+- World Cup gates green (routing 73, track 24, calibration 12, tournament 52, ratings, honesty, DC selftest, bracket top-5 37.3 / 30.9 / 15.3 / 7.0 / 2.4).
+- Tape hashes unchanged before and after.
+
+### Commits / deploy
+
+| Item | Value |
+| --- | --- |
+| Start | `1dab4715126410c2dd78e9fc71a8477df5214e22` |
+| Settlement + first scheduler commit | `c5f7bbba8a3da3d9faba297410f7e5f7ea421902` |
+| Supervised-loop workflow | `814650ddbcf032a9523963bfb64de2d52fdeeadf` |
+| Production deployment | `dpl_8me2vnYixw8CiFkVawvD1uFnC17r` |
