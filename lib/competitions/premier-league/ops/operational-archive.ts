@@ -1,0 +1,85 @@
+/**
+ * Append-only operational LIVE_OOS archive.
+ * Never points at the canonical 380-line tape.
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+import type { PredictionSnapshot } from "@/lib/snapshots/types";
+import { canonicalizePredictionStage, snapshotUniqueKey } from "@/lib/snapshots/types";
+import { isCanonicalLiveTapePath } from "@/lib/snapshots/store";
+import { operationalLiveOosPath } from "./paths";
+import type { TimedStage } from "./types";
+
+function dest(): string {
+  const file = operationalLiveOosPath();
+  if (isCanonicalLiveTapePath(file)) {
+    throw new Error("Refusing to use the canonical LIVE_OOS tape as the operational archive.");
+  }
+  return file;
+}
+
+function existingKeys(file: string): Set<string> {
+  const keys = new Set<string>();
+  if (!fs.existsSync(file)) return keys;
+  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const s = JSON.parse(line) as PredictionSnapshot;
+      keys.add(s.provenance?.uniqueKey || snapshotUniqueKey(s));
+    } catch {
+      /* skip */
+    }
+  }
+  return keys;
+}
+
+export function archiveOperationalLiveOos(snaps: PredictionSnapshot[]): { appended: number } {
+  const file = dest();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const existing = existingKeys(file);
+  const lines: string[] = [];
+  for (const s of snaps) {
+    if (s.evaluationClass !== "LIVE_OOS") continue;
+    const key = s.provenance?.uniqueKey || snapshotUniqueKey(s);
+    if (existing.has(key)) continue;
+    existing.add(key);
+    lines.push(JSON.stringify(s));
+  }
+  if (lines.length) fs.appendFileSync(file, `${lines.join("\n")}\n`, "utf8");
+  return { appended: lines.length };
+}
+
+export function loadOperationalLiveOos(): PredictionSnapshot[] {
+  const file = dest();
+  if (!fs.existsSync(file)) return [];
+  const byKey = new Map<string, PredictionSnapshot>();
+  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const s = JSON.parse(line) as PredictionSnapshot;
+      const key = s.provenance?.uniqueKey || snapshotUniqueKey(s);
+      if (!byKey.has(key)) byKey.set(key, s);
+    } catch {
+      /* skip */
+    }
+  }
+  return [...byKey.values()];
+}
+
+export function findScheduledSnapshot(input: {
+  fixtureId: string;
+  stage: TimedStage;
+  modelVersion: string;
+  plannedAsOf: string;
+}): PredictionSnapshot | null {
+  const fromArchive = loadOperationalLiveOos().find((s) => {
+    if (s.fixtureId !== input.fixtureId) return false;
+    if (s.modelVersion !== input.modelVersion) return false;
+    if (canonicalizePredictionStage(s.predictionStage) !== input.stage) return false;
+    if (s.asOf === input.plannedAsOf) return true;
+    const origin = (s.sourceState as { origin?: string } | undefined)?.origin;
+    return origin === "scheduled" && s.asOf === input.plannedAsOf;
+  });
+  return fromArchive ?? null;
+}

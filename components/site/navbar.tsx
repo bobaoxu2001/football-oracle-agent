@@ -38,6 +38,12 @@ export function Navbar() {
             Live
           </Link>
           <Link
+            href="/health"
+            className="rounded-lg px-1.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:px-3"
+          >
+            Health
+          </Link>
+          <Link
             href="/accuracy"
             className="rounded-lg px-1.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:px-3"
           >

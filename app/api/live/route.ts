@@ -28,6 +28,7 @@ export async function GET() {
     dataGate: evaluateDataGate(),
     ledger: ledgerCounts(PREMIER_LEAGUE_CURRENT_SEASON),
     liveOos: report,
+    stagePerformance: report.byStage,
     upcoming,
   });
 }

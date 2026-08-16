@@ -58,15 +58,37 @@ export default function LiveLedgerPage() {
       </section>
 
       <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
-        <h2 className="mb-3 font-semibold">Stage breakdown</h2>
-        <ul className="grid grid-cols-2 gap-1 text-muted-foreground sm:grid-cols-3">
-          <li>EARLY: {report.stages.EARLY}</li>
-          <li>PRESEASON: {report.stages.PRESEASON}</li>
-          <li>T24H: {report.stages.T24H}</li>
-          <li>T2H: {report.stages.T2H}</li>
-          <li>T60M: {report.stages.T60M}</li>
-          <li>FINAL_PREKICK: {report.stages.FINAL_PREKICK}</li>
-        </ul>
+        <h2 className="mb-3 font-semibold">Stage performance</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Each stage is scored separately. N=0 is shown as —. Headline Brier/RPS/LogLoss stay blank
+          until 20 LIVE_OOS settlements exist. FINAL_PREKICK is not a lineup-confirmed model.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-muted-foreground">
+            <thead>
+              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em]">
+                <th className="py-2 pr-3 font-medium">Stage</th>
+                <th className="py-2 pr-3 font-medium">N</th>
+                <th className="py-2 pr-3 font-medium">Settled</th>
+                <th className="py-2 pr-3 font-medium">Brier</th>
+                <th className="py-2 pr-3 font-medium">RPS</th>
+                <th className="py-2 font-medium">LogLoss</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.byStage.map((row) => (
+                <tr key={row.stage} className="border-b border-white/5">
+                  <td className="py-1.5 pr-3 text-foreground">{row.stage}</td>
+                  <td className="py-1.5 pr-3">{row.n}</td>
+                  <td className="py-1.5 pr-3">{row.nSettled}</td>
+                  <td className="py-1.5 pr-3">{row.brier === null ? "—" : row.brier.toFixed(4)}</td>
+                  <td className="py-1.5 pr-3">{row.rps === null ? "—" : row.rps.toFixed(4)}</td>
+                  <td className="py-1.5">{row.logLoss === null ? "—" : row.logLoss.toFixed(4)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
@@ -90,12 +112,15 @@ export default function LiveLedgerPage() {
             const q = encodeURIComponent(`Who wins ${h.name} vs ${a.name}?`);
             return (
               <li key={f.id}>
-                <Link href={`/?q=${q}`} className="hover:text-foreground">
+                <Link href={`/live/fixture/${f.id}`} className="hover:text-foreground">
                   {h.shortName} vs {a.shortName}
                   <span className="ml-2 text-xs text-muted-foreground">
                     {formatKickoff(f.kickoffUtc ?? f.kickoff, f.date)}
                     {f.kickoffCertainty ? ` · ${f.kickoffCertainty}` : ""}
                   </span>
+                </Link>
+                <Link href={`/?q=${q}`} className="ml-2 text-xs text-neon hover:underline">
+                  ask
                 </Link>
               </li>
             );
@@ -108,6 +133,10 @@ export default function LiveLedgerPage() {
           Other classes this season — RETROSPECTIVE: {counts.RETROSPECTIVE} · BACKTEST: {counts.BACKTEST}.
         </p>
         <p className="mt-4">
+          <Link href="/health" className="text-neon hover:underline">
+            Operational health
+          </Link>
+          {" · "}
           <Link href="/" className="text-neon hover:underline">
             ← Back to the agent
           </Link>

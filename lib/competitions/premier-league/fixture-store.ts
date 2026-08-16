@@ -17,6 +17,12 @@ import {
   type IngestResult,
 } from "./ingest";
 import { applyKickoffCertainty } from "./kickoff-certainty";
+import {
+  clubSeasonsPath,
+  fixtureRevisionsPath,
+  liveFixturesPath,
+  seasonManifestPath,
+} from "./ops/paths";
 
 const ROOT = path.resolve(process.cwd(), "data/processed/premier-league");
 
@@ -25,6 +31,19 @@ export const LIVE_FIXTURES_PATH = path.join(ROOT, "fixtures-2026-27.json");
 export const CLUB_SEASONS_PATH = path.join(ROOT, "club-seasons-2026-27.json");
 export const REVISIONS_PATH = path.join(ROOT, "fixture-revisions.jsonl");
 export const SOURCE_SNAPSHOT_DIR = path.join(ROOT, "source-snapshots");
+
+function seasonFile(): string {
+  return seasonManifestPath();
+}
+function fixturesFile(): string {
+  return liveFixturesPath();
+}
+function clubsFile(): string {
+  return clubSeasonsPath();
+}
+function revisionsFile(): string {
+  return fixtureRevisionsPath();
+}
 
 export interface SeasonBundle {
   season: CompetitionSeason;
@@ -42,9 +61,9 @@ function readJson<T>(file: string): T | null {
 
 export function loadSeasonBundle(): SeasonBundle | null {
   if (_bundle) return _bundle;
-  const season = readJson<CompetitionSeason>(SEASON_MANIFEST_PATH);
-  const fixturesDoc = readJson<{ fixtures: Fixture[]; provenance?: IngestProvenance }>(LIVE_FIXTURES_PATH);
-  const clubSeasons = readJson<ClubSeason[]>(CLUB_SEASONS_PATH);
+  const season = readJson<CompetitionSeason>(seasonFile());
+  const fixturesDoc = readJson<{ fixtures: Fixture[]; provenance?: IngestProvenance }>(fixturesFile());
+  const clubSeasons = readJson<ClubSeason[]>(clubsFile());
   if (!season || !fixturesDoc || !clubSeasons) return null;
   _bundle = {
     season,
@@ -84,20 +103,21 @@ function writeJson(file: string, value: unknown): void {
 
 function appendRevisions(revisions: FixtureRevision[]): void {
   if (!revisions.length) return;
-  fs.mkdirSync(path.dirname(REVISIONS_PATH), { recursive: true });
+  const file = revisionsFile();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
   const text = revisions.map((r) => JSON.stringify(r)).join("\n") + "\n";
-  fs.appendFileSync(REVISIONS_PATH, text, "utf8");
+  fs.appendFileSync(file, text, "utf8");
 }
 
 export function persistIngest(result: IngestResult): void {
-  writeJson(SEASON_MANIFEST_PATH, result.season);
-  writeJson(LIVE_FIXTURES_PATH, {
+  writeJson(seasonFile(), result.season);
+  writeJson(fixturesFile(), {
     fixtures: result.fixtures,
     provenance: result.provenance,
     retrievedAt: result.provenance.retrievedAt,
     source: result.provenance.source,
   });
-  writeJson(CLUB_SEASONS_PATH, result.clubSeasons);
+  writeJson(clubsFile(), result.clubSeasons);
   appendRevisions(result.revisions);
   fs.mkdirSync(SOURCE_SNAPSHOT_DIR, { recursive: true });
   const stamp = result.provenance.retrievedAt.replace(/[:.]/g, "-");
@@ -165,6 +185,19 @@ export function ingestAndPersist(retrievedAt?: string): IngestResult {
   return result;
 }
 
+/** Write current fixture/season JSON without minting an official source snapshot. */
+export function persistCurrentFixtures(bundle: SeasonBundle): void {
+  writeJson(seasonFile(), bundle.season);
+  writeJson(fixturesFile(), {
+    fixtures: bundle.fixtures,
+    provenance: bundle.provenance,
+    retrievedAt: bundle.provenance.retrievedAt,
+    source: bundle.provenance.source,
+  });
+  writeJson(clubsFile(), bundle.clubSeasons);
+  _bundle = bundle;
+}
+
 export function applyFixturePatch(fixtureId: string, patch: Partial<Fixture>, at = new Date().toISOString()): Fixture {
   const bundle = loadSeasonBundle();
   if (!bundle) throw new Error("No season bundle to patch");
@@ -179,8 +212,17 @@ export function applyFixturePatch(fixtureId: string, patch: Partial<Fixture>, at
       revisions.push({ fixtureId, at, field, from, to });
     }
   }
-  bundle.fixtures[idx] = next;
-  persistSeasonBundle(bundle);
+  const nextBundle: SeasonBundle = {
+    ...bundle,
+    fixtures: bundle.fixtures.map((f, i) => (i === idx ? next : f)),
+  };
+  persistCurrentFixtures(nextBundle);
   appendRevisions(revisions);
   return next;
+}
+
+export function replaceLiveFixtures(fixtures: Fixture[]): void {
+  const bundle = loadSeasonBundle();
+  if (!bundle) throw new Error("No season bundle to replace fixtures");
+  persistCurrentFixtures({ ...bundle, fixtures });
 }

@@ -122,6 +122,7 @@ export function canonicalizeFixtureStatus(status: Fixture["status"] | string): F
   if (u === "POSTPONED" || u === "PST") return "POSTPONED";
   if (u === "CANCELLED" || u === "CANCELED" || u === "CANC") return "CANCELLED";
   if (u === "SUSPENDED") return "SUSPENDED";
+  if (u === "ABANDONED" || u === "ABD" || u === "ABAN") return "ABANDONED";
   if (u === "SCHEDULED" || u === "TIMED" || u === "NS") return "SCHEDULED";
   return "SCHEDULED";
 }

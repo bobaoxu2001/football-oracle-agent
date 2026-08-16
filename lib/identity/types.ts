@@ -81,6 +81,7 @@ export type FixtureStatus =
   | "POSTPONED"
   | "CANCELLED"
   | "SUSPENDED"
+  | "ABANDONED"
   | "scheduled"
   | "completed"
   | "postponed";

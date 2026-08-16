@@ -28,6 +28,7 @@ export interface SettlementRecord {
   brier: number;
   rps: number;
   logLoss: number;
+  topPickCorrect: boolean;
   resultSource?: string;
 }
 
@@ -42,7 +43,13 @@ function storePath(): string {
 
 export function canSettle(fixture: Fixture): boolean {
   const status = canonicalizeFixtureStatus(fixture.status);
-  if (status === "POSTPONED" || status === "CANCELLED" || status === "SUSPENDED" || status === "LIVE") {
+  if (
+    status === "POSTPONED" ||
+    status === "CANCELLED" ||
+    status === "SUSPENDED" ||
+    status === "LIVE" ||
+    status === "ABANDONED"
+  ) {
     return false;
   }
   return status === "FINISHED" && fixture.homeGoals !== null && fixture.awayGoals !== null;
@@ -67,6 +74,8 @@ export function settlementFromSnapshot(
   const draw = snap.drawProbability;
   const away = snap.awayProbability;
   const pActual = actual === "home" ? home : actual === "draw" ? draw : away;
+  const top: Outcome =
+    home >= draw && home >= away ? "home" : away >= draw ? "away" : "draw";
   return {
     snapshotUniqueKey: snap.provenance.uniqueKey,
     fixtureId: fixture.id,
@@ -81,6 +90,7 @@ export function settlementFromSnapshot(
     brier: brier3(home, draw, away, actual),
     rps: rps3(home, draw, away, actual),
     logLoss: -Math.log(Math.max(1e-12, pActual)),
+    topPickCorrect: top === actual,
     resultSource: fixture.resultSource ?? fixture.source,
   };
 }
@@ -111,9 +121,17 @@ export function persistSettlement(rec: SettlementRecord): SettlementRecord {
   return rec;
 }
 
-export function settleFixture(fixture: Fixture, settledAt = new Date().toISOString()): SettlementRecord[] {
+export function settleFixture(
+  fixture: Fixture,
+  settledAt = new Date().toISOString(),
+  options: { evaluationClass?: EvaluationClass } = {}
+): SettlementRecord[] {
   if (!canSettle(fixture)) return [];
-  const snaps = listSnapshots().filter((s) => s.fixtureId === fixture.id && s.season === fixture.season);
+  const snaps = listSnapshots().filter((s) => {
+    if (s.fixtureId !== fixture.id || s.season !== fixture.season) return false;
+    if (options.evaluationClass && (s.evaluationClass ?? null) !== options.evaluationClass) return false;
+    return true;
+  });
   const written: SettlementRecord[] = [];
   for (const snap of snaps) {
     written.push(persistSettlement(settlementFromSnapshot(snap, fixture, settledAt)));

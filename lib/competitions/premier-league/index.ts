@@ -48,4 +48,5 @@ export {
   loadProductionParams,
 } from "./model-tracks";
 export { evaluateDataGate, upcomingLiveFixtures, type DataGateStatus } from "./data-gate";
-export { liveOosCount, ledgerCounts, livePerformanceReport } from "./live-ledger";
+export { liveOosCount, ledgerCounts, livePerformanceReport, fixtureLiveView } from "./live-ledger";
+export { buildHealthReport, runLiveOpsTick } from "./ops";

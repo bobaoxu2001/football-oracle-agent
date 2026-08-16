@@ -11,6 +11,7 @@ import type { MatchPrediction, ModelFactor } from "@/lib/types";
 import { matchProb, scorelineGrid } from "./elo";
 import { loadProductionParams } from "@/lib/competitions/premier-league/model-tracks";
 import { ratingsAsOf } from "@/lib/competitions/premier-league/ratings";
+import { liveRatingsAsOf } from "@/lib/competitions/premier-league/ops/live-ratings";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { completedPremierLeagueFixtures } from "@/lib/competitions/premier-league/data";
 import { auditPrediction } from "@/lib/model-auditor/audit";
@@ -18,6 +19,9 @@ import { createSnapshot, type PredictionSnapshot } from "@/lib/snapshots/store";
 import type { EvaluationClass, PredictionStage } from "@/lib/snapshots/types";
 import { evaluationClassFor, stageFromTiming } from "@/lib/competitions/premier-league/stages";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
+import { SEASON_INIT_VERSION } from "@/lib/competitions/premier-league/model-tracks";
+import { liveCompetitionSeason } from "@/lib/competitions/premier-league/fixture-store";
+import type { SnapshotOrigin } from "@/lib/competitions/premier-league/ops/types";
 
 export interface LeaguePredictOptions {
   asOf?: string;
@@ -26,6 +30,11 @@ export interface LeaguePredictOptions {
   season?: string;
   predictionStage?: PredictionStage;
   evaluationClass?: EvaluationClass;
+  origin?: SnapshotOrigin;
+  computedAt?: string;
+  fixtureDataVersion?: string;
+  /** Test/back-compat: skip live rating events and use date-strict historical ratings. */
+  ratingsMode?: "live" | "historical";
 }
 
 function confidenceFrom(topProb: number) {
@@ -52,7 +61,10 @@ export function predictPremierLeagueMatch(
   const away = getClub(awaySlug);
   const asOf = options.asOf ?? options.kickoff ?? new Date().toISOString();
   const asOfDate = asOf.slice(0, 10);
-  const state = ratingsAsOf(asOfDate);
+  const state =
+    options.ratingsMode === "historical"
+      ? ratingsAsOf(asOfDate)
+      : liveRatingsAsOf(asOf);
   const eloH = state.ratings[homeSlug] ?? 1500;
   const eloA = state.ratings[awaySlug] ?? 1500;
   const goalOpts = { rho: params.dcRho, awayHomeShare: params.awayHomeShare };
@@ -199,8 +211,16 @@ export function snapshotPremierLeagueMatch(
       fixturesUsed: completedPremierLeagueFixtures().filter(
         (f) => f.date < (pred.asOf ?? "9999-12-31")
       ).length,
+      ratingStateAsOf: asOf,
+      computedAt: options.computedAt ?? asOf,
+      origin: options.origin ?? "manual",
+      fixtureDataVersion:
+        options.fixtureDataVersion ?? liveCompetitionSeason()?.dataVersion ?? null,
+      seasonInitVersion: SEASON_INIT_VERSION,
     },
     provenanceNotes:
-      "Durable snapshot. Key = competition+season+fixtureId+modelVersion+asOf. Not recomputed on read.",
+      options.origin === "scheduled"
+        ? `Scheduled ${stage} observation. asOf is the stage target. Ratings frozen at ratingStateAsOf. FINAL_PREKICK is not lineup-confirmed.`
+        : "Durable snapshot. Key = competition+season+fixtureId+modelVersion+predictionStage+asOf. Not recomputed on read.",
   });
 }

@@ -29,3 +29,7 @@ yarn-error.log*
 
 # durable snapshot store (local writes; tests use SNAPSHOT_STORE_PATH)
 /data/processed/predictions/snapshots.jsonl
+
+# live-ops working state (never the canonical LIVE_OOS tape)
+/data/processed/premier-league/ops/
+/data/processed/premier-league/settlements.jsonl

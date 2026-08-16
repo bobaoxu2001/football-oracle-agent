@@ -16,16 +16,43 @@ import { calculateBacktestMetrics } from "@/lib/evaluation/metrics";
 import type { BacktestResult, Outcome } from "@/lib/evaluation/types";
 import { loadSettlements, type SettlementRecord } from "./settlement";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "./config";
+import { loadOperationalLiveOos } from "./ops/operational-archive";
+
+export function operationalLiveOosUnion(season = PREMIER_LEAGUE_CURRENT_SEASON): {
+  snapshots: PredictionSnapshot[];
+  committed: number;
+  operational: number;
+  total: number;
+} {
+  const committed = loadCommittedLiveOos().filter((s) => !season || s.season === season);
+  const operational = loadOperationalLiveOos().filter((s) => {
+    if (s.evaluationClass !== "LIVE_OOS") return false;
+    if (season && s.season !== season) return false;
+    return true;
+  });
+  const byKey = new Map<string, PredictionSnapshot>();
+  for (const s of committed) byKey.set(s.provenance.uniqueKey, s);
+  for (const s of operational) {
+    if (!byKey.has(s.provenance.uniqueKey)) byKey.set(s.provenance.uniqueKey, s);
+  }
+  return {
+    snapshots: [...byKey.values()],
+    committed: committed.length,
+    operational: operational.length,
+    total: byKey.size,
+  };
+}
 
 export function snapshotsOfClass(
   evaluationClass: EvaluationClass,
   season?: string,
-  options: { source?: "committed" | "index" } = {}
+  options: { source?: "committed" | "index" | "union" } = {}
 ): PredictionSnapshot[] {
-  const all =
-    evaluationClass === "LIVE_OOS" && options.source !== "index"
-      ? loadCommittedLiveOos()
-      : listSnapshots();
+  if (evaluationClass === "LIVE_OOS" && options.source !== "index") {
+    const union = operationalLiveOosUnion(season);
+    return union.snapshots;
+  }
+  const all = listSnapshots();
   return all.filter((s) => {
     if ((s.evaluationClass ?? null) !== evaluationClass) return false;
     if (season && s.season !== season) return false;
@@ -116,13 +143,26 @@ function settlementsToBacktest(rows: SettlementRecord[]): BacktestResult[] {
   });
 }
 
+export interface StagePerformanceRow {
+  stage: CanonicalPredictionStage;
+  n: number;
+  nSettled: number;
+  brier: number | null;
+  rps: number | null;
+  logLoss: number | null;
+  topPickAccuracy: number | null;
+}
+
 export interface LivePerformanceReport {
   season: string;
   evaluationClass: EvaluationClass;
   nPredictions: number;
   nSettled: number;
+  nCommitted: number;
+  nOperational: number;
   sampleNote: string;
   stages: Record<CanonicalPredictionStage, number>;
+  byStage: StagePerformanceRow[];
   brier: number | null;
   rps: number | null;
   logLoss: number | null;
@@ -135,8 +175,9 @@ export function livePerformanceReport(
   evaluationClass: EvaluationClass = "LIVE_OOS",
   season = PREMIER_LEAGUE_CURRENT_SEASON
 ): LivePerformanceReport {
+  const union = evaluationClass === "LIVE_OOS" ? operationalLiveOosUnion(season) : null;
   const snaps = snapshotsOfClass(evaluationClass, season, {
-    source: evaluationClass === "LIVE_OOS" ? "committed" : "index",
+    source: evaluationClass === "LIVE_OOS" ? "union" : "index",
   });
   const settled = loadSettlements().filter(
     (s) => s.evaluationClass === evaluationClass && s.season === season
@@ -145,14 +186,39 @@ export function livePerformanceReport(
   const nSettled = settled.length;
   const tiny = nSettled < 20;
   const metrics = nSettled ? calculateBacktestMetrics(settlementsToBacktest(settled)) : null;
+  const stages = stageBreakdown(snaps);
+  const stageOrder: CanonicalPredictionStage[] = [
+    "PRESEASON",
+    "EARLY",
+    "T24H",
+    "T2H",
+    "T60M",
+    "FINAL_PREKICK",
+  ];
+  const byStage: StagePerformanceRow[] = stageOrder.map((stage) => {
+    const rows = settled.filter((s) => canonicalizePredictionStage(s.predictionStage) === stage);
+    const m = rows.length ? calculateBacktestMetrics(settlementsToBacktest(rows)) : null;
+    return {
+      stage,
+      n: stages[stage],
+      nSettled: rows.length,
+      brier: rows.length ? m!.brierScore : null,
+      rps: rows.length ? m!.rps : null,
+      logLoss: rows.length ? m!.logLoss : null,
+      topPickAccuracy: rows.length ? m!.accuracy1x2 : null,
+    };
+  });
   return {
     season,
     evaluationClass,
     nPredictions,
     nSettled,
-    stages: stageBreakdown(snaps),
+    nCommitted: union?.committed ?? nPredictions,
+    nOperational: union?.operational ?? 0,
+    stages,
+    byStage,
     sampleNote: tiny
-      ? `Sample size is ${nSettled}. Do not draw impressive-looking conclusions from so few settled matches.`
+      ? `Sample size is ${nSettled}. Do not draw impressive-looking conclusions from so few settled matches. Sample too small for meaningful calibration assessment.`
       : `Settled sample ${nSettled} of ${nPredictions} ${evaluationClass} snapshots.`,
     brier: nSettled === 0 || tiny ? null : metrics!.brierScore,
     rps: nSettled === 0 || tiny ? null : metrics!.rps,
@@ -161,4 +227,18 @@ export function livePerformanceReport(
     pooledReliabilityMae: metrics && nSettled >= 20 ? metrics.pooledReliabilityMae : null,
     topPickAccuracy: nSettled === 0 || tiny ? null : metrics!.accuracy1x2,
   };
+}
+
+export function fixtureLiveView(fixtureId: string, season = PREMIER_LEAGUE_CURRENT_SEASON) {
+  const snaps = operationalLiveOosUnion(season).snapshots.filter((s) => s.fixtureId === fixtureId);
+  const settlements = loadSettlements().filter((s) => s.fixtureId === fixtureId);
+  const byStage: Record<string, { snapshot: PredictionSnapshot | null; settlement: SettlementRecord | null }> = {};
+  for (const stage of ["PRESEASON", "EARLY", "T24H", "T2H", "T60M", "FINAL_PREKICK"] as const) {
+    const snapshot = snaps.find((s) => canonicalizePredictionStage(s.predictionStage) === stage) ?? null;
+    const settlement = snapshot
+      ? settlements.find((x) => x.snapshotUniqueKey === snapshot.provenance.uniqueKey) ?? null
+      : null;
+    byStage[stage] = { snapshot, settlement };
+  }
+  return { fixtureId, season, snapshots: snaps, settlements, byStage };
 }
