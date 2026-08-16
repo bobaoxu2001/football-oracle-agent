@@ -84,5 +84,13 @@
     "west-ham",
     "burnley",
     "wolves"
-  ]
+  ],
+  "verifiedAgainst": [
+    "premier-league-membership-announcement",
+    "bbc-opening-day-coventry",
+    "liverpoolfc-promoted-preview",
+    "guardian-west-ham-relegation",
+    "docs/PHASE2A_INDEPENDENT_AUDIT.md"
+  ],
+  "verificationArtifact": "docs/PHASE2A_INDEPENDENT_AUDIT.md"
 }

@@ -43,10 +43,11 @@
     "test:phase1": "tsx scripts/test-phase1-core.ts",
     "test:phase1-1": "tsx scripts/test-phase1-1.ts",
     "test:phase2a": "tsx scripts/test-phase2a.ts",
+    "test:phase2a-1": "tsx scripts/test-phase2a-1.ts",
     "ingest:pl-2026-27": "tsx scripts/ingest-pl-2026-27.ts",
     "fit:season-init": "tsx scripts/fit-season-init.ts",
     "freeze:live": "tsx scripts/freeze-live-forecasts.ts",
-    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts"
+    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts && tsx scripts/test-phase2a-1.ts"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.1",

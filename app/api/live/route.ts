@@ -15,6 +15,8 @@ export async function GET() {
     date: f.date,
     kickoffUtc: f.kickoffUtc,
     kickoffLocal: f.kickoffLocal,
+    kickoffCertainty: f.kickoffCertainty ?? null,
+    scheduledDate: f.scheduledDate ?? f.date,
     home: getClub(f.homeSlug).name,
     away: getClub(f.awaySlug).name,
     status: f.status,

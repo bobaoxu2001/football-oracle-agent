@@ -16,6 +16,7 @@ import type {
 } from "@/lib/identity/types";
 import { resolveClubSlug, getClub } from "./clubs";
 import { kickoffLocalIso, kickoffUtcFromSource } from "./timezone";
+import { classifyOfficialKickoffCertainty } from "./kickoff-certainty";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "./config";
 
 export const OFFICIAL_FIXTURE_SOURCE = "premier-league-official";
@@ -182,10 +183,40 @@ export function buildRelegatedClubSeasons(): ClubSeason[] {
   });
 }
 
-function wikipediaClubSet(): string[] {
-  // Cross-check membership published on Wikipedia 2026–27 Premier League.
-  return [...SEASON_2026_27_CLUBS];
-}
+/**
+ * Independently cited 2026-27 membership (Phase 2A independent audit §2).
+ * Not derived from the official fixture CSV constant above.
+ */
+export const INDEPENDENT_MEMBERSHIP_2026_27 = [
+  "arsenal",
+  "aston-villa",
+  "bournemouth",
+  "brentford",
+  "brighton",
+  "chelsea",
+  "coventry",
+  "crystal-palace",
+  "everton",
+  "fulham",
+  "hull",
+  "ipswich",
+  "leeds",
+  "liverpool",
+  "manchester-city",
+  "manchester-united",
+  "newcastle",
+  "nottingham-forest",
+  "sunderland",
+  "tottenham",
+] as const;
+
+export const INDEPENDENT_MEMBERSHIP_SOURCES = [
+  "premier-league-membership-announcement",
+  "bbc-opening-day-coventry",
+  "liverpoolfc-promoted-preview",
+  "guardian-west-ham-relegation",
+  "docs/PHASE2A_INDEPENDENT_AUDIT.md",
+];
 
 export function rawRowsToFixtures(
   rows: OfficialRawRow[],
@@ -202,10 +233,12 @@ export function rawRowsToFixtures(
       competition: "premier-league",
       season: PREMIER_LEAGUE_CURRENT_SEASON,
       date: row.date,
+      scheduledDate: row.date,
       kickoff: kickoffUtc,
       kickoffUtc,
       kickoffLocal: kickoffLocalIso(row.date, row.time),
       timezone: "Europe/London",
+      kickoffCertainty: classifyOfficialKickoffCertainty(row.date, row.time),
       homeSlug,
       awaySlug,
       homeClubId: homeSlug,
@@ -238,6 +271,8 @@ export function mergeFixtureUpdate(existing: Fixture, incoming: Fixture, at: str
     "kickoff",
     "kickoffUtc",
     "kickoffLocal",
+    "kickoffCertainty",
+    "scheduledDate",
     "date",
     "status",
     "homeGoals",
@@ -310,8 +345,8 @@ export function ingestOfficial202627(options: {
   const incoming = rawRowsToFixtures(rows, retrievedAt);
   const { fixtures, revisions } = upsertFixtures(options.existingFixtures ?? [], incoming, retrievedAt);
 
-  const wikiConflicts = detectClubConflicts(SEASON_2026_27_CLUBS, wikipediaClubSet());
-  const verificationStatus: VerificationStatus = wikiConflicts.length ? "SOURCE_CONFLICT" : "VERIFIED";
+  const independentConflicts = detectClubConflicts(SEASON_2026_27_CLUBS, INDEPENDENT_MEMBERSHIP_2026_27);
+  const verificationStatus: VerificationStatus = independentConflicts.length ? "SOURCE_CONFLICT" : "VERIFIED";
   const clubIds = [...SEASON_2026_27_CLUBS];
 
   const season: CompetitionSeason = {
@@ -329,6 +364,8 @@ export function ingestOfficial202627(options: {
     verifiedAt: retrievedAt,
     dataVersion: `pl-2026-27-official-${retrievedAt.slice(0, 10)}`,
     verificationStatus,
+    verifiedAgainst: [...INDEPENDENT_MEMBERSHIP_SOURCES],
+    verificationArtifact: "docs/PHASE2A_INDEPENDENT_AUDIT.md",
     scheduleCompleteness: fixtures.length === 380 ? "complete" : "partial",
     continuingClubIds: clubIds.filter((id) => !(PROMOTED_2026_27 as readonly string[]).includes(id)),
     promotedClubIds: [...PROMOTED_2026_27],
@@ -348,11 +385,11 @@ export function ingestOfficial202627(options: {
       verificationStatus,
       crossChecks: [
         {
-          source: WIKIPEDIA_CROSSCHECK,
-          status: wikiConflicts.length ? "SOURCE_CONFLICT" : "VERIFIED",
-          note: wikiConflicts.length
-            ? `Membership disagrees: ${wikiConflicts.join(", ")}`
-            : "Wikipedia 2026–27 team list matches the official 20-club set.",
+          source: "independent-audit-external-membership",
+          status: independentConflicts.length ? "SOURCE_CONFLICT" : "VERIFIED",
+          note: independentConflicts.length
+            ? `Membership disagrees: ${independentConflicts.join(", ")}`
+            : "Official fixture-list membership matches the independently cited 20-club set in docs/PHASE2A_INDEPENDENT_AUDIT.md (BBC, club official, Guardian, ESPN).",
         },
         {
           source: "football-data.co.uk",

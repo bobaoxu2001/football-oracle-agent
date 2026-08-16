@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { livePerformanceReport, ledgerCounts } from "@/lib/competitions/premier-league/live-ledger";
-import { evaluateDataGate } from "@/lib/competitions/premier-league/data-gate";
+import { evaluateDataGate, upcomingLiveFixtures } from "@/lib/competitions/premier-league/data-gate";
 import { currentHonestyText } from "@/lib/competitions/premier-league/honesty";
 import { loadProductionParams } from "@/lib/competitions/premier-league/model-tracks";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
+import { getClub } from "@/lib/competitions/premier-league/clubs";
+import { utcIsoToLondonLocal } from "@/lib/competitions/premier-league/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +20,22 @@ function pct(x: number | null, d = 3) {
   return x.toFixed(d);
 }
 
+function formatKickoff(utc: string | null | undefined, date: string): string {
+  if (!utc) return date;
+  try {
+    const local = utcIsoToLondonLocal(utc);
+    return `${local.date} ${local.time} UK`;
+  } catch {
+    return date;
+  }
+}
+
 export default function LiveLedgerPage() {
   const report = livePerformanceReport("LIVE_OOS", PREMIER_LEAGUE_CURRENT_SEASON);
   const counts = ledgerCounts(PREMIER_LEAGUE_CURRENT_SEASON);
   const gate = evaluateDataGate();
   const params = loadProductionParams();
+  const upcoming = upcomingLiveFixtures().slice(0, 8);
 
   return (
     <div className="container py-8 md:py-12">
@@ -45,6 +58,18 @@ export default function LiveLedgerPage() {
       </section>
 
       <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
+        <h2 className="mb-3 font-semibold">Stage breakdown</h2>
+        <ul className="grid grid-cols-2 gap-1 text-muted-foreground sm:grid-cols-3">
+          <li>EARLY: {report.stages.EARLY}</li>
+          <li>PRESEASON: {report.stages.PRESEASON}</li>
+          <li>T24H: {report.stages.T24H}</li>
+          <li>T2H: {report.stages.T2H}</li>
+          <li>T60M: {report.stages.T60M}</li>
+          <li>FINAL_PREKICK: {report.stages.FINAL_PREKICK}</li>
+        </ul>
+      </section>
+
+      <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
         <h2 className="mb-3 font-semibold">LIVE_OOS scores</h2>
         <p className="mb-4 text-amber-200/90">{report.sampleNote}</p>
         <ul className="space-y-1 text-muted-foreground">
@@ -53,6 +78,28 @@ export default function LiveLedgerPage() {
           <li>LogLoss: {pct(report.logLoss, 4)}</li>
           <li>Calibration (confidence ECE): {report.confidenceEce === null ? "n too small" : pct(report.confidenceEce, 3)}</li>
           <li>Top-pick accuracy (secondary): {report.topPickAccuracy === null ? "—" : `${(report.topPickAccuracy * 100).toFixed(1)}%`}</li>
+        </ul>
+      </section>
+
+      <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
+        <h2 className="mb-3 font-semibold">Upcoming fixtures</h2>
+        <ul className="space-y-2">
+          {upcoming.map((f) => {
+            const h = getClub(f.homeSlug);
+            const a = getClub(f.awaySlug);
+            const q = encodeURIComponent(`Who wins ${h.name} vs ${a.name}?`);
+            return (
+              <li key={f.id}>
+                <Link href={`/?q=${q}`} className="hover:text-foreground">
+                  {h.shortName} vs {a.shortName}
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {formatKickoff(f.kickoffUtc ?? f.kickoff, f.date)}
+                    {f.kickoffCertainty ? ` · ${f.kickoffCertainty}` : ""}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </section>
 

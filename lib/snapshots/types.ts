@@ -130,6 +130,11 @@ export function snapshotUniqueKey(k: SnapshotKey): string {
   return [k.competition, k.season, k.fixtureId, k.modelVersion, stage, k.asOf].join("::");
 }
 
+/** Shared canonical identity. Same as snapshotUniqueKey. */
+export function canonicalSnapshotIdentity(k: SnapshotKey): string {
+  return snapshotUniqueKey(k);
+}
+
 /** Phase 1.1 key (no stage). Used only to resolve pre-2A snapshots. */
 export function legacySnapshotUniqueKey(k: Omit<SnapshotKey, "predictionStage">): string {
   return [k.competition, k.season, k.fixtureId, k.modelVersion, k.asOf].join("::");

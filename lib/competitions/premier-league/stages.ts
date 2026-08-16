@@ -5,7 +5,11 @@
  */
 
 import type { CanonicalPredictionStage, EvaluationClass } from "@/lib/snapshots/types";
+import type { Fixture } from "@/lib/identity/types";
 import { hoursUntilKickoff, isBeforeKickoff } from "./timezone";
+import { canScheduleTimedPrediction } from "./kickoff-certainty";
+
+export { canScheduleTimedPrediction } from "./kickoff-certainty";
 
 export function stageFromTiming(asOf: string, kickoffUtc: string | null | undefined): CanonicalPredictionStage {
   if (!kickoffUtc) return "PRESEASON";
@@ -42,6 +46,15 @@ export function assertLiveOosLegal(asOf: string, kickoffUtc: string | null | und
   if (!isBeforeKickoff(asOf, kickoffUtc)) {
     throw new Error(
       `Cannot label LIVE_OOS: asOf ${asOf} is not strictly before kickoff ${kickoffUtc}`
+    );
+  }
+}
+
+/** Future scheduler guard: timed stages require a CONFIRMED kickoff. */
+export function assertTimedStageEligible(fixture: Fixture, stage: CanonicalPredictionStage): void {
+  if (!canScheduleTimedPrediction(fixture, stage)) {
+    throw new Error(
+      `Cannot schedule ${stage} for ${fixture.id}: kickoffCertainty=${fixture.kickoffCertainty ?? "missing"} (CONFIRMED required)`
     );
   }
 }

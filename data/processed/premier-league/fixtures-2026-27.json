@@ -23,7 +23,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-21",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-hull-manchester-united",
@@ -48,7 +50,9 @@
       "sourceFixtureId": "pl-2026-27-hull-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-22",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-everton-crystal-palace",
@@ -73,7 +77,9 @@
       "sourceFixtureId": "pl-2026-27-everton-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-22",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-sunderland",
@@ -98,7 +104,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-22",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-leeds",
@@ -123,7 +131,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-22",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-tottenham",
@@ -148,7 +158,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-22",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-brighton-aston-villa",
@@ -173,7 +185,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-23",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-manchester-city-bournemouth",
@@ -198,7 +212,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-23",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-newcastle-liverpool",
@@ -223,7 +239,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-23",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-fulham-chelsea",
@@ -248,7 +266,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-24",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-crystal-palace-manchester-city",
@@ -273,7 +293,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-28",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-liverpool-nottingham-forest",
@@ -298,7 +320,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-29",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-bournemouth-everton",
@@ -323,7 +347,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-29",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-hull",
@@ -348,7 +374,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-29",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-newcastle",
@@ -373,7 +401,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-29",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-chelsea-brighton",
@@ -398,7 +428,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-30",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-leeds-brentford",
@@ -423,7 +455,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-30",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-sunderland-fulham",
@@ -448,7 +482,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-30",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-manchester-united-ipswich",
@@ -473,7 +509,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-30",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-aston-villa-arsenal",
@@ -498,7 +536,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-08-31",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-ipswich-liverpool",
@@ -523,7 +563,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-04",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-newcastle-bournemouth",
@@ -548,7 +590,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-05",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-brentford-sunderland",
@@ -573,7 +617,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-leeds",
@@ -598,7 +644,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-crystal-palace",
@@ -623,7 +671,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-coventry",
@@ -648,7 +698,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-tottenham",
@@ -673,7 +725,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-aston-villa",
@@ -698,7 +752,9 @@
       "sourceFixtureId": "pl-2026-27-hull-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-05",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-everton-manchester-united",
@@ -723,7 +779,9 @@
       "sourceFixtureId": "pl-2026-27-everton-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-06",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-arsenal-chelsea",
@@ -748,7 +806,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-06",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-bournemouth-brentford",
@@ -773,7 +833,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-nottingham-forest",
@@ -798,7 +860,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-hull",
@@ -823,7 +887,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-ipswich",
@@ -848,7 +914,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-fulham",
@@ -873,7 +941,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-everton",
@@ -898,7 +968,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-12",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-sunderland-arsenal",
@@ -923,7 +995,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-12",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-coventry-brighton",
@@ -948,7 +1022,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-13",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-manchester-united-manchester-city",
@@ -973,7 +1049,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-13",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-leeds-newcastle",
@@ -998,7 +1076,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-14",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-brentford-chelsea",
@@ -1023,7 +1103,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-18",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-tottenham-aston-villa",
@@ -1048,7 +1130,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-19",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-brighton-arsenal",
@@ -1073,7 +1157,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-ipswich",
@@ -1098,7 +1184,9 @@
       "sourceFixtureId": "pl-2026-27-everton-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-crystal-palace",
@@ -1123,7 +1211,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-sunderland",
@@ -1148,7 +1238,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-hull",
@@ -1173,7 +1265,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-coventry",
@@ -1198,7 +1292,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-19",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-bournemouth-liverpool",
@@ -1223,7 +1319,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-20",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-fulham-manchester-united",
@@ -1248,7 +1346,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-09-20",
+      "kickoffCertainty": "CONFIRMED"
     },
     {
       "id": "pl-2026-27-arsenal-leeds",
@@ -1273,7 +1373,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-brentford",
@@ -1298,7 +1400,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-bournemouth",
@@ -1323,7 +1427,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-newcastle",
@@ -1348,7 +1454,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-nottingham-forest",
@@ -1373,7 +1481,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-everton",
@@ -1398,7 +1508,9 @@
       "sourceFixtureId": "pl-2026-27-hull-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-fulham",
@@ -1423,7 +1535,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-manchester-city",
@@ -1448,7 +1562,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-tottenham",
@@ -1473,7 +1589,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-brighton",
@@ -1498,7 +1616,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-sunderland",
@@ -1523,7 +1643,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-liverpool",
@@ -1548,7 +1670,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-crystal-palace",
@@ -1573,7 +1697,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-chelsea",
@@ -1598,7 +1724,9 @@
       "sourceFixtureId": "pl-2026-27-everton-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-hull",
@@ -1623,7 +1751,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-manchester-united",
@@ -1648,7 +1778,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-ipswich",
@@ -1673,7 +1805,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-aston-villa",
@@ -1698,7 +1832,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-arsenal",
@@ -1723,7 +1859,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-coventry",
@@ -1748,7 +1886,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-everton",
@@ -1773,7 +1913,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-manchester-city",
@@ -1798,7 +1940,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-tottenham",
@@ -1823,7 +1967,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-fulham",
@@ -1848,7 +1994,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-newcastle",
@@ -1873,7 +2021,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-brentford",
@@ -1898,7 +2048,9 @@
       "sourceFixtureId": "pl-2026-27-hull-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-nottingham-forest",
@@ -1923,7 +2075,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-brighton",
@@ -1948,7 +2102,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-bournemouth",
@@ -1973,7 +2129,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-leeds",
@@ -1998,7 +2156,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-leeds",
@@ -2023,7 +2183,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-fulham",
@@ -2048,7 +2210,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-nottingham-forest",
@@ -2073,7 +2237,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-manchester-united",
@@ -2098,7 +2264,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-sunderland",
@@ -2123,7 +2291,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-ipswich",
@@ -2148,7 +2318,9 @@
       "sourceFixtureId": "pl-2026-27-hull-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-arsenal",
@@ -2173,7 +2345,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-brighton",
@@ -2198,7 +2372,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-everton",
@@ -2223,7 +2399,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-crystal-palace",
@@ -2248,7 +2426,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-10-31",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-hull",
@@ -2273,7 +2453,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-brentford",
@@ -2298,7 +2480,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-liverpool",
@@ -2323,7 +2507,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-coventry",
@@ -2348,7 +2534,9 @@
       "sourceFixtureId": "pl-2026-27-everton-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-newcastle",
@@ -2373,7 +2561,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-bournemouth",
@@ -2398,7 +2588,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-tottenham",
@@ -2423,7 +2615,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-aston-villa",
@@ -2448,7 +2642,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-manchester-city",
@@ -2473,7 +2669,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-chelsea",
@@ -2498,7 +2696,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-07",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-nottingham-forest",
@@ -2523,7 +2723,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-sunderland",
@@ -2548,7 +2750,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-everton",
@@ -2573,7 +2777,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-leeds",
@@ -2598,7 +2804,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-crystal-palace",
@@ -2623,7 +2831,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-brighton",
@@ -2648,7 +2858,9 @@
       "sourceFixtureId": "pl-2026-27-hull-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-manchester-united",
@@ -2673,7 +2885,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-fulham",
@@ -2698,7 +2912,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-arsenal",
@@ -2723,7 +2939,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-ipswich",
@@ -2748,7 +2966,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-21",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-manchester-city",
@@ -2773,7 +2993,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-newcastle",
@@ -2798,7 +3020,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-hull",
@@ -2823,7 +3047,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-liverpool",
@@ -2848,7 +3074,9 @@
       "sourceFixtureId": "pl-2026-27-everton-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-bournemouth",
@@ -2873,7 +3101,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-aston-villa",
@@ -2898,7 +3128,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-coventry",
@@ -2923,7 +3155,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-brentford",
@@ -2948,7 +3182,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-chelsea",
@@ -2973,7 +3209,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-tottenham",
@@ -2998,7 +3236,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-11-28",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-brighton",
@@ -3023,7 +3263,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-everton",
@@ -3048,7 +3290,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-arsenal",
@@ -3073,7 +3317,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-crystal-palace",
@@ -3098,7 +3344,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-ipswich",
@@ -3123,7 +3371,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-nottingham-forest",
@@ -3148,7 +3398,9 @@
       "sourceFixtureId": "pl-2026-27-hull-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-sunderland",
@@ -3173,7 +3425,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-leeds",
@@ -3198,7 +3452,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-manchester-united",
@@ -3223,7 +3479,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-fulham",
@@ -3248,7 +3506,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-hull",
@@ -3273,7 +3533,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-crystal-palace",
@@ -3298,7 +3560,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-manchester-city",
@@ -3323,7 +3587,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-liverpool",
@@ -3348,7 +3614,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-fulham",
@@ -3373,7 +3641,9 @@
       "sourceFixtureId": "pl-2026-27-everton-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-ipswich",
@@ -3398,7 +3668,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-coventry",
@@ -3423,7 +3695,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-sunderland",
@@ -3448,7 +3722,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-brighton",
@@ -3473,7 +3749,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-arsenal",
@@ -3498,7 +3776,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-05",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-bournemouth",
@@ -3523,7 +3803,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-everton",
@@ -3548,7 +3830,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-aston-villa",
@@ -3573,7 +3857,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-manchester-united",
@@ -3598,7 +3884,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-brentford",
@@ -3623,7 +3911,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-tottenham",
@@ -3648,7 +3938,9 @@
       "sourceFixtureId": "pl-2026-27-hull-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-newcastle",
@@ -3673,7 +3965,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-leeds",
@@ -3698,7 +3992,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-chelsea",
@@ -3723,7 +4019,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-nottingham-forest",
@@ -3748,7 +4046,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-12",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-coventry",
@@ -3773,7 +4073,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-manchester-united",
@@ -3798,7 +4100,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-newcastle",
@@ -3823,7 +4127,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-ipswich",
@@ -3848,7 +4154,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-aston-villa",
@@ -3873,7 +4181,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-fulham",
@@ -3898,7 +4208,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-tottenham",
@@ -3923,7 +4235,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-hull",
@@ -3948,7 +4262,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-everton",
@@ -3973,7 +4289,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-crystal-palace",
@@ -3998,7 +4316,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-19",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-leeds",
@@ -4023,7 +4343,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-chelsea",
@@ -4048,7 +4370,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-arsenal",
@@ -4073,7 +4397,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-sunderland",
@@ -4098,7 +4424,9 @@
       "sourceFixtureId": "pl-2026-27-everton-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-brighton",
@@ -4123,7 +4451,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-liverpool",
@@ -4148,7 +4478,9 @@
       "sourceFixtureId": "pl-2026-27-hull-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-brentford",
@@ -4173,7 +4505,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-nottingham-forest",
@@ -4198,7 +4532,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-manchester-city",
@@ -4223,7 +4559,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-bournemouth",
@@ -4248,7 +4586,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-26",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-liverpool",
@@ -4273,7 +4613,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-brentford",
@@ -4298,7 +4640,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-bournemouth",
@@ -4323,7 +4667,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-manchester-city",
@@ -4348,7 +4694,9 @@
       "sourceFixtureId": "pl-2026-27-everton-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-arsenal",
@@ -4373,7 +4721,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-leeds",
@@ -4398,7 +4748,9 @@
       "sourceFixtureId": "pl-2026-27-hull-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-chelsea",
@@ -4423,7 +4775,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-sunderland",
@@ -4448,7 +4802,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-nottingham-forest",
@@ -4473,7 +4829,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-brighton",
@@ -4498,7 +4856,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2026-12-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-aston-villa",
@@ -4523,7 +4883,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-ipswich",
@@ -4548,7 +4910,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-crystal-palace",
@@ -4573,7 +4937,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-manchester-united",
@@ -4598,7 +4964,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-newcastle",
@@ -4623,7 +4991,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-everton",
@@ -4648,7 +5018,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-coventry",
@@ -4673,7 +5045,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-tottenham",
@@ -4698,7 +5072,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-fulham",
@@ -4723,7 +5099,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-hull",
@@ -4748,7 +5126,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-02",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-brentford",
@@ -4773,7 +5153,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-bournemouth",
@@ -4798,7 +5180,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-chelsea",
@@ -4823,7 +5207,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-aston-villa",
@@ -4848,7 +5234,9 @@
       "sourceFixtureId": "pl-2026-27-everton-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-tottenham",
@@ -4873,7 +5261,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-coventry",
@@ -4898,7 +5288,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-manchester-city",
@@ -4923,7 +5315,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-newcastle",
@@ -4948,7 +5342,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-hull",
@@ -4973,7 +5369,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-liverpool",
@@ -4998,7 +5396,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-ipswich",
@@ -5023,7 +5423,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-manchester-united",
@@ -5048,7 +5450,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-brighton",
@@ -5073,7 +5477,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-sunderland",
@@ -5098,7 +5504,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-everton",
@@ -5123,7 +5531,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-arsenal",
@@ -5148,7 +5558,9 @@
       "sourceFixtureId": "pl-2026-27-hull-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-crystal-palace",
@@ -5173,7 +5585,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-nottingham-forest",
@@ -5198,7 +5612,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-fulham",
@@ -5223,7 +5639,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-leeds",
@@ -5248,7 +5666,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-16",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-newcastle",
@@ -5273,7 +5693,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-manchester-city",
@@ -5298,7 +5720,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-tottenham",
@@ -5323,7 +5747,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-brentford",
@@ -5348,7 +5774,9 @@
       "sourceFixtureId": "pl-2026-27-everton-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-aston-villa",
@@ -5373,7 +5801,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-hull",
@@ -5398,7 +5828,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-chelsea",
@@ -5423,7 +5855,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-liverpool",
@@ -5448,7 +5882,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-bournemouth",
@@ -5473,7 +5909,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-coventry",
@@ -5498,7 +5936,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-fulham",
@@ -5523,7 +5963,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-ipswich",
@@ -5548,7 +5990,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-manchester-united",
@@ -5573,7 +6017,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-nottingham-forest",
@@ -5598,7 +6044,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-leeds",
@@ -5623,7 +6071,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-crystal-palace",
@@ -5648,7 +6098,9 @@
       "sourceFixtureId": "pl-2026-27-hull-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-everton",
@@ -5673,7 +6125,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-arsenal",
@@ -5698,7 +6152,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-brighton",
@@ -5723,7 +6179,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-sunderland",
@@ -5748,7 +6206,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-01-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-liverpool",
@@ -5773,7 +6233,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-hull",
@@ -5798,7 +6260,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-coventry",
@@ -5823,7 +6287,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-newcastle",
@@ -5848,7 +6314,9 @@
       "sourceFixtureId": "pl-2026-27-everton-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-manchester-city",
@@ -5873,7 +6341,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-tottenham",
@@ -5898,7 +6368,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-bournemouth",
@@ -5923,7 +6395,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-chelsea",
@@ -5948,7 +6422,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-brentford",
@@ -5973,7 +6449,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-aston-villa",
@@ -5998,7 +6476,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-06",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-bournemouth",
@@ -6023,7 +6503,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-liverpool",
@@ -6048,7 +6530,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-brentford",
@@ -6073,7 +6557,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-leeds",
@@ -6098,7 +6584,9 @@
       "sourceFixtureId": "pl-2026-27-everton-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-nottingham-forest",
@@ -6123,7 +6611,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-sunderland",
@@ -6148,7 +6638,9 @@
       "sourceFixtureId": "pl-2026-27-hull-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-arsenal",
@@ -6173,7 +6665,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-brighton",
@@ -6198,7 +6692,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-chelsea",
@@ -6223,7 +6719,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-manchester-city",
@@ -6248,7 +6746,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-crystal-palace",
@@ -6273,7 +6773,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-fulham",
@@ -6298,7 +6800,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-coventry",
@@ -6323,7 +6827,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-tottenham",
@@ -6348,7 +6854,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-ipswich",
@@ -6373,7 +6881,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-aston-villa",
@@ -6398,7 +6908,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-hull",
@@ -6423,7 +6935,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-newcastle",
@@ -6448,7 +6962,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-manchester-united",
@@ -6473,7 +6989,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-everton",
@@ -6498,7 +7016,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-chelsea",
@@ -6523,7 +7043,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-bournemouth",
@@ -6548,7 +7070,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-sunderland",
@@ -6573,7 +7097,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-nottingham-forest",
@@ -6598,7 +7124,9 @@
       "sourceFixtureId": "pl-2026-27-everton-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-leeds",
@@ -6623,7 +7151,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-manchester-city",
@@ -6648,7 +7178,9 @@
       "sourceFixtureId": "pl-2026-27-hull-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-brighton",
@@ -6673,7 +7205,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-arsenal",
@@ -6698,7 +7232,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-brentford",
@@ -6723,7 +7259,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-liverpool",
@@ -6748,7 +7286,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-02-27",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-tottenham",
@@ -6773,7 +7313,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-crystal-palace",
@@ -6798,7 +7340,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-ipswich",
@@ -6823,7 +7367,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-fulham",
@@ -6848,7 +7394,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-coventry",
@@ -6873,7 +7421,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-hull",
@@ -6898,7 +7448,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-aston-villa",
@@ -6923,7 +7475,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-everton",
@@ -6948,7 +7502,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-newcastle",
@@ -6973,7 +7529,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-manchester-united",
@@ -6998,7 +7556,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-03",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-newcastle",
@@ -7023,7 +7583,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-hull",
@@ -7048,7 +7610,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-arsenal",
@@ -7073,7 +7637,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-manchester-city",
@@ -7098,7 +7664,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-fulham",
@@ -7123,7 +7691,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-brighton",
@@ -7148,7 +7718,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-ipswich",
@@ -7173,7 +7745,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-everton",
@@ -7198,7 +7772,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-brentford",
@@ -7223,7 +7799,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-nottingham-forest",
@@ -7248,7 +7826,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-13",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-sunderland",
@@ -7273,7 +7853,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-bournemouth",
@@ -7298,7 +7880,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-coventry",
@@ -7323,7 +7907,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-tottenham",
@@ -7348,7 +7934,9 @@
       "sourceFixtureId": "pl-2026-27-everton-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-liverpool",
@@ -7373,7 +7961,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-chelsea",
@@ -7398,7 +7988,9 @@
       "sourceFixtureId": "pl-2026-27-hull-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-crystal-palace",
@@ -7423,7 +8015,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-manchester-united",
@@ -7448,7 +8042,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-leeds",
@@ -7473,7 +8069,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-aston-villa",
@@ -7498,7 +8096,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-03-20",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-manchester-city",
@@ -7523,7 +8123,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-brighton",
@@ -7548,7 +8150,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-fulham",
@@ -7573,7 +8177,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-arsenal",
@@ -7598,7 +8204,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-everton",
@@ -7623,7 +8231,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-nottingham-forest",
@@ -7648,7 +8258,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-newcastle",
@@ -7673,7 +8285,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-hull",
@@ -7698,7 +8312,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-ipswich",
@@ -7723,7 +8339,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-brentford",
@@ -7748,7 +8366,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-10",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-aston-villa",
@@ -7773,7 +8393,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-leeds",
@@ -7798,7 +8420,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-chelsea",
@@ -7823,7 +8447,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-bournemouth",
@@ -7848,7 +8474,9 @@
       "sourceFixtureId": "pl-2026-27-everton-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-sunderland",
@@ -7873,7 +8501,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-coventry",
@@ -7898,7 +8528,9 @@
       "sourceFixtureId": "pl-2026-27-hull-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-manchester-united",
@@ -7923,7 +8555,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-crystal-palace",
@@ -7948,7 +8582,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-tottenham",
@@ -7973,7 +8609,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-liverpool",
@@ -7998,7 +8636,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-17",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-arsenal",
@@ -8023,7 +8663,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-coventry",
@@ -8048,7 +8690,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-fulham",
@@ -8073,7 +8717,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-manchester-city",
@@ -8098,7 +8744,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-brighton",
@@ -8123,7 +8771,9 @@
       "sourceFixtureId": "pl-2026-27-everton-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-liverpool",
@@ -8148,7 +8798,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-crystal-palace",
@@ -8173,7 +8825,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-ipswich",
@@ -8198,7 +8852,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-sunderland",
@@ -8223,7 +8879,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-hull",
@@ -8248,7 +8906,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-04-24",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-tottenham",
@@ -8273,7 +8933,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-nottingham-forest",
@@ -8298,7 +8960,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-manchester-united",
@@ -8323,7 +8987,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-aston-villa",
@@ -8348,7 +9014,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-everton",
@@ -8373,7 +9041,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-bournemouth",
@@ -8398,7 +9068,9 @@
       "sourceFixtureId": "pl-2026-27-hull-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-leeds",
@@ -8423,7 +9095,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-chelsea",
@@ -8448,7 +9122,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-brentford",
@@ -8473,7 +9149,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-newcastle",
@@ -8498,7 +9176,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-01",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-manchester-united",
@@ -8523,7 +9203,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-aston-villa",
@@ -8548,7 +9230,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-sunderland",
@@ -8573,7 +9257,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-hull",
@@ -8598,7 +9284,9 @@
       "sourceFixtureId": "pl-2026-27-everton-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-ipswich",
@@ -8623,7 +9311,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-arsenal",
@@ -8648,7 +9338,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-liverpool",
@@ -8673,7 +9365,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-coventry",
@@ -8698,7 +9392,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-crystal-palace",
@@ -8723,7 +9419,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-chelsea",
@@ -8748,7 +9446,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-08",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-nottingham-forest",
@@ -8773,7 +9473,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-newcastle",
@@ -8798,7 +9500,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-everton",
@@ -8823,7 +9527,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-tottenham",
@@ -8848,7 +9554,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-brighton",
@@ -8873,7 +9581,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-fulham",
@@ -8898,7 +9608,9 @@
       "sourceFixtureId": "pl-2026-27-hull-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-manchester-city",
@@ -8923,7 +9635,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-brentford",
@@ -8948,7 +9662,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-leeds",
@@ -8973,7 +9689,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-bournemouth",
@@ -8998,7 +9716,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-15",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-bournemouth-chelsea",
@@ -9023,7 +9743,9 @@
       "sourceFixtureId": "pl-2026-27-bournemouth-chelsea",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brentford-hull",
@@ -9048,7 +9770,9 @@
       "sourceFixtureId": "pl-2026-27-brentford-hull",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-brighton-liverpool",
@@ -9073,7 +9797,9 @@
       "sourceFixtureId": "pl-2026-27-brighton-liverpool",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-everton-arsenal",
@@ -9098,7 +9824,9 @@
       "sourceFixtureId": "pl-2026-27-everton-arsenal",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-fulham-coventry",
@@ -9123,7 +9851,9 @@
       "sourceFixtureId": "pl-2026-27-fulham-coventry",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-leeds-sunderland",
@@ -9148,7 +9878,9 @@
       "sourceFixtureId": "pl-2026-27-leeds-sunderland",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-city-aston-villa",
@@ -9173,7 +9905,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-city-aston-villa",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-newcastle-crystal-palace",
@@ -9198,7 +9932,9 @@
       "sourceFixtureId": "pl-2026-27-newcastle-crystal-palace",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-nottingham-forest-ipswich",
@@ -9223,7 +9959,9 @@
       "sourceFixtureId": "pl-2026-27-nottingham-forest-ipswich",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-tottenham-manchester-united",
@@ -9248,7 +9986,9 @@
       "sourceFixtureId": "pl-2026-27-tottenham-manchester-united",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-23",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-arsenal-brighton",
@@ -9273,7 +10013,9 @@
       "sourceFixtureId": "pl-2026-27-arsenal-brighton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-aston-villa-tottenham",
@@ -9298,7 +10040,9 @@
       "sourceFixtureId": "pl-2026-27-aston-villa-tottenham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-chelsea-brentford",
@@ -9323,7 +10067,9 @@
       "sourceFixtureId": "pl-2026-27-chelsea-brentford",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-coventry-nottingham-forest",
@@ -9348,7 +10094,9 @@
       "sourceFixtureId": "pl-2026-27-coventry-nottingham-forest",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-crystal-palace-leeds",
@@ -9373,7 +10121,9 @@
       "sourceFixtureId": "pl-2026-27-crystal-palace-leeds",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-hull-newcastle",
@@ -9398,7 +10148,9 @@
       "sourceFixtureId": "pl-2026-27-hull-newcastle",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-ipswich-everton",
@@ -9423,7 +10175,9 @@
       "sourceFixtureId": "pl-2026-27-ipswich-everton",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-liverpool-bournemouth",
@@ -9448,7 +10202,9 @@
       "sourceFixtureId": "pl-2026-27-liverpool-bournemouth",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-manchester-united-fulham",
@@ -9473,7 +10229,9 @@
       "sourceFixtureId": "pl-2026-27-manchester-united-fulham",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     },
     {
       "id": "pl-2026-27-sunderland-manchester-city",
@@ -9498,7 +10256,9 @@
       "sourceFixtureId": "pl-2026-27-sunderland-manchester-city",
       "retrievedAt": "2026-08-16T05:32:02.136Z",
       "sourceUpdatedAt": "2026-06-19T09:00:00+01:00",
-      "verificationStatus": "VERIFIED"
+      "verificationStatus": "VERIFIED",
+      "scheduledDate": "2027-05-30",
+      "kickoffCertainty": "DEFAULT"
     }
   ],
   "provenance": {

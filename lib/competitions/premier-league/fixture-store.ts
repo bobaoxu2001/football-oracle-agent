@@ -11,10 +11,12 @@ import path from "node:path";
 import type { ClubSeason, CompetitionSeason, Fixture } from "@/lib/identity/types";
 import {
   ingestOfficial202627,
+  INDEPENDENT_MEMBERSHIP_SOURCES,
   type FixtureRevision,
   type IngestProvenance,
   type IngestResult,
 } from "./ingest";
+import { applyKickoffCertainty } from "./kickoff-certainty";
 
 const ROOT = path.resolve(process.cwd(), "data/processed/premier-league");
 
@@ -46,7 +48,7 @@ export function loadSeasonBundle(): SeasonBundle | null {
   if (!season || !fixturesDoc || !clubSeasons) return null;
   _bundle = {
     season,
-    fixtures: fixturesDoc.fixtures,
+    fixtures: fixturesDoc.fixtures.map(applyKickoffCertainty),
     clubSeasons,
     provenance: fixturesDoc.provenance ?? {
       source: season.source,
@@ -133,6 +135,26 @@ export function persistSeasonBundle(bundle: SeasonBundle): void {
 }
 
 /** Load official CSV, upsert onto any existing store, persist. Idempotent. */
+/** Persist kickoff certainty / scheduledDate without rewriting prediction snapshots. */
+export function persistKickoffCertaintyEnrichment(): { confirmed: number; provisional: number; default: number; tbd: number } {
+  const bundle = loadSeasonBundle();
+  if (!bundle) throw new Error("No season bundle to enrich");
+  bundle.fixtures = bundle.fixtures.map(applyKickoffCertainty);
+  if (!bundle.season.verifiedAgainst) {
+    bundle.season.verifiedAgainst = [...INDEPENDENT_MEMBERSHIP_SOURCES];
+    bundle.season.verificationArtifact = "docs/PHASE2A_INDEPENDENT_AUDIT.md";
+  }
+  persistSeasonBundle(bundle);
+  const counts = { confirmed: 0, provisional: 0, default: 0, tbd: 0 };
+  for (const f of bundle.fixtures) {
+    if (f.kickoffCertainty === "CONFIRMED") counts.confirmed += 1;
+    else if (f.kickoffCertainty === "PROVISIONAL") counts.provisional += 1;
+    else if (f.kickoffCertainty === "DEFAULT") counts.default += 1;
+    else counts.tbd += 1;
+  }
+  return counts;
+}
+
 export function ingestAndPersist(retrievedAt?: string): IngestResult {
   const existing = loadSeasonBundle();
   const result = ingestOfficial202627({
