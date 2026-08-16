@@ -45,11 +45,14 @@
     "test:phase2a": "tsx scripts/test-phase2a.ts",
     "test:phase2a-1": "tsx scripts/test-phase2a-1.ts",
     "test:phase2a-2": "tsx scripts/test-phase2a-2.ts",
+    "test:phase2a-3": "tsx scripts/test-phase2a-3.ts",
     "ops:tick": "tsx scripts/run-live-ops.ts",
+    "ops:worker": "tsx scripts/ops-scheduler-worker.ts",
+    "ops:dry-run": "tsx scripts/dry-run-live-sources.ts",
     "ingest:pl-2026-27": "tsx scripts/ingest-pl-2026-27.ts",
     "fit:season-init": "tsx scripts/fit-season-init.ts",
     "freeze:live": "tsx scripts/freeze-live-forecasts.ts",
-    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts && tsx scripts/test-phase2a-1.ts && tsx scripts/test-phase2a-2.ts"
+    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts && tsx scripts/test-phase2a-1.ts && tsx scripts/test-phase2a-2.ts && tsx scripts/test-phase2a-3.ts"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.1",

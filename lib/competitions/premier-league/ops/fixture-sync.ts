@@ -242,8 +242,20 @@ export function syncFixturesFromObservations(input: FixtureSyncInput): FixtureSy
       latestPerSource(rows.filter((r) => r.source === SOURCE_OFFICIAL))[0];
 
     if (!preferred) continue;
+    // Date-only live rows (no real kickoff) must not erase official DEFAULT times.
+    if (!preferred.normalized.kickoffUtc && preferred.normalized.status === "SCHEDULED") {
+      continue;
+    }
     // Baseline official CSV is not allowed to overwrite a later live confirmation.
-    if (preferred.source === SOURCE_OFFICIAL && current.kickoffCertainty === "CONFIRMED") continue;
+    const currentKick = current.kickoffUtc ?? current.kickoff ?? "";
+    const currentIsDateOnly = /T00:00:00(?:\.000)?Z$/.test(currentKick);
+    if (
+      preferred.source === SOURCE_OFFICIAL &&
+      current.kickoffCertainty === "CONFIRMED" &&
+      !currentIsDateOnly
+    ) {
+      continue;
+    }
 
     const applied = applyNormalized(current, preferred, input.now);
     if (!applied) continue;

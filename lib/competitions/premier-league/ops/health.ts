@@ -18,6 +18,9 @@ import { nextScheduledJob } from "./scheduler";
 import { apiFootballConfigured, footballDataConfigured } from "./sources";
 import type { DataConflict, HealthState } from "./types";
 import { loadSettlements } from "../settlement";
+import { durableStatus } from "./durable-store";
+import { isProductionRuntime } from "./tick-auth";
+import { mongoConfigured } from "@/lib/db/mongodb";
 
 const HOUR = 3_600_000;
 const FIXTURE_SYNC_STALE_NEAR_MATCH_MS = 6 * HOUR;
@@ -63,10 +66,28 @@ export interface HealthReport {
       stage: string;
       fixtureId: string;
       eligibleFrom: string;
+      target: string;
+      eligibleUntil: string;
+      kickoff: string;
+      certainty: string | null;
       status: string;
     } | null;
     lastTickAt: string | null;
     tickStale: boolean;
+    freshness: "fresh" | "stale" | "never";
+  };
+  persistence: {
+    backend: string;
+    durable: boolean;
+    hydrated: boolean;
+    lastHydratedAt: string | null;
+    lastFlushAt: string | null;
+    mongoConfigured: boolean;
+  };
+  sources: {
+    footballData: boolean;
+    apiFootball: boolean;
+    officialBaseline: true;
   };
   liveOos: {
     total: number;
@@ -144,6 +165,8 @@ export function buildHealthReport(now = new Date()): HealthReport {
   const syncAge = tick.lastFixtureSyncOkAt ? nowMs - Date.parse(tick.lastFixtureSyncOkAt) : Infinity;
   const syncStale = syncAge > (nearMatch ? FIXTURE_SYNC_STALE_NEAR_MATCH_MS : FIXTURE_SYNC_STALE_DEFAULT_MS);
   const tickStale = !tick.lastTickAt || nowMs - Date.parse(tick.lastTickAt) > TICK_STALE_MS;
+  const tickFreshness: "fresh" | "stale" | "never" = !tick.lastTickAt ? "never" : tickStale ? "stale" : "fresh";
+  const persist = durableStatus();
 
   const configuredLiveSources = [
     footballDataConfigured() ? "football-data.org" : null,
@@ -201,13 +224,21 @@ export function buildHealthReport(now = new Date()): HealthReport {
     reasons.push(`${overdueResults.length} fixture(s) past kickoff without VERIFIED_FINAL`);
   }
 
-  if (nearMatch && configuredLiveSources.length === 0) {
+  if (configuredLiveSources.length === 0) {
     if (overall !== "BLOCKED") overall = "DEGRADED";
-    reasons.push("no live structured result source configured near matchday");
+    reasons.push("no live structured source configured");
+  }
+  if (isProductionRuntime() && persist.backend === "file") {
+    if (overall !== "BLOCKED") overall = "DEGRADED";
+    reasons.push("production ops store is ephemeral (file backend)");
+  }
+  if (persist.backend === "mongo" && !mongoConfigured()) {
+    overall = "BLOCKED";
+    reasons.push("Mongo ops store selected but MONGODB_URI is missing");
   }
 
   if (overall === "HEALTHY") {
-    reasons.push("data ready, no conflicts, ops loop not blocked");
+    reasons.push("data ready, live source configured, durable store and scheduler not blocked");
   }
 
   return {
@@ -251,11 +282,29 @@ export function buildHealthReport(now = new Date()): HealthReport {
             stage: nextJob.stage,
             fixtureId: nextJob.fixtureId,
             eligibleFrom: nextJob.eligibleFrom,
+            target: nextJob.scheduledFor,
+            eligibleUntil: nextJob.eligibleUntil,
+            kickoff: nextJob.kickoffUtc,
+            certainty: fixtures.find((f) => f.id === nextJob.fixtureId)?.kickoffCertainty ?? null,
             status: nextJob.status,
           }
         : null,
       lastTickAt: tick.lastTickAt,
       tickStale,
+      freshness: tickFreshness,
+    },
+    persistence: {
+      backend: persist.backend,
+      durable: persist.durable,
+      hydrated: persist.hydrated,
+      lastHydratedAt: persist.lastHydratedAt,
+      lastFlushAt: persist.lastFlushAt,
+      mongoConfigured: mongoConfigured(),
+    },
+    sources: {
+      footballData: footballDataConfigured(),
+      apiFootball: apiFootballConfigured(),
+      officialBaseline: true,
     },
     liveOos: {
       total: union.total,

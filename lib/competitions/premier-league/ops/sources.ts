@@ -10,6 +10,7 @@ import type { Fixture, KickoffCertainty } from "@/lib/identity/types";
 import { resolveClubSlug } from "../clubs";
 import { officialFixtureId } from "../ingest";
 import { utcIsoToLondonLocal } from "../timezone";
+import { classifyOfficialKickoffCertainty } from "../kickoff-certainty";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "../config";
 import type { MatchStatus, NormalizedSourceFixture, SourceObservation } from "./types";
 
@@ -54,7 +55,14 @@ export function mapSourceStatus(raw: string | null | undefined): MatchStatus {
 export function certaintyFromLiveStatus(status: MatchStatus, kickoffUtc: string | null): KickoffCertainty {
   if (!kickoffUtc) return "TBD";
   if (status === "POSTPONED" || status === "CANCELLED" || status === "ABANDONED") return "TBD";
-  return "CONFIRMED";
+  // A live feed that merely repeats Sat 15:00 / Wed 20:00 is still DEFAULT.
+  // Only a non-default slot is CONFIRMED. Same rule as the official release.
+  try {
+    const loc = utcIsoToLondonLocal(kickoffUtc);
+    return classifyOfficialKickoffCertainty(loc.date, loc.time);
+  } catch {
+    return "CONFIRMED";
+  }
 }
 
 export function observationFromNormalized(input: {
@@ -131,14 +139,22 @@ interface FdPlMatch {
   score?: { fullTime?: { home?: number | null; away?: number | null } };
 }
 
+function isDateOnlyUtc(utc: string | null | undefined): boolean {
+  if (!utc) return true;
+  return /T00:00:00(?:\.000)?Z$/.test(utc);
+}
+
 export function mapFootballDataMatch(m: FdPlMatch, retrievedAt: string): SourceObservation | null {
   const home = resolvePlClub(m.homeTeam?.name) ?? resolvePlClub(m.homeTeam?.tla ?? undefined);
   const away = resolvePlClub(m.awayTeam?.name) ?? resolvePlClub(m.awayTeam?.tla ?? undefined);
   if (!home || !away) return null;
   const status = mapSourceStatus(m.status);
-  const kickoffUtc = m.utcDate ? new Date(m.utcDate).toISOString() : null;
-  const bits = londonBits(kickoffUtc);
-  const timed = m.status === "TIMED" || m.status === "IN_PLAY" || m.status === "FINISHED" || m.status === "PAUSED";
+  const rawUtc = m.utcDate ? new Date(m.utcDate).toISOString() : null;
+  const timed =
+    m.status === "TIMED" || m.status === "IN_PLAY" || m.status === "FINISHED" || m.status === "PAUSED";
+  // football-data.org uses T00:00:00Z + SCHEDULED when the time is not yet set.
+  const kickoffUtc = timed && rawUtc && !isDateOnlyUtc(rawUtc) ? rawUtc : null;
+  const bits = londonBits(kickoffUtc ?? rawUtc);
   return observationFromNormalized({
     source: SOURCE_FOOTBALL_DATA,
     retrievedAt,
@@ -149,9 +165,9 @@ export function mapFootballDataMatch(m: FdPlMatch, retrievedAt: string): SourceO
       homeSlug: home,
       awaySlug: away,
       kickoffUtc,
-      kickoffLocal: bits.local,
+      kickoffLocal: kickoffUtc ? bits.local : null,
       scheduledDate: bits.date,
-      kickoffCertainty: timed || kickoffUtc ? certaintyFromLiveStatus(status, kickoffUtc) : "TBD",
+      kickoffCertainty: kickoffUtc ? certaintyFromLiveStatus(status, kickoffUtc) : "TBD",
       status,
       homeGoals: m.score?.fullTime?.home ?? null,
       awayGoals: m.score?.fullTime?.away ?? null,

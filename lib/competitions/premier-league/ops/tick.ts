@@ -14,6 +14,8 @@ import { listJobs } from "./job-ledger";
 import type { DataConflict, LiveOpsTickState } from "./types";
 import { readJsonFile, writeJsonFile } from "./jsonl";
 import { tickStatePath } from "./paths";
+import { flushDurableOps, hydrateDurableOps } from "./durable-store";
+import { acquireTickLock, releaseTickLock } from "./tick-lock";
 
 export const TICK_CADENCE_MS = 5 * 60 * 1000;
 
@@ -170,4 +172,35 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     errors,
     state,
   };
+}
+
+export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<TickResult & { skipped?: boolean; skipReason?: string }> {
+  await hydrateDurableOps();
+  const lock = await acquireTickLock("ops-tick");
+  if (!lock.ok) {
+    const state = loadTickState();
+    return {
+      now: options.now ?? new Date().toISOString(),
+      fixtureRevisions: 0,
+      fixtureConflicts: [],
+      jobsPlanned: 0,
+      jobsSucceeded: 0,
+      jobsFailed: 0,
+      jobsMissed: 0,
+      resultConflicts: [],
+      settled: 0,
+      ratingsApplied: 0,
+      errors: [],
+      state,
+      skipped: true,
+      skipReason: lock.reason,
+    };
+  }
+  try {
+    const result = await runLiveOpsTick(options);
+    await flushDurableOps();
+    return result;
+  } finally {
+    await releaseTickLock(lock.leaseId);
+  }
 }

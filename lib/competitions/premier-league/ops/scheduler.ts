@@ -107,6 +107,19 @@ export function planPredictionJobs(input: {
     }
 
     if (postponedLike || !kickoffUtc) continue;
+    if (fixture.kickoffCertainty !== "CONFIRMED") {
+      for (const job of jobsForFixture(fixture.id)) {
+        if (["PENDING", "ELIGIBLE", "BLOCKED", "FAILED"].includes(job.status)) {
+          cancelled.push(
+            updateJob(job.jobId, {
+              status: "CANCELLED",
+              blockedReason: `cancelled: kickoffCertainty=${fixture.kickoffCertainty ?? "missing"}`,
+              updatedAt: nowIso,
+            })
+          );
+        }
+      }
+    }
     if (fixture.kickoffCertainty !== "CONFIRMED" && fixture.verificationStatus === "SOURCE_CONFLICT") {
       for (const stage of TIMED_STAGES) {
         planned.push(buildJob(fixture, stage, nowIso, input.modelVersion));

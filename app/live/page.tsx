@@ -7,6 +7,7 @@ import { loadProductionParams } from "@/lib/competitions/premier-league/model-tr
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { utcIsoToLondonLocal } from "@/lib/competitions/premier-league/timezone";
+import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,8 @@ function formatKickoff(utc: string | null | undefined, date: string): string {
   }
 }
 
-export default function LiveLedgerPage() {
+export default async function LiveLedgerPage() {
+  await hydrateDurableOps();
   const report = livePerformanceReport("LIVE_OOS", PREMIER_LEAGUE_CURRENT_SEASON);
   const counts = ledgerCounts(PREMIER_LEAGUE_CURRENT_SEASON);
   const gate = evaluateDataGate();

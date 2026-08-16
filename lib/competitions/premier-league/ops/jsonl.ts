@@ -28,7 +28,9 @@ export function rewriteJsonl(file: string, rows: unknown[]): void {
 
 export function readJsonFile<T>(file: string): T | null {
   if (!fs.existsSync(file)) return null;
-  return JSON.parse(fs.readFileSync(file, "utf8")) as T;
+  const text = fs.readFileSync(file, "utf8").trim();
+  if (!text) return null;
+  return JSON.parse(text) as T;
 }
 
 export function writeJsonFile(file: string, value: unknown): void {

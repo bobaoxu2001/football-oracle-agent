@@ -6,6 +6,7 @@ import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { getVerification } from "@/lib/competitions/premier-league/ops/result-feed";
 import { utcIsoToLondonLocal } from "@/lib/competitions/premier-league/timezone";
+import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ function fmt(n: number | null | undefined, d = 3): string {
 
 export default async function FixtureLivePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await hydrateDurableOps();
   const fixture = liveFixtures().find((f) => f.id === id);
   if (!fixture) notFound();
   const home = getClub(fixture.homeSlug);

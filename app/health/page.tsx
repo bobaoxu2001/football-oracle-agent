@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buildHealthReport } from "@/lib/competitions/premier-league/ops/health";
+import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,8 @@ function dash(v: string | number | null | undefined): string {
   return String(v);
 }
 
-export default function HealthPage() {
+export default async function HealthPage() {
+  await hydrateDurableOps();
   const h = buildHealthReport();
 
   return (
@@ -106,11 +108,28 @@ export default function HealthPage() {
           <li>running {h.scheduler.jobs.RUNNING}</li>
         </ul>
         <p className="mt-3 text-muted-foreground">
-          Cadence {h.scheduler.cadenceMs / 60000} min. Next job:{" "}
+          Cadence {h.scheduler.cadenceMs / 60000} min. Freshness {h.scheduler.freshness}. Next
+          eligible job:{" "}
           {h.scheduler.nextJob
-            ? `${h.scheduler.nextJob.stage} ${h.scheduler.nextJob.fixtureId} (${h.scheduler.nextJob.status})`
+            ? `${h.scheduler.nextJob.stage} ${h.scheduler.nextJob.fixtureId} · ${h.scheduler.nextJob.certainty ?? "?"} · kickoff ${h.scheduler.nextJob.kickoff} · window ${h.scheduler.nextJob.eligibleFrom} → ${h.scheduler.nextJob.eligibleUntil} · target ${h.scheduler.nextJob.target}`
             : "—"}
         </p>
+      </section>
+
+      <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
+        <h2 className="mb-3 font-semibold">Sources and persistence</h2>
+        <ul className="space-y-1 text-muted-foreground">
+          <li>football-data.org: {h.sources.footballData ? "configured" : "not configured"}</li>
+          <li>API-Football: {h.sources.apiFootball ? "configured" : "not configured"}</li>
+          <li>Official baseline: yes</li>
+          <li>
+            Store: {h.persistence.backend}
+            {h.persistence.durable ? " · durable" : " · ephemeral"}
+            {h.persistence.mongoConfigured ? " · mongo URI present" : ""}
+          </li>
+          <li>Last hydrate: {dash(h.persistence.lastHydratedAt)}</li>
+          <li>Last flush: {dash(h.persistence.lastFlushAt)}</li>
+        </ul>
       </section>
 
       <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
