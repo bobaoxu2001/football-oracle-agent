@@ -16,6 +16,40 @@ function tone(state: string): string {
   return "text-rose-300";
 }
 
+async function MarketHealthSection() {
+  let m: Awaited<ReturnType<typeof import("@/lib/competitions/premier-league/market/health").buildMarketHealthReport>> | null =
+    null;
+  try {
+    const { buildMarketHealthReport } = await import("@/lib/competitions/premier-league/market/health");
+    m = await buildMarketHealthReport();
+  } catch {
+    m = null;
+  }
+  return (
+    <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
+      <h2 className="mb-3 font-semibold">Market data (observational)</h2>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Separate from forecast health. Missing odds cannot block predictions.
+      </p>
+      {m ? (
+        <ul className="space-y-1 text-muted-foreground">
+          <li>
+            Market health: <span className={tone(m.overall)}>{m.overall}</span>
+          </li>
+          <li>Source configured: {m.source.configured ? "yes" : "no"} · {m.source.sport} · {m.source.region} · {m.source.market}</li>
+          <li>Last success: {dash(m.lastSuccessAt)}</li>
+          <li>Last failed: {dash(m.lastFailedAt)}</li>
+          <li>Quota remaining: {dash(m.quotaRemaining)} · last cost {dash(m.lastRequestCost)}</li>
+          <li>Observations: {m.observationsStored} · consensus {m.consensusStored} · bookmakers {m.bookmakersObserved}</li>
+          <li>Next poll: {dash(m.nextScheduledPoll)}</li>
+        </ul>
+      ) : (
+        <p className="text-muted-foreground">Market health unavailable.</p>
+      )}
+    </section>
+  );
+}
+
 function dash(v: string | number | null | undefined): string {
   if (v === null || v === undefined || v === "") return "—";
   return String(v);
@@ -158,6 +192,8 @@ export default async function HealthPage() {
         </ul>
       </section>
 
+      <MarketHealthSection />
+
       {h.conflicts.length > 0 && (
         <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5 text-sm">
           <h2 className="mb-3 font-semibold text-rose-200">Conflicts</h2>
@@ -172,6 +208,10 @@ export default async function HealthPage() {
       )}
 
       <p className="mx-auto max-w-3xl text-sm text-muted-foreground">
+        <Link href="/market" className="text-neon hover:underline">
+          Market observations
+        </Link>
+        {" · "}
         <Link href="/live" className="text-neon hover:underline">
           Live ledger
         </Link>

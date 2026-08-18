@@ -205,5 +205,15 @@ export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<
     return result;
   } finally {
     await releaseTickLock(lock.leaseId);
+    // Market recording is after the forecast lease. Outages must not block ticks.
+    // skipNetwork ticks are forecast-isolation tests and must not call the odds API.
+    if (!options.skipNetwork && process.env.MARKET_RECORDER_DISABLED !== "1") {
+      try {
+        const { maybeRunMarketRecorder } = await import("../market/recorder");
+        await maybeRunMarketRecorder({ now: options.now });
+      } catch (err) {
+        console.warn("[market] recorder failed in isolation:", (err as Error).message);
+      }
+    }
   }
 }

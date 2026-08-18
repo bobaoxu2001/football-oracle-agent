@@ -1,0 +1,131 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
+import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
+import { getClub } from "@/lib/competitions/premier-league/clubs";
+import { buildMarketHealthReport } from "@/lib/competitions/premier-league/market/health";
+import { listConsensus, listObservations, loadMarketState } from "@/lib/competitions/premier-league/market/store";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Market observations · Football Oracle",
+  description: "Recorded 1X2 market-implied fair probabilities. Not a betting recommendation.",
+};
+
+function pct(x: number): string {
+  return `${(x * 100).toFixed(1)}%`;
+}
+
+export default async function MarketPage() {
+  await hydrateDurableOps();
+  const [health, state, consensus, observations] = await Promise.all([
+    buildMarketHealthReport(),
+    loadMarketState(),
+    listConsensus(),
+    listObservations(),
+  ]);
+  const fixtures = liveFixtures();
+  const latest = new Map<string, (typeof consensus)[number]>();
+  for (const row of consensus) {
+    const prev = latest.get(row.canonicalFixtureId);
+    if (!prev || prev.retrievedAt < row.retrievedAt) latest.set(row.canonicalFixtureId, row);
+  }
+  const books = new Map<string, Set<string>>();
+  for (const row of observations) {
+    const set = books.get(row.canonicalFixtureId) ?? new Set<string>();
+    set.add(row.bookmakerKey);
+    books.set(row.canonicalFixtureId, set);
+  }
+  const rows = [...latest.values()].sort((a, b) => a.retrievedAt.localeCompare(b.retrievedAt));
+
+  return (
+    <div className="container py-8 md:py-12">
+      <section className="mx-auto mb-8 max-w-3xl">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Phase 2B0 · observational only
+        </p>
+        <h1 className="mt-2 text-3xl font-black tracking-tight">Recorded market 1X2</h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Market-implied fair probabilities from bookmaker decimal odds after proportional de-vig.
+          This is another forecast. It is not an edge, a stake, or a recommendation.
+        </p>
+      </section>
+
+      <section className="mx-auto mb-8 grid max-w-3xl gap-3 sm:grid-cols-3">
+        <Stat label="Market health" value={health.overall} />
+        <Stat label="Observations" value={String(health.observationsStored)} />
+        <Stat label="Last poll" value={health.lastSuccessAt ? health.lastSuccessAt.slice(0, 16) : "—"} />
+      </section>
+
+      <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-muted-foreground">
+        <p>Source: {health.source.sport} · region {health.source.region} · {health.source.market}</p>
+        <p>Configured: {health.source.configured ? "yes" : "no"}</p>
+        <p>First LIVE_RECORDED poll: {state.firstMarketObservationAt ?? "—"}</p>
+        <p>Quota remaining: {health.quotaRemaining ?? "—"} · last cost {health.lastRequestCost ?? "—"}</p>
+        <p>Schema: {health.schemaVersion}</p>
+      </section>
+
+      <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
+        <h2 className="mb-3 font-semibold">Latest de-vigged consensus by fixture</h2>
+        {rows.length === 0 ? (
+          <p className="text-muted-foreground">No LIVE_RECORDED consensus yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-muted-foreground">
+              <thead>
+                <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em]">
+                  <th className="py-2 pr-3 font-medium">Fixture</th>
+                  <th className="py-2 pr-3 font-medium">Books</th>
+                  <th className="py-2 pr-3 font-medium">Fair H/D/A</th>
+                  <th className="py-2 pr-3 font-medium">Margin</th>
+                  <th className="py-2 font-medium">Observed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((c) => {
+                  const fx = fixtures.find((f) => f.id === c.canonicalFixtureId);
+                  const label = fx
+                    ? `${getClub(fx.homeSlug).name} vs ${getClub(fx.awaySlug).name}`
+                    : c.canonicalFixtureId;
+                  return (
+                    <tr key={c.consensusId} className="border-b border-white/5">
+                      <td className="py-2 pr-3">{label}</td>
+                      <td className="py-2 pr-3">{books.get(c.canonicalFixtureId)?.size ?? c.bookmakerCount}</td>
+                      <td className="py-2 pr-3">
+                        {pct(c.fairHome)} / {pct(c.fairDraw)} / {pct(c.fairAway)}
+                      </td>
+                      <td className="py-2 pr-3">
+                        {(c.marginMin * 100).toFixed(1)}–{(c.marginMax * 100).toFixed(1)}%
+                      </td>
+                      <td className="py-2">{c.retrievedAt.slice(0, 16)}Z</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <p className="mx-auto max-w-3xl text-xs text-muted-foreground">
+        <Link href="/live" className="text-neon hover:underline">
+          Live ledger
+        </Link>
+        {" · "}
+        <Link href="/health" className="text-neon hover:underline">
+          Health
+        </Link>
+      </p>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-semibold">{value}</p>
+    </div>
+  );
+}
