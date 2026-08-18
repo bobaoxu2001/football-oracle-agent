@@ -3,7 +3,7 @@
 **Auditor:** independent verification (no production evidence modified; no commit; no 2B1)
 **Window:** 2026-08-17T23:27:35Z → 2026-08-18T01:07:03Z
 **Production:** https://football-oracle-agent.vercel.app · `dpl_8uow1jKx9U7Q3bK5C8gjxNaezUpZ`
-**Local HEAD:** `1740d96b559437cce2ccf77da76d3509af15d981` plus uncommitted 2B0 working tree
+**Local HEAD:** `6471126111c1d7f4f6f0d25c0ca63f2a6c77c94b` (exact audited 27-file 2B0 tree)
 
 Builder reports were treated as claims until reproduced.
 
@@ -17,7 +17,7 @@ PASS WITH MINOR NON-BLOCKING ISSUES — READY TO COMMIT
 
 Football Oracle is collecting a genuinely prospective, immutable, timestamp-safe bookmaker 1X2 record. The forecasting model is not on that path. Six months from now these rows can be joined to later model stages without wondering whether timestamps, odds, mappings, retries, or model contamination invalidated the experiment — provided PRESEASON/EARLY snapshots are left unpaired (they predate the first print).
 
-Do not run another Phase 2B0 audit. Commit the exact audited 2B0 tree identified below. Then Phase 2B0 schema/recorder v0.1 is closed. Phase 2B1 may start after that commit.
+Do not run another Phase 2B0 audit. The exact audited 2B0 tree is commit `6471126111c1d7f4f6f0d25c0ca63f2a6c77c94b`. Phase 2B0 schema/recorder v0.1 is closed. Phase 2B1 may start after that commit.
 
 ---
 
@@ -323,17 +323,17 @@ package.json                                       |   3 +-
 scripts/test-phase2a-3.ts                          | 134 +
 ```
 
-**Intended Phase 2B0 commit set including this audit document (27 files):**
+**Pinned Phase 2B0 commit (27 files, then this pin):**
 
 ```text
-PHASE2B0_TREE_MANIFEST_SHA256
-6aa7c6b4e2d3d3d91f595eae03d661015e156a85c8db41b79a1b2ed425e4e2ba
+PHASE2B0_END_COMMIT
+6471126111c1d7f4f6f0d25c0ca63f2a6c77c94b
 Files: 27
 ```
 
 Pre-audit-doc 26-file hash (code + prior 2B0 docs only): `9814f23ea2b782fce40a63b03201c94905e869e1160a84e61658c5087679c77e`.
 
-If this audit file is edited again, recompute the 27-file hash before commit.
+The 27-file content hash is not self-describing (it includes this audit file). The git SHA is the pin.
 
 Also dirty / untracked and **not** part of the 2B0 recorder tree (already-deployed 2A compact + 2A final report):
 
@@ -370,10 +370,10 @@ None.
 # 5. Next step
 
 ```text
-COMMIT EXACT AUDITED TREE
+COMMITTED 6471126111c1d7f4f6f0d25c0ca63f2a6c77c94b
 ```
 
-Then: Phase 2B0 recorder v0.1 is closed. Phase 2B1 may begin.
+Phase 2B0 recorder v0.1 is closed. Phase 2B1 may begin.
 
 ---
 
