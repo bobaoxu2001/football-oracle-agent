@@ -12,7 +12,9 @@ import path from "node:path";
 import { getMongoDb } from "@/lib/db/mongodb";
 import { isCanonicalLiveTapePath, resetSnapshotCache } from "@/lib/snapshots/store";
 import { resetSeasonBundleCache } from "../fixture-store";
+import { compactPersistedSourceObservations } from "./fixture-sync";
 import { resetJobCache } from "./job-ledger";
+import { compactPersistedResultObservations } from "./result-feed";
 import { resetRatingEventCache } from "./rating-events";
 import {
   clubSeasonsPath,
@@ -105,7 +107,14 @@ function assertNotTape(file: string): void {
   }
 }
 
+/** Shrink append-only JSONL fields before they are packed into one Mongo document. */
+export function compactDurableOpsOnDisk(): void {
+  compactPersistedSourceObservations();
+  compactPersistedResultObservations();
+}
+
 export function captureBundleFromDisk(): DurableBundle {
+  compactDurableOpsOnDisk();
   return {
     jobs: readIf(predictionJobPath()),
     sourceObservations: readIf(sourceObservationPath()),
@@ -234,6 +243,7 @@ export async function hydrateDurableOps(): Promise<void> {
   try {
     const bundle = backend === "mongo" ? await loadMongoBundle() : loadFileBundle();
     applyBundleToDisk(bundle);
+    compactDurableOpsOnDisk();
     meta().hydrated = true;
     meta().lastHydratedAt = new Date().toISOString();
   } catch (err) {

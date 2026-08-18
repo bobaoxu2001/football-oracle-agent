@@ -23,10 +23,18 @@ import { acquireTickLock, releaseTickLock } from "@/lib/competitions/premier-lea
 import {
   applyBundleToDisk,
   captureBundleFromDisk,
+  compactDurableOpsOnDisk,
   flushDurableOps,
   hydrateDurableOps,
   resetDurableMetaForTests,
 } from "@/lib/competitions/premier-league/ops/durable-store";
+import {
+  compactSourceObservations,
+  persistLiveSourceObservations,
+  loadSourceObservations,
+} from "@/lib/competitions/premier-league/ops/fixture-sync";
+import { compactResultObservations } from "@/lib/competitions/premier-league/ops/result-feed";
+import type { SourceObservation, ResultObservation } from "@/lib/competitions/premier-league/ops/types";
 import { upsertJob, listJobs, resetJobCache, jobIdOf } from "@/lib/competitions/premier-league/ops/job-ledger";
 import { runGuardedLiveOpsTick } from "@/lib/competitions/premier-league/ops/tick";
 import type { PredictionJob } from "@/lib/competitions/premier-league/ops/types";
@@ -151,6 +159,132 @@ await hydrateDurableOps();
 check("durable bundle restores jobs after cache reset", listJobs().some((j) => j.jobId === job.jobId));
 const captured = captureBundleFromDisk();
 check("bundle does not contain the canonical tape path", !captured.operationalLiveOos.includes("live-oos-2026-27.jsonl") || true);
+
+function obs(partial: Partial<SourceObservation> & Pick<SourceObservation, "observationId" | "fixtureId" | "retrievedAt">): SourceObservation {
+  return {
+    kind: "fixture",
+    source: "football-data.org",
+    sourceFixtureId: "1",
+    sourceUpdatedAt: null,
+    raw: { bulky: "x".repeat(2000), scoreboard: { a: 1 } },
+    normalized: {
+      homeSlug: "arsenal",
+      awaySlug: "coventry",
+      kickoffUtc: "2026-08-21T19:00:00.000Z",
+      kickoffLocal: null,
+      scheduledDate: "2026-08-21",
+      kickoffCertainty: "CONFIRMED",
+      status: "SCHEDULED",
+      homeGoals: null,
+      awayGoals: null,
+      sourceUpdatedAt: null,
+    },
+    verificationStatus: "VERIFIED",
+    ...partial,
+  };
+}
+
+const older = obs({
+  observationId: "fd::a::1",
+  fixtureId: "pl-2026-27-arsenal-coventry",
+  retrievedAt: "2026-08-16T15:00:00.000Z",
+});
+const newer = obs({
+  observationId: "fd::a::2",
+  fixtureId: "pl-2026-27-arsenal-coventry",
+  retrievedAt: "2026-08-16T15:29:00.000Z",
+  raw: { bulky: "y".repeat(2000) },
+});
+const other = obs({
+  observationId: "fd::b::1",
+  fixtureId: "pl-2026-27-liverpool-bournemouth",
+  retrievedAt: "2026-08-16T15:29:00.000Z",
+});
+const compacted = compactSourceObservations([older, newer, other, older]);
+check("compact keeps one row per fixture+source", compacted.length === 2);
+check("compact keeps the later retrievedAt", compacted.some((r) => r.observationId === "fd::a::2") && !compacted.some((r) => r.observationId === "fd::a::1"));
+check("compact strips raw", compacted.every((r) => r.raw === null));
+
+const bloated = Array.from({ length: 24 }, (_, i) =>
+  Array.from({ length: 380 }, (__, j) =>
+    obs({
+      observationId: `fd::t${i}::${j}`,
+      fixtureId: `pl-2026-27-fx-${j}`,
+      retrievedAt: `2026-08-16T${String(10 + (i % 10)).padStart(2, "0")}:${String((i * 5) % 60).padStart(2, "0")}:00.000Z`,
+      raw: { payload: "z".repeat(1500), i, j },
+    })
+  )
+).flat();
+const afterManyTicks = compactSourceObservations(bloated);
+check("24 ticks × 380 fixtures compact to 380", afterManyTicks.length === 380);
+check(
+  "compacted observations stay well under 16MB",
+  Buffer.byteLength(afterManyTicks.map((r) => JSON.stringify(r)).join("\n"), "utf8") < 2_000_000
+);
+
+persistLiveSourceObservations([older, newer]);
+const persisted = loadSourceObservations();
+check("persist rewrites instead of appending duplicates", persisted.length === 1);
+check("persist keeps latest and drops raw", persisted[0].observationId === "fd::a::2" && persisted[0].raw === null);
+
+const resultRows: ResultObservation[] = [
+  {
+    observationId: "result::1",
+    fixtureId: "pl-2026-27-arsenal-coventry",
+    source: "football-data.org",
+    sourceFixtureId: "1",
+    retrievedAt: "2026-08-21T21:00:00.000Z",
+    matchStatus: "FINISHED",
+    homeGoals: 2,
+    awayGoals: 1,
+    resultTimestamp: null,
+    raw: { bulky: true },
+  },
+  {
+    observationId: "result::2",
+    fixtureId: "pl-2026-27-arsenal-coventry",
+    source: "football-data.org",
+    sourceFixtureId: "1",
+    retrievedAt: "2026-08-21T21:05:00.000Z",
+    matchStatus: "FINISHED",
+    homeGoals: 2,
+    awayGoals: 1,
+    resultTimestamp: null,
+    raw: { bulky: true },
+  },
+];
+const compactResults = compactResultObservations(resultRows);
+check("result compact is latest-per-fixture-source", compactResults.length === 1 && compactResults[0].observationId === "result::2");
+check("result compact strips raw", compactResults[0].raw === null);
+
+process.env.PL_OPS_DIR = path.join(TMP, "ops-compact");
+const bloatedText = bloated.map((r) => JSON.stringify(r)).join("\n") + "\n";
+check("synthetic pre-compact log is huge", Buffer.byteLength(bloatedText, "utf8") > 10_000_000);
+applyBundleToDisk({
+  jobs: captured.jobs,
+  sourceObservations: bloatedText,
+  scheduleRevisions: "",
+  resultObservations: "",
+  resultVerifications: "",
+  ratingEvents: "",
+  ratingState: "",
+  tickState: "",
+  settlementCorrections: "",
+  operationalLiveOos: "",
+  settlements: "",
+  workingSnapshots: "",
+  fixturesOverlay: "",
+});
+compactDurableOpsOnDisk();
+const shrunk = captureBundleFromDisk();
+check(
+  "hydrate/flush compact brings sourceObservations under 16MB",
+  Buffer.byteLength(JSON.stringify({ bundle: shrunk }), "utf8") < 16_000_000
+);
+check(
+  "shrunk sourceObservations keep one row per fixture",
+  shrunk.sourceObservations.trim().split("\n").filter(Boolean).length === 380
+);
 
 check("tape end", fs.readFileSync(TAPE, "utf8").trim().split("\n").length === 380 && md5(TAPE) === START_MD5);
 

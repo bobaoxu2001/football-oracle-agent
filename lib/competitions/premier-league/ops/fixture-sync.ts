@@ -15,7 +15,7 @@ import type {
   SourceObservation,
 } from "./types";
 import { LIVE_SOURCES, SOURCE_OFFICIAL, type FixtureSource } from "./sources";
-import { appendJsonl, readJsonl } from "./jsonl";
+import { appendJsonl, readJsonl, rewriteJsonl } from "./jsonl";
 import { scheduleRevisionPath, sourceObservationPath } from "./paths";
 
 const KICKOFF_EQUAL_MS = 1000;
@@ -272,10 +272,7 @@ export function syncFixturesFromObservations(input: FixtureSyncInput): FixtureSy
   }
 
   if (input.persistObservations) {
-    for (const obs of input.observations) {
-      if (obs.source === SOURCE_OFFICIAL) continue;
-      appendJsonl(sourceObservationPath(), obs);
-    }
+    persistLiveSourceObservations(input.observations);
   }
 
   return {
@@ -308,6 +305,50 @@ export function loadScheduleRevisions(): FixtureScheduleRevision[] {
 
 export function loadSourceObservations(): SourceObservation[] {
   return readJsonl<SourceObservation>(sourceObservationPath());
+}
+
+function observationDedupeKey(row: SourceObservation): string {
+  return `${row.source}::${row.fixtureId ?? row.sourceFixtureId ?? row.observationId}`;
+}
+
+/** Drop bulky `raw` payloads. They are not used after the tick that produced them. */
+export function stripObservationRaw(row: SourceObservation): SourceObservation {
+  return { ...row, raw: null };
+}
+
+/**
+ * Keep the latest observation per source+fixture.
+ * Production stores this JSONL inside one Mongo document (16 MB limit).
+ * Appending 380 football-data.org rows with `raw` every 5 minutes overflowed that document.
+ */
+export function compactSourceObservations(rows: SourceObservation[]): SourceObservation[] {
+  const byKey = new Map<string, SourceObservation>();
+  for (const row of rows) {
+    if (row.source === SOURCE_OFFICIAL) continue;
+    const key = observationDedupeKey(row);
+    const prev = byKey.get(key);
+    if (!prev || prev.retrievedAt <= row.retrievedAt) {
+      byKey.set(key, stripObservationRaw(row));
+    }
+  }
+  return [...byKey.values()].sort(
+    (a, b) =>
+      a.retrievedAt.localeCompare(b.retrievedAt) ||
+      (a.fixtureId ?? "").localeCompare(b.fixtureId ?? "") ||
+      a.source.localeCompare(b.source)
+  );
+}
+
+export function persistLiveSourceObservations(incoming: SourceObservation[]): void {
+  const next = compactSourceObservations([
+    ...loadSourceObservations(),
+    ...incoming.filter((o) => o.source !== SOURCE_OFFICIAL),
+  ]);
+  rewriteJsonl(sourceObservationPath(), next);
+}
+
+export function compactPersistedSourceObservations(): void {
+  rewriteJsonl(sourceObservationPath(), compactSourceObservations(loadSourceObservations()));
 }
 
 export async function collectSourceObservations(

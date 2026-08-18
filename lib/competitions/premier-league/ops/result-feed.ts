@@ -45,6 +45,27 @@ export function persistResultObservation(obs: ResultObservation): ResultObservat
   return obs;
 }
 
+function stripResultRaw(row: ResultObservation): ResultObservation {
+  return { ...row, raw: null };
+}
+
+/** Latest result observation per fixture+source. Prevents the same 16 MB leak after matches finish. */
+export function compactResultObservations(rows: ResultObservation[]): ResultObservation[] {
+  const byKey = new Map<string, ResultObservation>();
+  for (const row of rows) {
+    const key = `${row.source}::${row.fixtureId}`;
+    const prev = byKey.get(key);
+    if (!prev || prev.retrievedAt <= row.retrievedAt) byKey.set(key, stripResultRaw(row));
+  }
+  return [...byKey.values()].sort(
+    (a, b) => a.retrievedAt.localeCompare(b.retrievedAt) || a.fixtureId.localeCompare(b.fixtureId)
+  );
+}
+
+export function compactPersistedResultObservations(): void {
+  rewriteJsonl(resultObservationPath(), compactResultObservations(loadObs()));
+}
+
 export function observationsFromSources(
   rows: SourceObservation[],
   fixtureId?: string
@@ -254,6 +275,7 @@ export function ingestAndVerifyResults(input: {
 } {
   const resultObs = observationsFromSources(input.observations);
   for (const obs of resultObs) persistResultObservation(obs);
+  compactPersistedResultObservations();
   const stored = loadObs();
   const fixtureIds = new Set(stored.map((o) => o.fixtureId));
   const verifications: ResultVerification[] = [];
