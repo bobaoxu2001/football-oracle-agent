@@ -25,11 +25,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Query too long." }, { status: 400 });
     }
 
+    // Validate element-wise: the agent resolves these as team names, so a
+    // non-string in the array would blow up deep in the pipeline as a 500.
+    const contextTeams = Array.isArray(body.contextTeams)
+      ? body.contextTeams
+          .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+          .map((t) => t.trim().slice(0, 60))
+          .slice(0, 2)
+      : undefined;
+
     const response = await runAgent({
       query,
       isFollowUp: Boolean(body.isFollowUp),
-      contextTeams: Array.isArray(body.contextTeams) ? body.contextTeams.slice(0, 2) : undefined,
-      language: typeof body.language === "string" ? body.language : undefined,
+      contextTeams: contextTeams?.length ? contextTeams : undefined,
+      language: typeof body.language === "string" ? body.language.slice(0, 20) : undefined,
     });
 
     return NextResponse.json(response);

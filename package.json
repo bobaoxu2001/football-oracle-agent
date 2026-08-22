@@ -2,7 +2,7 @@
   "name": "football-oracle-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "Football Oracle — Premier League baseline forecasts plus the preserved World Cup 2026 plugin.",
+  "description": "Football Oracle \u2014 Premier League baseline forecasts plus the preserved World Cup 2026 plugin.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -55,7 +55,12 @@
     "ingest:pl-2026-27": "tsx scripts/ingest-pl-2026-27.ts",
     "fit:season-init": "tsx scripts/fit-season-init.ts",
     "freeze:live": "tsx scripts/freeze-live-forecasts.ts",
-    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts && tsx scripts/test-phase2a-1.ts && tsx scripts/test-phase2a-2.ts && tsx scripts/test-phase2a-3.ts && tsx scripts/test-phase2a-4.ts && tsx scripts/test-phase2b0.ts"
+    "test:hardening": "tsx scripts/test-hardening.ts",
+    "test:ledger": "tsx scripts/test-match-ledger.ts",
+    "test:shadow": "tsx scripts/test-shadow-model.ts",
+    "ledger:backfill": "tsx scripts/backfill-big-five.ts",
+    "ledger:dry-run": "tsx scripts/backfill-big-five.ts --dry-run",
+    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts && tsx scripts/test-phase2a-1.ts && tsx scripts/test-phase2a-2.ts && tsx scripts/test-phase2a-3.ts && tsx scripts/test-phase2a-4.ts && tsx scripts/test-phase2b0.ts && tsx scripts/test-hardening.ts && tsx scripts/test-match-ledger.ts && tsx scripts/test-shadow-model.ts"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.1",

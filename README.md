@@ -1,16 +1,56 @@
 # Football Oracle
 
-Premier League baseline forecasts plus the preserved FIFA World Cup 2026 plugin.
+Premier League forecasts on a genuine live out-of-sample ledger, plus the preserved FIFA World Cup 2026 plugin.
 
-**Phase 1 status:** PASS WITH LIMITATIONS (see `docs/PHASE1_RELEASE_REPORT.md`).  
-**Phase 1.1:** required-fix remediation (`docs/PHASE1_1_REMEDIATION_REPORT.md`).  
-**Not yet:** official 2026-27 fixtures, other Big Five leagues, live odds.
+### Where the project actually is
 
-Current 2026-27 agent answers are a **temporary preseason baseline** from last season's 20-club field. They are not a live fixture forecast.
+| | |
+| --- | --- |
+| **Production model** | `pl-live-v0.2.0` — walk-forward Elo → Dixon-Coles, fitted 2026-08-15 |
+| **2026-27 season data** | Official 20 clubs and all 380 fixtures loaded, complete schedule VERIFIED · data gate `DATA_READY` |
+| **Live ledger** | 380 committed `LIVE_OOS` forecasts on a frozen, hash-audited tape (365 PRESEASON + 15 EARLY) |
+| **Settled** | 1 — the season has opened. Headline Brier/RPS/LogLoss stay blank until 20 settlements exist |
+| **Market odds** | Recorded live since 2026-08-17 (Phase 2B0), **strictly isolated** — scored separately, never fed into the forecast |
+| **Big Five ledger** | Completed 2026-27 matches ingested for all five leagues (Phase 2C) — 10 stored at first backfill, accumulating each matchweek |
+
+**Shipped phases** — Phase 1 → 1.1 → 2A → 2A.1 → 2A.2 → 2A.3 → 2A.4 → 2B0 → 2B0.1 → 2C. Each has an
+implementation log and a release report under [`docs/`](docs/); most also carry an independent
+adversarial audit or targeted re-verification.
+
+### Shipped
+
+- **Fixture ingestion** — official 2026-27 schedules for all five leagues.
+- **Completed-result ingestion** — matches discovered automatically from
+  football-data.org and recorded as append-only observations with provenance.
+- **Current-season match ledger** — one canonical record per match, materialized
+  from observations; corrections are detectable, never silent
+  ([design](docs/BIG_FIVE_LEDGER.md)).
+- **Settlement** — a completed match settles its frozen pre-kickoff snapshot
+  through the existing Phase 2A pipeline.
+- **Rolling feature availability** — last-1/3/5, season, home/away, discipline
+  and opponent-strength context, behind a `feature_available_at <= asOf` gate.
+
+### Collected but not yet consumed
+
+Everything in the ledger. `pl-live-v0.2.0` is unchanged and reads **none** of
+it — no current-season form feature enters the model in this phase. Market
+prices are likewise recorded and scored on their own, never as a model input.
+
+### Not claimed
+
+- **"Big Five supported" applies to ingestion, not prediction.** La Liga,
+  Bundesliga, Serie A and Ligue 1 have no fitted model, no ratings and no frozen
+  predictions. They accumulate evidence; they do not forecast.
+- **No match statistics.** The configured provider plan supplies results only —
+  no xG, shots, possession, cards, lineups or injuries. Those fields exist in the
+  schema and stay `null`; nothing is synthesised, and no value is shown as `0`
+  when it is really absent.
+- Only 1 settled match so far, so no accuracy figure is quoted anywhere.
+- `FINAL_PREKICK` is a stage label, not a lineup-confirmed model.
 
 ```bash
 npm ci
-npm test          # Phase 1 + 1.1 gates
+npm test          # every phase gate + hardening + ledger suites (696 checks)
 npm run backtest:pl
 npm run dev
 ```
@@ -476,6 +516,14 @@ Copy `.env.example` → `.env.local` and fill in only what you want:
 | `SERPAPI_API_KEY` | Live team news via SerpAPI (Google News) | Uses curated demo signals |
 | `GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_ENGINE_ID` | Live team news via Google Custom Search | Uses curated demo signals |
 | `NEXT_PUBLIC_APP_URL` | Absolute URL for metadata | Defaults to `localhost:3000` |
+| `CRON_SECRET` | Bearer token required by `/api/ops/tick` (and `/api/news/refresh`). **Mandatory in production** | Tick refuses to run in production; open locally |
+| `ODDS_API_KEY` | Phase 2B0 market recorder (The Odds API, one UK EPL h2h request per due poll) | Market reports `UNCONFIGURED`; forecasts continue |
+| `PL_OPS_BACKEND` | `file` \| `mongo` \| `bundle` — where live-ops state persists | Auto: `mongo` on Vercel with `MONGODB_URI`, else `file` |
+| `MARKET_STORE_BACKEND` | Same choice for market observations/consensus | Auto, as above |
+| `OPS_TICK_URL` | Endpoint the hosted 5-minute scheduler pings | Scheduler not used |
+
+The full surface — including the market recorder knobs, live-source overrides and the
+test-only store redirects — is documented inline in [`.env.example`](.env.example).
 
 > Configure **any one** of the news providers to go live — the first one set wins (**GNews is live in production**). With none set, the agent runs on clearly-labelled demo signals.
 >
@@ -530,6 +578,10 @@ npm run typecheck      # tsc --noEmit
 # Verify the model — reproduce the numbers on /accuracy
 npm run backtest       # walk-forward backtest of the LIVE engine vs every completed result
 npm run test:track     # guard the track-record accounting (24 checks)
+npm run test:hardening # durability, metric and secret-handling invariants (77 checks)
+npm run test:ledger     # Big Five ledger: ingestion, leakage, features (193 checks)
+npm run ledger:dry-run  # what the provider currently has, writes nothing
+npm run ledger:backfill # ingest completed matches + settle frozen predictions
 npm run dc:backtest    # independent ridge Dixon-Coles fit + leave-one-out cross-check
 npm run test:gemini-agent  # offline test of the Gemini function-calling tool loop (14 checks)
 npm run validate:bracket   # all 495 Annex C best-third combinations resolve

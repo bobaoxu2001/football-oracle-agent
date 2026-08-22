@@ -9,12 +9,18 @@ const inter = Inter({
   display: "swap",
 });
 
+const SITE_NAME = "Football Oracle";
+const SITE_TITLE = "Football Oracle — Premier League forecasts + World Cup plugin";
+const SITE_DESCRIPTION =
+  "An AI agent that forecasts Premier League matches with walk-forward Elo and Dixon-Coles, and still runs the preserved World Cup 2026 plugin.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
-  title: "Football Oracle — Premier League forecasts + World Cup plugin",
-  description:
-    "An AI agent that forecasts Premier League matches with walk-forward Elo and Dixon-Coles, and still runs the preserved World Cup 2026 plugin.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
   keywords: [
+    "Premier League",
     "World Cup 2026",
     "AI agent",
     "predictions",
@@ -25,10 +31,15 @@ export const metadata: Metadata = {
     "MongoDB",
   ],
   openGraph: {
-    title: "WorldCup Oracle Agent",
-    description:
-      "AI agent that analyzes World Cup matchups, runs simulations, explains predictions, and answers follow-ups in real time.",
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
 };
 

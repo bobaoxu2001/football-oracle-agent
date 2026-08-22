@@ -28,7 +28,7 @@ import { resolveTeams, teamRef } from "../agent/matchResolver";
 import { getTeam } from "../seed/world-cup-2026-groups";
 import { getNewsForTeam } from "../news/newsIngestor";
 import { getTournamentState, isEliminated } from "../live-sports/tournamentState";
-import { geminiApiKey, GEMINI_MODEL, geminiEndpoint } from "./gemini";
+import { geminiApiKey, GEMINI_MODEL, geminiAuthHeaders, geminiEndpoint } from "./gemini";
 
 // ── Minimal Gemini REST shapes (only what we use) ────────────────────────────
 export interface GeminiFunctionCall {
@@ -242,9 +242,9 @@ const defaultTransport: GeminiTransport = async (req) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {
-    const res = await fetch(geminiEndpoint(key), {
+    const res = await fetch(geminiEndpoint(), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: geminiAuthHeaders(key),
       signal: controller.signal,
       body: JSON.stringify(req),
     });

@@ -15,6 +15,7 @@ import type { DataConflict, LiveOpsTickState } from "./types";
 import { readJsonFile, writeJsonFile } from "./jsonl";
 import { tickStatePath } from "./paths";
 import { flushDurableOps, hydrateDurableOps } from "./durable-store";
+import { PREMIER_LEAGUE_CURRENT_SEASON } from "../config";
 import { acquireTickLock, releaseTickLock } from "./tick-lock";
 
 export const TICK_CADENCE_MS = 5 * 60 * 1000;
@@ -27,6 +28,8 @@ export interface TickOptions {
   persistObservations?: boolean;
   persistFixturePatches?: boolean;
   skipNetwork?: boolean;
+  /** Skip the challenger freeze (baseline-isolation tests). */
+  skipShadow?: boolean;
 }
 
 export interface TickResult {
@@ -40,6 +43,8 @@ export interface TickResult {
   resultConflicts: DataConflict[];
   settled: number;
   ratingsApplied: number;
+  /** Challenger snapshots frozen this tick. Never affects the baseline count. */
+  shadowFrozen: number;
   errors: string[];
   state: LiveOpsTickState;
 }
@@ -57,6 +62,9 @@ function loadTickState(): LiveOpsTickState {
       lastVerifiedResultAt: null,
       lastVerifiedFixtureId: null,
       ticks: 0,
+      lastShadowFreezeAt: null,
+      lastShadowError: null,
+      lastShadowFrozen: 0,
     }
   );
 }
@@ -111,6 +119,45 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
   const planned = planPredictionJobs({ fixtures, now });
   refreshJobStatuses(now);
   const exec = executeEligibleJobs({ fixtures, now });
+
+  // Shadow (challenger) freeze — strictly after the baseline has been frozen,
+  // inside the same lease because it writes snapshots. Additive only: it mints
+  // records under a different model version and cannot alter a baseline one.
+  // Any failure is captured, never propagated: the challenger must not be able
+  // to break production forecasting.
+  let shadowFrozen = 0;
+  if (!options.skipShadow) {
+    try {
+      const [{ freezeShadowForCompletedJobs }, { shadowModelEnabled }, { listCanonicalMatches }] =
+        await Promise.all([
+          import("../shadow/freeze"),
+          import("../shadow/track"),
+          import("@/lib/match-ledger/store"),
+        ]);
+      if (shadowModelEnabled()) {
+        const ledgerMatches = await listCanonicalMatches({
+          competition: "premier-league",
+          season: PREMIER_LEAGUE_CURRENT_SEASON,
+        });
+        const shadow = freezeShadowForCompletedJobs({ now, ledgerMatches });
+        shadowFrozen = shadow.frozen;
+        if (shadow.frozen > 0) {
+          state.lastShadowFreezeAt = now;
+          state.lastShadowFrozen = shadow.frozen;
+        }
+        if (shadow.errors.length) {
+          state.lastShadowError = shadow.errors[shadow.errors.length - 1];
+          errors.push(...shadow.errors.map((e) => `shadow: ${e}`));
+        } else {
+          state.lastShadowError = null;
+        }
+      }
+    } catch (err) {
+      const message = (err as Error).message;
+      state.lastShadowError = message;
+      errors.push(`shadow freeze: ${message}`);
+    }
+  }
 
   const results = ingestAndVerifyResults({
     fixtures,
@@ -172,6 +219,7 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     resultConflicts: results.conflicts,
     settled,
     ratingsApplied,
+    shadowFrozen,
     errors,
     state,
   };
@@ -193,6 +241,7 @@ export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<
       resultConflicts: [],
       settled: 0,
       ratingsApplied: 0,
+      shadowFrozen: 0,
       errors: [],
       state,
       skipped: true,
@@ -213,6 +262,20 @@ export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<
         await maybeRunMarketRecorder({ now: options.now });
       } catch (err) {
         console.warn("[market] recorder failed in isolation:", (err as Error).message);
+      }
+    }
+    // Big Five match ledger, same isolation contract as the market recorder:
+    // after the forecast lease, never able to fail a forecast tick, and rate
+    // limited by its own cadence gate rather than a second scheduler.
+    if (!options.skipNetwork && process.env.MATCH_LEDGER_DISABLED !== "1") {
+      try {
+        const { runLedgerTick } = await import("@/lib/match-ledger/tick");
+        const led = await runLedgerTick({ now: options.now });
+        if (led.ran && led.errors.length) {
+          console.warn("[ledger] ingest reported errors:", led.errors.join("; "));
+        }
+      } catch (err) {
+        console.warn("[ledger] pass failed in isolation:", (err as Error).message);
       }
     }
   }

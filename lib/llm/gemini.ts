@@ -16,8 +16,20 @@ import { analystNarrativePrompt, polishPrompt } from "./prompts";
 // Model is configurable via env so a deprecated default never silently disables
 // Gemini. (gemini-2.0-flash was retired → 404.) Override with GEMINI_MODEL.
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const ENDPOINT = (key: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`;
+
+/**
+ * Endpoint WITHOUT the key. The key goes in the `x-goog-api-key` header
+ * (see {@link geminiAuthHeaders}) rather than the query string, so it can
+ * never be captured by request logs, proxies, or an error message that echoes
+ * the URL it failed on.
+ */
+const ENDPOINT = () =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+
+/** Auth + content headers for a Gemini REST call. */
+export function geminiAuthHeaders(key: string): Record<string, string> {
+  return { "Content-Type": "application/json", "x-goog-api-key": key };
+}
 
 /**
  * The Gemini API key, read from EITHER env var name. Different Google surfaces
@@ -52,9 +64,9 @@ export async function geminiGenerate(
   const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 6000);
 
   try {
-    const res = await fetch(ENDPOINT(key), {
+    const res = await fetch(ENDPOINT(), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: geminiAuthHeaders(key),
       signal: controller.signal,
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],

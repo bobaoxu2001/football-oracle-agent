@@ -7,6 +7,9 @@ import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { getVerification } from "@/lib/competitions/premier-league/ops/result-feed";
 import { utcIsoToLondonLocal } from "@/lib/competitions/premier-league/timezone";
 import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
+import { compareFixture } from "@/lib/competitions/premier-league/shadow/compare";
+import { listCanonicalMatches } from "@/lib/match-ledger/store";
+import { ModelComparison } from "@/components/shadow/model-comparison";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +31,18 @@ export default async function FixtureLivePage({ params }: { params: Promise<{ id
   const away = getClub(fixture.awaySlug);
   const view = fixtureLiveView(id);
   const verification = getVerification(id);
+  const ledgerMatches = await listCanonicalMatches({
+    competition: "premier-league",
+    season: fixture.season,
+  });
+  const comparison = compareFixture({
+    fixtureId: id,
+    homeSlug: fixture.homeSlug,
+    awaySlug: fixture.awaySlug,
+    kickoffUtc: fixture.kickoffUtc ?? fixture.kickoff ?? null,
+    ledgerMatches,
+    season: fixture.season,
+  });
   let kickoff = fixture.date;
   try {
     if (fixture.kickoffUtc) {
@@ -94,9 +109,17 @@ export default async function FixtureLivePage({ params }: { params: Promise<{ id
         </p>
       </section>
 
+      <div className="mx-auto mb-8 max-w-3xl">
+        <ModelComparison comparison={comparison} />
+      </div>
+
       <p className="mx-auto max-w-3xl text-sm">
         <Link href="/live" className="text-neon hover:underline">
           ← Live ledger
+        </Link>
+        {" · "}
+        <Link href="/shadow" className="text-neon hover:underline">
+          Shadow evaluation
         </Link>
       </p>
     </div>

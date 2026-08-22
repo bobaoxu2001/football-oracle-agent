@@ -413,6 +413,12 @@ export function AgentChat({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t(lang, "placeholder")}
+                // A placeholder is not a reliable accessible name, so the field
+                // is labelled explicitly. maxLength mirrors the 300-character
+                // limit /api/agent/predict enforces, so an over-long question
+                // is stopped at the keyboard instead of coming back as a 400.
+                aria-label={t(lang, "placeholder")}
+                maxLength={300}
                 className="flex-1 bg-transparent px-1 py-2 text-sm outline-none placeholder:text-muted-foreground/70"
                 disabled={busy}
               />

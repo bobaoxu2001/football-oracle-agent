@@ -12,6 +12,7 @@
  * unit-tested; they override model probabilities for eliminated teams.
  */
 
+import { numberFromEnv } from "@/lib/config/env";
 import { getMongoDb } from "@/lib/db/mongodb";
 import { getTeam } from "@/lib/seed/world-cup-2026-groups";
 import { apiFootballConfigured, fetchFixtures, fetchInjuries } from "./apiFootball";
@@ -30,8 +31,11 @@ const INJURIES_COLLECTION = "live_injuries";
 const SNAPSHOT_ID = "current";
 
 // TTLs (ms). Fixtures/standings refresh faster than injuries.
-const FIXTURES_TTL_MS = Number(process.env.LIVE_FIXTURES_TTL_MS || 2 * 60 * 60 * 1000); // 2h
-const INJURIES_TTL_MS = Number(process.env.LIVE_INJURIES_TTL_MS || 8 * 60 * 60 * 1000); // 8h
+// Validated: a NaN TTL would make every freshness check false, so nothing
+// would ever be served from cache and the rate-limited provider would be hit
+// on every request — the exact opposite of what these knobs are for.
+const FIXTURES_TTL_MS = numberFromEnv("LIVE_FIXTURES_TTL_MS", 2 * 60 * 60 * 1000); // 2h
+const INJURIES_TTL_MS = numberFromEnv("LIVE_INJURIES_TTL_MS", 8 * 60 * 60 * 1000); // 8h
 
 // ---- Pure classification ----------------------------------------------------
 

@@ -96,29 +96,53 @@ export function settlementFromSnapshot(
   };
 }
 
+/**
+ * Load settled rows, first-write-wins per snapshot key.
+ *
+ * A torn or truncated append (crash mid-write) must not take the whole ledger
+ * — and therefore /live, /api/live and the ops tick — offline, so a corrupt
+ * line is skipped and reported, matching every other JSONL reader in the repo.
+ */
 export function loadSettlements(): SettlementRecord[] {
   const file = storePath();
   if (!fs.existsSync(file)) return [];
   const out: SettlementRecord[] = [];
   const seen = new Set<string>();
+  let corrupt = 0;
   for (const line of fs.readFileSync(file, "utf8").split("\n")) {
     if (!line.trim()) continue;
-    const rec = JSON.parse(line) as SettlementRecord;
+    let rec: SettlementRecord;
+    try {
+      rec = JSON.parse(line) as SettlementRecord;
+    } catch {
+      corrupt += 1;
+      continue;
+    }
+    if (!rec?.snapshotUniqueKey) {
+      corrupt += 1;
+      continue;
+    }
     if (seen.has(rec.snapshotUniqueKey)) continue;
     seen.add(rec.snapshotUniqueKey);
     out.push(rec);
   }
+  if (corrupt) {
+    console.warn(`[settlement] skipped ${corrupt} unreadable line(s) in ${file}`);
+  }
   return out;
+}
+
+function appendSettlement(rec: SettlementRecord): void {
+  const file = storePath();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.appendFileSync(file, `${JSON.stringify(rec)}\n`, "utf8");
 }
 
 export function persistSettlement(rec: SettlementRecord): SettlementRecord {
   const existing = loadSettlements();
-  if (existing.some((e) => e.snapshotUniqueKey === rec.snapshotUniqueKey)) {
-    return existing.find((e) => e.snapshotUniqueKey === rec.snapshotUniqueKey)!;
-  }
-  const file = storePath();
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.appendFileSync(file, `${JSON.stringify(rec)}\n`, "utf8");
+  const prior = existing.find((e) => e.snapshotUniqueKey === rec.snapshotUniqueKey);
+  if (prior) return prior;
+  appendSettlement(rec);
   return rec;
 }
 
@@ -133,11 +157,22 @@ export function settleFixture(
     season: fixture.season,
     evaluationClass: options.evaluationClass,
   });
+  // Read the ledger ONCE per fixture. Settling a fixture writes one row per
+  // frozen stage, so re-reading the whole file per row was quadratic in the
+  // size of a ledger that only ever grows.
+  const byKey = new Map(loadSettlements().map((e) => [e.snapshotUniqueKey, e]));
   const written: SettlementRecord[] = [];
   for (const snap of snaps) {
     const rec = settlementFromSnapshot(snap, fixture, settledAt);
     if (options.verificationId) rec.verificationId = options.verificationId;
-    written.push(persistSettlement(rec));
+    const prior = byKey.get(rec.snapshotUniqueKey);
+    if (prior) {
+      written.push(prior);
+      continue;
+    }
+    appendSettlement(rec);
+    byKey.set(rec.snapshotUniqueKey, rec);
+    written.push(rec);
   }
   return written;
 }

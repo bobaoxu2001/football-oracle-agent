@@ -18,8 +18,18 @@ on:
         description: "once or loop"
         default: "loop"
 
+# The job only calls an external URL — it never reads or writes the repo.
+permissions:
+  contents: read
+
+# Separate groups per trigger, on purpose. A single shared group let the ~55
+# minute loop run hold the queue, so the */5 one-shot pings — the backup for
+# exactly the case where the loop dies — were suppressed while it ran, and only
+# one stale queued run fired afterwards. Overlap between the two is safe: the
+# tick is idempotent and serialized by the 90s Mongo lease (409 = already
+# running), which is what makes running both simultaneously the intended shape.
 concurrency:
-  group: football-oracle-ops-tick-${{ github.job }}
+  group: football-oracle-ops-tick-${{ github.event.schedule == '2 * * * *' && 'loop' || 'once' }}
   cancel-in-progress: false
 
 jobs:

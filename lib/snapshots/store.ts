@@ -57,6 +57,14 @@ export function canonicalLiveTapePath(): string {
   return LIVE_ARCHIVE;
 }
 
+/**
+ * WRITE destination for LIVE_OOS archiving.
+ *
+ * LIVE_OOS_ARCHIVE_PATH is a write-redirect, not a store swap: it exists so a
+ * test can archive rows without any chance of touching the canonical tape.
+ * Reads of the committed ledger deliberately ignore it — see
+ * {@link loadCommittedLiveOos}.
+ */
 function liveArchivePath(): string {
   return process.env.LIVE_OOS_ARCHIVE_PATH || LIVE_ARCHIVE;
 }
@@ -343,7 +351,16 @@ export function archiveLiveOosSnapshots(snaps: PredictionSnapshot[]): {
   return { uniqueBefore, uniqueAfter: existing.size, appended: lines.length };
 }
 
-/** Load unique LIVE_OOS rows from the committed tape only. */
+/**
+ * Load unique LIVE_OOS rows from the committed tape only.
+ *
+ * Pinned to LIVE_ARCHIVE on purpose — NOT liveArchivePath(). The committed
+ * ledger is a fixed, hash-audited artifact, so "what has been committed" must
+ * answer the same in every environment; a redirected write path must never be
+ * able to fabricate a different committed history. Suites that redirect writes
+ * still read the real tape here, and verify its md5/sha is unchanged.
+ * Working/timed rows live in the operational archive instead.
+ */
 export function loadCommittedLiveOos(): PredictionSnapshot[] {
   const file = LIVE_ARCHIVE;
   if (!fs.existsSync(file)) return [];

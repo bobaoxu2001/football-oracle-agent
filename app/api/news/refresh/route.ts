@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { refreshNews, TRACKED_TEAMS } from "@/lib/news/newsIngestor";
+import { secretsMatch } from "@/lib/competitions/premier-league/ops/tick-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,8 +34,12 @@ async function handle(req: Request) {
     // when that env var exists, so the daily schedule keeps working unchanged.
     // Without CRON_SECRET the route stays open (zero-config demo behavior).
     const secret = process.env.CRON_SECRET;
-    if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    if (secret) {
+      const header = req.headers.get("authorization") ?? "";
+      const presented = header.startsWith("Bearer ") ? header.slice(7) : "";
+      if (!secretsMatch(presented, secret)) {
+        return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+      }
     }
 
     const url = new URL(req.url);

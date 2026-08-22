@@ -70,17 +70,6 @@ export function poissonPmf(k: number, lambda: number): number {
   return p;
 }
 
-export function poissonSample(lambda: number, rng: () => number = Math.random): number {
-  const L = Math.exp(-lambda);
-  let k = 0;
-  let p = 1;
-  do {
-    k++;
-    p *= rng();
-  } while (p > L);
-  return k - 1;
-}
-
 export interface MatchProb {
   winA: number;
   draw: number;

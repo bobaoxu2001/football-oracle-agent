@@ -270,13 +270,18 @@ export function executeEligibleJobs(input: {
       });
       succeeded += 1;
     } catch (err) {
-      const retryCount = job.retryCount + 1;
-      const stillInWindow = windowState(job.stage, job.kickoffUtc, Date.parse(nowIso)) === "eligible";
+      // Always FAILED. Terminality is decided elsewhere, on purpose:
+      //   • the loop guard above stops retrying once retryCount hits
+      //     MAX_JOB_RETRIES, and
+      //   • refreshJobStatuses flips a FAILED job to MISSED once its window
+      //     closes, which is what makes "never backfilled" true.
+      // A closed window must NOT be recorded as anything other than a real
+      // failure here, or the miss would be laundered into a success path.
       updateJob(job.jobId, {
-        status: stillInWindow && retryCount < MAX_JOB_RETRIES ? "FAILED" : "FAILED",
+        status: "FAILED",
         failureReason: (err as Error).message,
         failureClass: "store-failure",
-        retryCount,
+        retryCount: job.retryCount + 1,
         attemptedAt: nowIso,
         updatedAt: nowIso,
       });

@@ -38,6 +38,18 @@ export function Navbar() {
             Live
           </Link>
           <Link
+            href="/matches"
+            className="rounded-lg px-1.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:px-3"
+          >
+            Matches
+          </Link>
+          <Link
+            href="/shadow"
+            className="rounded-lg px-1.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:px-3"
+          >
+            Shadow
+          </Link>
+          <Link
             href="/health"
             className="rounded-lg px-1.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:px-3"
           >

@@ -39,10 +39,27 @@ export function clearResultFeedForTests(): void {
 }
 
 export function persistResultObservation(obs: ResultObservation): ResultObservation {
-  const existing = loadObs();
-  if (existing.some((e) => e.observationId === obs.observationId)) return obs;
-  appendJsonl(resultObservationPath(), obs);
-  return obs;
+  return persistResultObservations([obs])[0] ?? obs;
+}
+
+/**
+ * Append a batch of observations, skipping ids already on disk.
+ *
+ * Batched deliberately: a tick observes every fixture from every source, and
+ * checking each row against a fresh read of the whole log made one tick cost
+ * O(observations x log size). The log is read once here instead.
+ */
+export function persistResultObservations(rows: ResultObservation[]): ResultObservation[] {
+  if (!rows.length) return [];
+  const seen = new Set(loadObs().map((e) => e.observationId));
+  const out: ResultObservation[] = [];
+  for (const obs of rows) {
+    if (seen.has(obs.observationId)) continue;
+    seen.add(obs.observationId);
+    appendJsonl(resultObservationPath(), obs);
+    out.push(obs);
+  }
+  return out;
 }
 
 function stripResultRaw(row: ResultObservation): ResultObservation {
@@ -234,10 +251,24 @@ export function verifyFixtureResult(
 }
 
 export function persistVerification(v: ResultVerification): ResultVerification {
-  const existing = loadVerifications().filter((e) => e.fixtureId !== v.fixtureId);
-  existing.push(v);
-  rewriteJsonl(resultVerificationPath(), existing);
+  persistVerifications([v]);
   return v;
+}
+
+/**
+ * Upsert verifications by fixtureId in ONE read + ONE rewrite.
+ *
+ * The per-fixture form rewrote the entire verification file once per fixture,
+ * so a full 380-fixture tick performed 380 whole-file reads and 380 whole-file
+ * rewrites. Order is preserved for existing rows; new rows are appended.
+ */
+export function persistVerifications(rows: ResultVerification[]): ResultVerification[] {
+  if (!rows.length) return [];
+  const byFixture = new Map<string, ResultVerification>();
+  for (const row of loadVerifications()) byFixture.set(row.fixtureId, row);
+  for (const row of rows) byFixture.set(row.fixtureId, row);
+  rewriteJsonl(resultVerificationPath(), [...byFixture.values()]);
+  return rows;
 }
 
 export function loadVerifications(): ResultVerification[] {
@@ -274,14 +305,13 @@ export function ingestAndVerifyResults(input: {
   verifiedFinal: ResultVerification[];
 } {
   const resultObs = observationsFromSources(input.observations);
-  for (const obs of resultObs) persistResultObservation(obs);
+  persistResultObservations(resultObs);
   compactPersistedResultObservations();
   const stored = loadObs();
   const fixtureIds = new Set(stored.map((o) => o.fixtureId));
   const verifications: ResultVerification[] = [];
   for (const id of fixtureIds) {
     const v = verifyFixtureResult(id, stored, input.now);
-    persistVerification(v);
     verifications.push(v);
     if (input.persistFixturePatches && v.status === "VERIFIED_FINAL" && v.homeGoals !== null && v.awayGoals !== null) {
       const fixture = input.fixtures.find((f) => f.id === id);
@@ -310,6 +340,8 @@ export function ingestAndVerifyResults(input: {
       }
     }
   }
+  // One write for the whole tick, after every fixture has been verified.
+  persistVerifications(verifications);
   const conflicts = verifications
     .filter((v) => v.status === "CONFLICT")
     .map((v) => ({

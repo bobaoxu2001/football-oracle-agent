@@ -5,6 +5,22 @@
  * Local tests without a secret stay runnable.
  */
 
+import { timingSafeEqual } from "node:crypto";
+
+/**
+ * Constant-time secret comparison.
+ *
+ * `a !== b` returns as soon as two bytes differ, which leaks the length of the
+ * matching prefix to an attacker who can time the endpoint. Lengths are
+ * compared first (that is not secret) and the bytes with timingSafeEqual.
+ */
+export function secretsMatch(presented: string, expected: string): boolean {
+  const a = Buffer.from(presented, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
 export function isProductionRuntime(): boolean {
   return process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
 }
@@ -33,6 +49,6 @@ export function authorizeOpsTick(req: { headers: Headers; url: string }): {
   if (!secret) return { ok: true, status: 200, reason: "local-open" };
   const presented = extractPresentedSecret(req);
   if (!presented) return { ok: false, status: 401, reason: "missing secret" };
-  if (presented !== secret) return { ok: false, status: 401, reason: "invalid secret" };
+  if (!secretsMatch(presented, secret)) return { ok: false, status: 401, reason: "invalid secret" };
   return { ok: true, status: 200, reason: "ok" };
 }

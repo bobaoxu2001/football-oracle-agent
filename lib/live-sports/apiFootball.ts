@@ -11,13 +11,14 @@
  * on every user query.
  */
 
+import { integerFromEnv } from "@/lib/config/env";
 import { TEAMS } from "@/lib/seed/world-cup-2026-groups";
 import type { LiveFixture, LiveInjury } from "./types";
 
 const BASE = "https://v3.football.api-sports.io";
 // FIFA World Cup competition id in API-Football is 1. Season is the start year.
-const WORLD_CUP_LEAGUE_ID = Number(process.env.API_FOOTBALL_LEAGUE_ID || 1);
-const SEASON = Number(process.env.API_FOOTBALL_SEASON || 2026);
+const WORLD_CUP_LEAGUE_ID = integerFromEnv("API_FOOTBALL_LEAGUE_ID", 1);
+const SEASON = integerFromEnv("API_FOOTBALL_SEASON", 2026);
 
 export function apiFootballConfigured(): boolean {
   return Boolean(process.env.API_FOOTBALL_KEY && process.env.API_FOOTBALL_KEY.length > 10);

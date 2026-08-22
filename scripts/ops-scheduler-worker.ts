@@ -5,9 +5,16 @@
  *
  * Used when platform cron cannot honor <=5 minutes. Does not invent results.
  */
+import { durationMsFromEnv } from "@/lib/config/env";
+
 const url = process.env.OPS_TICK_URL;
 const secret = process.env.CRON_SECRET;
-const cadenceMs = Number(process.env.OPS_TICK_CADENCE_MS || 5 * 60 * 1000);
+// Clamped: a malformed cadence must never become a tight loop against the
+// production tick endpoint. Floor 60s, ceiling 1h.
+const cadenceMs = durationMsFromEnv("OPS_TICK_CADENCE_MS", 5 * 60 * 1000, {
+  min: 60_000,
+  max: 60 * 60 * 1000,
+});
 const once = process.argv.includes("--once");
 
 if (!url) {

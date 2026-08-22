@@ -6,6 +6,7 @@
 
 import {
   listSnapshots,
+  loadCommittedLiveOos,
   snapshotIndexStats,
   type PredictionSnapshot,
 } from "@/lib/snapshots/store";
@@ -26,14 +27,26 @@ export function operationalLiveOosUnion(season = PREMIER_LEAGUE_CURRENT_SEASON):
   return liveSnapshotUniverse(season);
 }
 
+/**
+ * Snapshots of one evaluation class.
+ *
+ * `source` selects WHICH LIVE_OOS store answers (it is ignored for the other
+ * classes, which only ever live in the committed index):
+ *   "union"     — frozen tape + operational archive, deduped (default)
+ *   "committed" — the immutable frozen tape only
+ *   "index"     — the in-process snapshot index only
+ */
 export function snapshotsOfClass(
   evaluationClass: EvaluationClass,
   season?: string,
   options: { source?: "committed" | "index" | "union" } = {}
 ): PredictionSnapshot[] {
-  if (evaluationClass === "LIVE_OOS" && options.source !== "index") {
-    const union = operationalLiveOosUnion(season);
-    return union.snapshots;
+  const source = options.source ?? "union";
+  if (evaluationClass === "LIVE_OOS" && source === "union") {
+    return operationalLiveOosUnion(season).snapshots;
+  }
+  if (evaluationClass === "LIVE_OOS" && source === "committed") {
+    return loadCommittedLiveOos().filter((s) => !season || s.season === season);
   }
   const all = listSnapshots();
   return all.filter((s) => {
@@ -64,8 +77,17 @@ export function stageBreakdown(
   return out;
 }
 
+/**
+ * Class counts for the season.
+ *
+ * `LIVE_OOS` is the deduped union actually scored by
+ * {@link livePerformanceReport}; the committed/operational split is reported
+ * alongside it so the frozen tape is never confused with working rows.
+ */
 export function ledgerCounts(season = PREMIER_LEAGUE_CURRENT_SEASON): {
   LIVE_OOS: number;
+  liveOosCommitted: number;
+  liveOosOperational: number;
   RETROSPECTIVE: number;
   BACKTEST: number;
   rawReferences: number;
@@ -74,8 +96,11 @@ export function ledgerCounts(season = PREMIER_LEAGUE_CURRENT_SEASON): {
 } {
   const index = snapshotIndexStats();
   const indexed = listSnapshots().filter((s) => !season || s.season === season);
+  const union = operationalLiveOosUnion(season);
   return {
-    LIVE_OOS: snapshotsOfClass("LIVE_OOS", season, { source: "committed" }).length,
+    LIVE_OOS: union.total,
+    liveOosCommitted: union.committed,
+    liveOosOperational: union.operational,
     RETROSPECTIVE: indexed.filter((s) => s.evaluationClass === "RETROSPECTIVE").length,
     BACKTEST: indexed.filter((s) => s.evaluationClass === "BACKTEST").length,
     rawReferences: index.rawReferences,

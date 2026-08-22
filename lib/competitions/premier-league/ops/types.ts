@@ -200,6 +200,12 @@ export interface LiveOpsTickState {
   lastVerifiedResultAt: string | null;
   lastVerifiedFixtureId: string | null;
   ticks: number;
+  /** Last tick that actually minted a new shadow snapshot. Additive; older state omits it. */
+  lastShadowFreezeAt?: string | null;
+  /** Last error from the shadow freeze pass (cleared on a clean freeze pass). */
+  lastShadowError?: string | null;
+  /** How many shadow snapshots that successful freeze pass minted. */
+  lastShadowFrozen?: number;
 }
 
 export type { CanonicalPredictionStage };

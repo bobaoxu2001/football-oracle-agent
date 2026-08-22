@@ -130,6 +130,40 @@ export function snapshotUniqueKey(k: SnapshotKey): string {
   return [k.competition, k.season, k.fixtureId, k.modelVersion, stage, k.asOf].join("::");
 }
 
+/**
+ * Inverse of snapshotUniqueKey (and the legacy 5-part form).
+ * asOf is ISO-8601 and contains no `::`, so a split is unambiguous.
+ */
+export function parseSnapshotUniqueKey(key: string): {
+  competition: string;
+  season: string;
+  fixtureId: string;
+  modelVersion: string;
+  predictionStage: CanonicalPredictionStage | null;
+  asOf: string;
+} | null {
+  const parts = key.split("::");
+  if (parts.length < 5) return null;
+  if (parts.length === 5) {
+    return {
+      competition: parts[0],
+      season: parts[1],
+      fixtureId: parts[2],
+      modelVersion: parts[3],
+      predictionStage: null,
+      asOf: parts[4],
+    };
+  }
+  return {
+    competition: parts[0],
+    season: parts[1],
+    fixtureId: parts[2],
+    modelVersion: parts[3],
+    predictionStage: canonicalizePredictionStage(parts[4]),
+    asOf: parts.slice(5).join("::"),
+  };
+}
+
 /** Shared canonical identity. Same as snapshotUniqueKey. */
 export function canonicalSnapshotIdentity(k: SnapshotKey): string {
   return snapshotUniqueKey(k);

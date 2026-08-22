@@ -19,6 +19,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# editor / tooling scratch left beside a file being written
+*.tmpdir/
+*.tmp
+
+# python bytecode (betting-backtest also has its own .gitignore)
+__pycache__/
+*.pyc
+
 # env files
 .env
 .env.local
@@ -37,3 +45,8 @@ yarn-error.log*
 
 # ops bundle exports (may contain production job/settlement state)
 /ops-backups/
+
+# Big Five match ledger working copy. Production accumulates into MongoDB;
+# this local mirror is a backfill artifact that would diverge from it. The
+# audited counts live in docs/PHASE2C_BIG_FIVE_LEDGER_REPORT.md.
+/data/processed/big-five/
