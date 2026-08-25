@@ -637,6 +637,78 @@ export interface DurableTickFreshness {
   ageMs: number | null;
 }
 
+export interface DurableStorageDiagnostics {
+  backend: OpsBackendKind;
+  updatedAt: string | null;
+  bundleBytes: number | null;
+  fieldBytes: Record<DurableBundleKey, number>;
+  contextDocuments: number;
+}
+
+/** Server-side byte counts only; never returns durable evidence contents. */
+export async function durableStorageDiagnostics(): Promise<DurableStorageDiagnostics> {
+  const backend = opsBackend();
+  if (backend !== "mongo") {
+    const bundle = backend === "bundle" ? loadFileBundle() : captureBundleFromDisk();
+    const fieldBytes = Object.fromEntries(
+      BUNDLE_KEYS.map(key => [key, Buffer.byteLength(bundle[key] ?? "", "utf8")])
+    ) as Record<DurableBundleKey, number>;
+    return {
+      backend,
+      updatedAt: null,
+      bundleBytes: Object.values(fieldBytes).reduce((sum, bytes) => sum + bytes, 0),
+      fieldBytes,
+      contextDocuments: parseContextSnapshotJsonl(
+        bundle.contextSnapshots ?? "",
+        "diagnostic context store"
+      ).length,
+    };
+  }
+  const db = await getMongoDb();
+  if (!db) throw new Error("MongoDB unavailable for durable storage diagnostics");
+  const fields = Object.fromEntries(
+    BUNDLE_KEYS.filter(key => key !== "contextSnapshots").map(key => [
+      key,
+      { $strLenBytes: { $ifNull: [`$bundle.${key}`, ""] } },
+    ])
+  );
+  const [rows, contextDocuments] = await Promise.all([
+    db.collection(OPS_BUNDLE_COLLECTION).aggregate<{
+      updatedAt?: unknown;
+      bundleBytes?: unknown;
+      fieldBytes?: Record<string, unknown>;
+    }>(
+      [
+        { $match: { _id: "current" } },
+        {
+          $project: {
+            _id: 0,
+            updatedAt: 1,
+            bundleBytes: { $bsonSize: "$bundle" },
+            fieldBytes: fields,
+          },
+        },
+      ],
+      { maxTimeMS: 8_000, timeoutMS: 10_000 }
+    ).toArray(),
+    db.collection(CONTEXT_SNAPSHOT_COLLECTION).countDocuments({}, { timeoutMS: 10_000 }),
+  ]);
+  const row = rows[0];
+  const fieldBytes = Object.fromEntries(
+    BUNDLE_KEYS.map(key => [
+      key,
+      key === "contextSnapshots" ? 0 : Number(row?.fieldBytes?.[key] ?? 0),
+    ])
+  ) as Record<DurableBundleKey, number>;
+  return {
+    backend,
+    updatedAt: typeof row?.updatedAt === "string" ? row.updatedAt : null,
+    bundleBytes: Number.isFinite(Number(row?.bundleBytes)) ? Number(row?.bundleBytes) : null,
+    fieldBytes,
+    contextDocuments,
+  };
+}
+
 /**
  * Lightweight observer bootstrap. Market mapping needs the latest durable
  * fixture overlay, but it must not download the complete forecast ledger just
