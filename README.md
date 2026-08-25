@@ -154,6 +154,7 @@ The regression suites cover:
 - production/shadow/reconstruction isolation;
 - settlement replay behavior;
 - canonical snapshot-versus-fixture ledger metrics;
+- independent core/observer leases and multi-process observer contention;
 - Match Room selection of the latest valid production snapshot;
 - content-addressed context snapshots, future-evidence exclusion, and retry idempotency;
 - exact forecast/context pairing and model-used versus informational-only evidence;
@@ -166,7 +167,7 @@ The committed Premier League LIVE_OOS tape is append-protected and hash-gated by
 
 The app is deployed on Vercel. The scheduled operations endpoints are authenticated and persist state through the configured durable backend in production.
 
-The external hosted worker calls `/api/ops/tick?core=1` for the forecast-critical five-minute path. A one-shot backup first reads only the durable tick timestamp and runs the core path only when the primary loop is stale. The same isolated five-minute trigger calls `/api/ops/observers`; each observer keeps its own cadence gate, outside the forecast function budget and lease.
+The external hosted worker calls `/api/ops/tick?core=1` for the forecast-critical five-minute path. A one-shot backup first reads only the durable tick timestamp and runs the core path only when the primary loop is stale. Both the supervised loop and its one-shot backup call `/api/ops/observers`; the observer path has a separate 180-second Mongo lease and each observer retains its own cadence gate. This keeps slower observational work outside the forecast function budget while preventing overlapping triggers from spending provider quota twice.
 
 Selected read-only ledger pages coalesce durable hydration per function instance, verify the durable bundle version before reloading it, and use a short Vercel CDN stale-on-error window. Operational health, market health, and match intelligence are explicitly `no-store`. A cold reader fails visibly when durable state cannot be verified; a production writer always fails closed rather than flushing stale serverless state. Health is exposed at `/health` and `/api/health`.
 

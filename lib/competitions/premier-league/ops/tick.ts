@@ -14,9 +14,18 @@ import { listJobs } from "./job-ledger";
 import type { DataConflict, LiveOpsTickState } from "./types";
 import { readJsonFile, writeJsonFile } from "./jsonl";
 import { tickStatePath } from "./paths";
-import { flushDurableOps, hydrateDurableOps } from "./durable-store";
+import {
+  flushDurableOps,
+  hydrateDurableFixtures,
+  hydrateDurableOps,
+} from "./durable-store";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "../config";
-import { acquireTickLock, releaseTickLock } from "./tick-lock";
+import {
+  acquireObserverLock,
+  acquireTickLock,
+  releaseObserverLock,
+  releaseTickLock,
+} from "./tick-lock";
 
 export const TICK_CADENCE_MS = 5 * 60 * 1000;
 
@@ -77,6 +86,11 @@ export function liveOpsObserversDegraded(result: LiveOpsObserverResult): boolean
       result.matchLedger.errors.length
   );
 }
+
+export type GuardedLiveOpsObserverResult = LiveOpsObserverResult & {
+  skipped?: boolean;
+  skipReason?: string;
+};
 
 function loadTickState(): LiveOpsTickState {
   return (
@@ -258,7 +272,7 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
  * Non-forecast observers share the hosted cadence but not the forecast
  * function budget or lease. Their failures remain isolated and explicit.
  */
-export async function runLiveOpsObservers(
+async function runLiveOpsObservers(
   options: Pick<TickOptions, "now"> = {}
 ): Promise<LiveOpsObserverResult> {
   const now = options.now ?? new Date().toISOString();
@@ -334,6 +348,46 @@ export async function runLiveOpsObservers(
   return { now, market, matchLedger };
 }
 
+/**
+ * Every observer entry point shares this lease. The market recorder's due
+ * check and random poll identity are deliberately downstream of the lock, so
+ * overlapping scheduler/manual calls cannot spend provider quota twice.
+ */
+export async function runGuardedLiveOpsObservers(
+  options: Pick<TickOptions, "now"> = {}
+): Promise<GuardedLiveOpsObserverResult> {
+  const lock = await acquireObserverLock("ops-observers");
+  if (!lock.ok) {
+    if (lock.reason !== "tick already running") {
+      throw new Error(lock.reason ?? "observer lock unavailable");
+    }
+    return {
+      now: options.now ?? new Date().toISOString(),
+      market: {
+        attempted: false,
+        pollJobId: null,
+        status: null,
+        error: null,
+      },
+      matchLedger: {
+        attempted: false,
+        ran: false,
+        totalCompleted: null,
+        errors: [],
+        error: null,
+      },
+      skipped: true,
+      skipReason: "observers already running",
+    };
+  }
+  try {
+    await hydrateDurableFixtures();
+    return await runLiveOpsObservers(options);
+  } finally {
+    await releaseObserverLock(lock.leaseId);
+  }
+}
+
 export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<TickResult & { skipped?: boolean; skipReason?: string }> {
   // Serialize before hydration. Otherwise a delayed instance can hydrate
   // version N, wait for another writer to commit N+1, then acquire the lease
@@ -377,7 +431,7 @@ export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<
     // slower observational consumers cannot turn a successful forecast tick
     // into a Vercel runtime timeout.
     if (!options.skipNetwork && !options.skipObservers) {
-      await runLiveOpsObservers({ now: options.now });
+      await runGuardedLiveOpsObservers({ now: options.now });
     }
   }
 }

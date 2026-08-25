@@ -5,6 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { spawn } from "node:child_process";
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "foa-2a3-"));
 process.env.SNAPSHOT_STORE_PATH = path.join(TMP, "snapshots.jsonl");
@@ -12,6 +13,7 @@ process.env.LIVE_OOS_ARCHIVE_PATH = path.join(TMP, "archive.jsonl");
 process.env.SETTLEMENT_STORE_PATH = path.join(TMP, "settlements.jsonl");
 process.env.PL_OPS_DIR = path.join(TMP, "ops");
 process.env.PL_TICK_LOCK_PATH = path.join(TMP, "ops/tick.lock.json");
+process.env.PL_OBSERVER_LOCK_PATH = path.join(TMP, "ops/observers.lock.json");
 process.env.PL_OPS_BACKEND = "file";
 delete process.env.VERCEL;
 delete process.env.CRON_SECRET;
@@ -19,7 +21,13 @@ delete process.env.CRON_SECRET;
 import { authorizeOpsTick } from "@/lib/competitions/premier-league/ops/tick-auth";
 import { certaintyFromLiveStatus } from "@/lib/competitions/premier-league/ops/sources";
 import { londonLocalToUtcIso } from "@/lib/competitions/premier-league/timezone";
-import { acquireTickLock, releaseTickLock } from "@/lib/competitions/premier-league/ops/tick-lock";
+import {
+  OBSERVER_LOCK_TTL_MS,
+  acquireObserverLock,
+  acquireTickLock,
+  releaseObserverLock,
+  releaseTickLock,
+} from "@/lib/competitions/premier-league/ops/tick-lock";
 import {
   applyBundleToDisk,
   captureBundleFromDisk,
@@ -60,6 +68,66 @@ function req(headers: Record<string, string>, url = "http://local/api/ops/tick")
   return { headers: new Headers(headers), url };
 }
 
+async function raceObserverLocks(
+  label: string,
+  seedExpired = false
+): Promise<string[]> {
+  const raceDir = path.join(TMP, `lock-race-${label}`);
+  const startPath = path.join(raceDir, "start");
+  const lockPath = path.join(raceDir, "observer.lock.json");
+  fs.mkdirSync(raceDir, { recursive: true });
+  if (seedExpired) {
+    fs.writeFileSync(
+      lockPath,
+      JSON.stringify({
+        holder: "expired-test-owner",
+        leaseId: "expired-test-lease",
+        lockedUntil: Date.now() - 1_000,
+      }),
+      "utf8"
+    );
+  }
+  const outputs: string[] = [];
+  let ready = 0;
+  const children = Array.from({ length: 6 }, () => {
+    const child = spawn(
+      process.execPath,
+      ["--import", "tsx", path.join(process.cwd(), "scripts", "test-ops-lock-worker.ts")],
+      {
+        env: {
+          ...process.env,
+          PL_OPS_BACKEND: "file",
+          PL_OBSERVER_LOCK_PATH: lockPath,
+          FOA_LOCK_RACE_START: startPath,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      }
+    );
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      output += chunk.toString();
+      if (output.includes("READY") && !output.includes("ACK_READY")) {
+        output += "ACK_READY\n";
+        ready += 1;
+        if (ready === 6) fs.writeFileSync(startPath, "go", "utf8");
+      }
+    });
+    child.stderr.on("data", (chunk) => {
+      output += chunk.toString();
+    });
+    return new Promise<void>((resolve, reject) => {
+      child.on("error", reject);
+      child.on("exit", (code) => {
+        outputs.push(output);
+        if (code === 0) resolve();
+        else reject(new Error(`lock worker exited ${code}: ${output}`));
+      });
+    });
+  });
+  await Promise.all(children);
+  return outputs;
+}
+
 async function main() {
 check("tape start", fs.readFileSync(TAPE, "utf8").trim().split("\n").length === 380 && md5(TAPE) === START_MD5);
 check(
@@ -94,6 +162,37 @@ await releaseTickLock(first.leaseId);
 const third = await acquireTickLock("c");
 check("lock reusable after release", third.ok === true);
 await releaseTickLock(third.leaseId);
+
+const coreLease = await acquireTickLock("core-isolation");
+const observerLease = await acquireObserverLock("observer-a");
+const overlappingObserverLease = await acquireObserverLock("observer-b");
+check("observer lease is isolated from core lease", coreLease.ok && observerLease.ok);
+check("overlapping observer lease rejected", overlappingObserverLease.ok === false);
+check("observer lease exceeds function timeout", OBSERVER_LOCK_TTL_MS > 130_000);
+await releaseObserverLock(observerLease.leaseId);
+const reusedObserverLease = await acquireObserverLock("observer-c");
+check("observer lease reusable after release", reusedObserverLease.ok === true);
+await releaseObserverLock(reusedObserverLease.leaseId);
+await releaseTickLock(coreLease.leaseId);
+
+const raceOutputs = await raceObserverLocks("empty");
+check(
+  "atomic observer lease has one multi-process winner",
+  raceOutputs.filter((output) => output.includes("RESULT:won")).length === 1
+);
+check(
+  "all competing observer processes completed",
+  raceOutputs.filter((output) => output.includes("RESULT:")).length === 6
+);
+const expiredRaceOutputs = await raceObserverLocks("expired", true);
+check(
+  "expired file lease fails closed under multi-process contention",
+  expiredRaceOutputs.filter((output) => output.includes("RESULT:won")).length === 0
+);
+check(
+  "all expired-lease contenders receive a result",
+  expiredRaceOutputs.filter((output) => output.includes("RESULT:lost")).length === 6
+);
 
 const held = await acquireTickLock("held");
 const skipped = await runGuardedLiveOpsTick({

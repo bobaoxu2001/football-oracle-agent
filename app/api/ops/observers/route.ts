@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   liveOpsObserversDegraded,
-  runLiveOpsObservers,
+  runGuardedLiveOpsObservers,
 } from "@/lib/competitions/premier-league/ops/tick";
 import { authorizeOpsTick } from "@/lib/competitions/premier-league/ops/tick-auth";
-import { hydrateDurableFixtures } from "@/lib/competitions/premier-league/ops/durable-store";
 
 export const dynamic = "force-dynamic";
 // Observers are isolated from the 60-second production forecast tick. The
@@ -22,10 +21,9 @@ export async function GET(req: NextRequest) {
     );
   }
   try {
-    await hydrateDurableFixtures();
-    const result = await runLiveOpsObservers();
+    const result = await runGuardedLiveOpsObservers();
     return NextResponse.json(result, {
-      status: liveOpsObserversDegraded(result) ? 503 : 200,
+      status: result.skipped ? 409 : liveOpsObserversDegraded(result) ? 503 : 200,
     });
   } catch (err) {
     return NextResponse.json(

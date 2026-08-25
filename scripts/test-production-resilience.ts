@@ -352,8 +352,9 @@ async function main(): Promise<void> {
     path.join(process.cwd(), "app", "api", "ops", "observers", "route.ts"),
     "utf8"
   );
-  assert.match(observerRouteSource, /hydrateDurableFixtures\(\)/);
+  assert.match(observerRouteSource, /runGuardedLiveOpsObservers\(\)/);
   assert.match(observerRouteSource, /maxDuration\s*=\s*120/);
+  assert.match(observerRouteSource, /result\.skipped \? 409/);
   const matchLedgerStoreSource = fs.readFileSync(
     path.join(process.cwd(), "lib", "match-ledger", "store.ts"),
     "utf8"
@@ -464,15 +465,18 @@ async function main(): Promise<void> {
     path.join(process.cwd(), ".github", "workflows", "ops-tick.yml"),
     "utf8"
   );
-  assert.match(workflow, /cron: "\*\/5 \* \* \* \*"/);
+  assert.match(workflow, /cron: "3-58\/5 \* \* \* \*"/);
+  assert.match(workflow, /cron: "17 \* \* \* \*"/);
   assert.match(workflow, /: > \/tmp\/tick-body/);
   assert.match(workflow, /: > \/tmp\/observer-body/);
   assert.match(workflow, /OBSERVER_CODE=[\s\S]*?--max-time 130/);
   assert.match(
     workflow,
-    /if \[ "\$MODE" = "once" \]; then[\s\S]*?: > \/tmp\/observer-body[\s\S]*?OBSERVER_CODE=/
+    /for i in \$\(seq 1 "\$ROUNDS"\); do[\s\S]*?: > \/tmp\/observer-body[\s\S]*?OBSERVER_CODE=/
   );
+  assert.match(workflow, /"\$OBSERVER_CODE" != "200"[\s\S]*?"\$OBSERVER_CODE" != "409"/);
   assert.match(workflow, /observer_state=http_\$\{OBSERVER_CODE\}[\s\S]*?fail=1/);
+  assert.match(workflow, /github\.event\.schedule == '17 \* \* \* \*'/);
   assert.match(workflow, /github\.event_name == 'workflow_dispatch'[\s\S]*?github\.event\.inputs\.mode == 'loop'/);
   assert.match(workflow, /ROUND_STARTED_AT=/);
   assert.match(workflow, /DELAY="\$\(\( 300 - ELAPSED \)\)"/);
@@ -483,7 +487,9 @@ async function main(): Promise<void> {
   assert.match(opsTickSource, /providerTimeoutMs:\s*4_000/);
   assert.match(opsTickSource, /providerMaxRetries:\s*0/);
   assert.match(opsTickSource, /interRequestDelayMs:\s*1_500/);
-
+  assert.match(opsTickSource, /acquireObserverLock\("ops-observers"\)/);
+  assert.match(opsTickSource, /finally\s*{\s*await releaseObserverLock\(lock\.leaseId\)/);
+  assert.match(opsTickSource, /await runGuardedLiveOpsObservers\({ now: options\.now }\)/);
   console.log("Production resilience tests passed");
 }
 
