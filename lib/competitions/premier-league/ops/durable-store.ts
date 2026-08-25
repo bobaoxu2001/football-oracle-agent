@@ -46,7 +46,11 @@ const COMMITTED_ROOT = path.resolve(process.cwd(), "data/processed/premier-leagu
 const OPS_BUNDLE_COLLECTION = "pl_ops_bundle";
 const CONTEXT_SNAPSHOT_COLLECTION = "pl_match_context_snapshots";
 const HYDRATION_FRESH_MS = 15_000;
-const PUBLIC_HYDRATION_TIMEOUT_MS = 8_000;
+// The compact production bundle is still multi-megabyte. Eight seconds was
+// enough for topology checks but not for a cold IAD read of the full document;
+// 20s remains well below the 60s function ceiling and is protected by CDN
+// coalescing plus the 15s warm-instance version cache.
+const PUBLIC_HYDRATION_TIMEOUT_MS = 20_000;
 const BUNDLE_KEYS = [
   "jobs",
   "sourceObservations",

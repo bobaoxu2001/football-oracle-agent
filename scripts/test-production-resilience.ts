@@ -51,6 +51,11 @@ async function main(): Promise<void> {
   assert.equal(bundleReads, 1, "fresh hydration must collapse repeated public reads");
   assert.equal(durable.durableStatus().hydrated, true);
   assert.equal(durable.durableStatus().hydrateRefreshFailed, false);
+  const durableSource = fs.readFileSync(
+    path.join(process.cwd(), "lib", "competitions", "premier-league", "ops", "durable-store.ts"),
+    "utf8"
+  );
+  assert.match(durableSource, /PUBLIC_HYDRATION_TIMEOUT_MS\s*=\s*20_000/);
 
   // A newer authoritative empty field must truncate bytes left in a warm
   // serverless work directory, never resurrect them on the next flush.
