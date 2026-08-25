@@ -34,6 +34,7 @@ import { buildHealthReport } from "@/lib/competitions/premier-league/ops/health"
 import {
   insertObservation,
   listConsensus,
+  listLatestConsensus,
   listObservations,
   resetMarketStoreForTests,
 } from "@/lib/competitions/premier-league/market/store";
@@ -467,6 +468,15 @@ async function main() {
 
   const cons = await listConsensus({ fixtureId: arsenalCoventry.id });
   check("consensus is derived median rows", cons.length >= 1 && cons.every((c) => c.consensusMethod === "median-fair-v1"));
+  const latestConsensus = await listLatestConsensus();
+  const latestForFixture = latestConsensus.find(
+    (row) => row.canonicalFixtureId === arsenalCoventry.id
+  );
+  check("latest consensus returns one row per fixture", latestConsensus.length === 1);
+  check(
+    "latest consensus selects the newest immutable row",
+    latestForFixture?.retrievedAt === cons.map((row) => row.retrievedAt).sort().at(-1)
+  );
 
   check("cadence far", effectiveCadenceMs(10 * 24 * 3600_000, 400) === CADENCE_FAR_MS);
   check("cadence week", effectiveCadenceMs(5 * 24 * 3600_000, 400) === CADENCE_WEEK_MS);

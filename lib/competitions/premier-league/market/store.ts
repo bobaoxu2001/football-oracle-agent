@@ -276,6 +276,45 @@ export async function listConsensus(filter: { fixtureId?: string } = {}): Promis
   return [...mem().consensus.values()].filter((r) => !filter.fixtureId || r.canonicalFixtureId === filter.fixtureId);
 }
 
+/**
+ * One most-recent consensus row per fixture.
+ *
+ * Public market summaries must not download the complete immutable market
+ * history (tens of thousands of observations) merely to render one latest
+ * row. Mongo performs the reduction; the file backend mirrors it for tests.
+ */
+export async function listLatestConsensus(): Promise<MarketConsensusSnapshot[]> {
+  if (marketStoreBackend() === "mongo") {
+    const db = await getMongoDb();
+    if (!db) return [];
+    return (await db.collection(COL_CONSENSUS).aggregate(
+      [
+        // The existing { canonicalFixtureId: 1, retrievedAt: 1 } index can be
+        // scanned in reverse for this ordering.
+        { $sort: { canonicalFixtureId: -1, retrievedAt: -1 } },
+        {
+          $group: {
+            _id: "$canonicalFixtureId",
+            latest: { $first: "$$ROOT" },
+          },
+        },
+        { $replaceRoot: { newRoot: "$latest" } },
+        { $project: { _id: 0 } },
+      ],
+      { timeoutMS: 8_000 }
+    ).toArray()) as unknown as MarketConsensusSnapshot[];
+  }
+  loadFileIfNeeded();
+  const latest = new Map<string, MarketConsensusSnapshot>();
+  for (const row of mem().consensus.values()) {
+    const prior = latest.get(row.canonicalFixtureId);
+    if (!prior || prior.retrievedAt < row.retrievedAt) {
+      latest.set(row.canonicalFixtureId, row);
+    }
+  }
+  return [...latest.values()];
+}
+
 export async function countObservations(): Promise<number> {
   if (marketStoreBackend() === "mongo") {
     const db = await getMongoDb();

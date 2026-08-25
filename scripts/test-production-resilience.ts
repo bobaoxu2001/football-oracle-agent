@@ -365,6 +365,22 @@ async function main(): Promise<void> {
     matchLedgerStoreSource,
     /collection\(COL_OBSERVATIONS\)[\s\S]{0,120}\.find\(\{\},/
   );
+  const marketPageSource = fs.readFileSync(
+    path.join(process.cwd(), "app", "market", "page.tsx"),
+    "utf8"
+  );
+  const marketApiSource = fs.readFileSync(
+    path.join(process.cwd(), "app", "api", "market", "route.ts"),
+    "utf8"
+  );
+  for (const source of [marketPageSource, marketApiSource]) {
+    assert.match(source, /listLatestConsensus\(\)/);
+    assert.doesNotMatch(source, /listObservations\(\)/);
+  }
+  assert.match(marketPageSource, /Promise\.allSettled/);
+  assert.match(marketPageSource, /Market summary is temporarily degraded/);
+  assert.match(marketApiSource, /market_summary_unavailable/);
+  assert.match(marketApiSource, /status:\s*503/);
   const storageRouteSource = fs.readFileSync(
     path.join(process.cwd(), "app", "api", "ops", "storage", "route.ts"),
     "utf8"

@@ -4,7 +4,12 @@ import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable
 import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { buildMarketHealthReport } from "@/lib/competitions/premier-league/market/health";
-import { listConsensus, listObservations, loadMarketState } from "@/lib/competitions/premier-league/market/store";
+import {
+  emptyMarketState,
+  listLatestConsensus,
+  loadMarketState,
+} from "@/lib/competitions/premier-league/market/store";
+import type { MarketHealthReport } from "@/lib/competitions/premier-league/market/health";
 
 export const dynamic = "force-dynamic";
 
@@ -19,25 +24,54 @@ function pct(x: number): string {
 
 export default async function MarketPage() {
   await hydrateDurableOps();
-  const [health, state, consensus, observations] = await Promise.all([
+  const [healthResult, stateResult, consensusResult] = await Promise.allSettled([
     buildMarketHealthReport(),
     loadMarketState(),
-    listConsensus(),
-    listObservations(),
+    listLatestConsensus(),
   ]);
+  const readDegraded = [healthResult, stateResult, consensusResult].some(
+    (result) => result.status === "rejected"
+  );
+  if (readDegraded) {
+    console.warn("[market] summary read degraded; serving an explicit bounded fallback");
+  }
+  const health: MarketHealthReport =
+    healthResult.status === "fulfilled"
+      ? healthResult.value
+      : {
+          overall: "DEGRADED",
+          reasons: ["market summary temporarily unavailable"],
+          source: {
+            id: "the-odds-api",
+            configured: false,
+            region: "uk",
+            sport: "soccer_epl",
+            market: "h2h",
+          },
+          lastSuccessAt: null,
+          lastFailedAt: null,
+          lastError: "market summary temporarily unavailable",
+          quotaRemaining: null,
+          quotaUsed: null,
+          lastRequestCost: null,
+          nextScheduledPoll: null,
+          currentCadenceMs: null,
+          eventsHint: "summary unavailable",
+          fixturesMatched: 0,
+          unmatched: 0,
+          ambiguous: 0,
+          bookmakersObserved: 0,
+          observationsStored: 0,
+          consensusStored: 0,
+          firstMarketObservationAt: null,
+          schemaVersion: "market-recorder-v0.1.0",
+        };
+  const state =
+    stateResult.status === "fulfilled" ? stateResult.value : emptyMarketState();
+  const consensus =
+    consensusResult.status === "fulfilled" ? consensusResult.value : [];
   const fixtures = liveFixtures();
-  const latest = new Map<string, (typeof consensus)[number]>();
-  for (const row of consensus) {
-    const prev = latest.get(row.canonicalFixtureId);
-    if (!prev || prev.retrievedAt < row.retrievedAt) latest.set(row.canonicalFixtureId, row);
-  }
-  const books = new Map<string, Set<string>>();
-  for (const row of observations) {
-    const set = books.get(row.canonicalFixtureId) ?? new Set<string>();
-    set.add(row.bookmakerKey);
-    books.set(row.canonicalFixtureId, set);
-  }
-  const rows = [...latest.values()].sort((a, b) => a.retrievedAt.localeCompare(b.retrievedAt));
+  const rows = consensus.sort((a, b) => a.retrievedAt.localeCompare(b.retrievedAt));
 
   return (
     <div className="container py-8 md:py-12">
@@ -60,6 +94,12 @@ export default async function MarketPage() {
       </section>
 
       <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-muted-foreground">
+        {readDegraded ? (
+          <p className="mb-2 text-amber-300">
+            Market summary is temporarily degraded. Production forecasts are independent and
+            remain available.
+          </p>
+        ) : null}
         <p>Source: {health.source.sport} · region {health.source.region} · {health.source.market}</p>
         <p>Configured: {health.source.configured ? "yes" : "no"}</p>
         <p>First LIVE_RECORDED poll: {state.firstMarketObservationAt ?? "—"}</p>
@@ -93,7 +133,7 @@ export default async function MarketPage() {
                   return (
                     <tr key={c.consensusId} className="border-b border-white/5">
                       <td className="py-2 pr-3">{label}</td>
-                      <td className="py-2 pr-3">{books.get(c.canonicalFixtureId)?.size ?? c.bookmakerCount}</td>
+                      <td className="py-2 pr-3">{c.bookmakerCount}</td>
                       <td className="py-2 pr-3">
                         {pct(c.fairHome)} / {pct(c.fairDraw)} / {pct(c.fairAway)}
                       </td>
