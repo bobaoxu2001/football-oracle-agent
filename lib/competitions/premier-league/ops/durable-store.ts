@@ -9,6 +9,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { gunzipSync, gzipSync } from "node:zlib";
 import type { AnyBulkWriteOperation, Db } from "mongodb";
 import { getMongoDb } from "@/lib/db/mongodb";
 import { isCanonicalLiveTapePath, resetSnapshotCache } from "@/lib/snapshots/store";
@@ -45,6 +47,10 @@ export type OpsBackendKind = "file" | "mongo" | "bundle";
 const COMMITTED_ROOT = path.resolve(process.cwd(), "data/processed/premier-league");
 const OPS_BUNDLE_COLLECTION = "pl_ops_bundle";
 const CONTEXT_SNAPSHOT_COLLECTION = "pl_match_context_snapshots";
+const OPS_MIGRATION_BACKUP_COLLECTION = "pl_ops_migration_backups";
+const JOBS_ENCODING = "gzip-base64-v1";
+const BUNDLE_WRITER_SCHEMA = 2;
+const MAX_JOBS_UNCOMPRESSED_BYTES = 8 * 1024 * 1024;
 const HYDRATION_FRESH_MS = 15_000;
 // The compact production bundle is still multi-megabyte. Eight seconds was
 // enough for topology checks but not for a cold IAD read of the full document;
@@ -192,6 +198,175 @@ export function validateDurableBundle(
     `${sourceLabel}.contextSnapshots`
   );
   return normalized;
+}
+
+export interface MongoStoredBundle extends Record<string, unknown> {
+  jobs?: string;
+  jobsGzipBase64?: string;
+  jobsSha256?: string;
+  jobsEncoding?: string;
+}
+
+/** Reject partial or wrong-database backups before they can become authoritative. */
+export function requireCompleteMongoStoredBundle(
+  value: unknown,
+  sourceLabel = "Mongo stored ops bundle"
+): MongoStoredBundle {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${sourceLabel} must be an object`);
+  }
+  const stored = value as MongoStoredBundle;
+  const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(stored, key);
+  for (const key of BUNDLE_KEYS) {
+    if (key === "jobs" || key === "contextSnapshots") continue;
+    if (!hasOwn(key) || typeof stored[key] !== "string") {
+      throw new Error(`${sourceLabel}.${key} is missing or not a string`);
+    }
+  }
+  const hasPlainJobs = hasOwn("jobs") && typeof stored.jobs === "string";
+  const hasCompressedJobs =
+    stored.jobsEncoding === JOBS_ENCODING &&
+    typeof stored.jobsGzipBase64 === "string" &&
+    typeof stored.jobsSha256 === "string";
+  if (!hasPlainJobs && !hasCompressedJobs) {
+    throw new Error(`${sourceLabel} has no complete jobs representation`);
+  }
+  if (hasOwn("contextSnapshots") && typeof stored.contextSnapshots !== "string") {
+    throw new Error(`${sourceLabel}.contextSnapshots is not a string`);
+  }
+  return stored;
+}
+
+export interface MongoBundleRevisionV2 {
+  iso: string;
+  writerSchema: typeof BUNDLE_WRITER_SCHEMA;
+}
+
+export type MongoBundleRevision = string | MongoBundleRevisionV2;
+
+function isIsoTimestamp(value: string): boolean {
+  return Number.isFinite(Date.parse(value));
+}
+
+/**
+ * Legacy writers only understand a string `updatedAt`. Once a write stores the
+ * v2 document, those writers treat it as missing and their old CAS cannot
+ * match. This is a durable writer fence, including for direct old-deployment
+ * traffic and rollbacks.
+ */
+export function parseMongoBundleRevision(
+  value: unknown,
+  sourceLabel = "Mongo durable ops revision"
+): MongoBundleRevision | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "string") {
+    if (!isIsoTimestamp(value)) throw new Error(`${sourceLabel} is not a timestamp`);
+    return value;
+  }
+  if (
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    (value as { writerSchema?: unknown }).writerSchema === BUNDLE_WRITER_SCHEMA &&
+    typeof (value as { iso?: unknown }).iso === "string" &&
+    isIsoTimestamp((value as { iso: string }).iso)
+  ) {
+    return {
+      iso: (value as { iso: string }).iso,
+      writerSchema: BUNDLE_WRITER_SCHEMA,
+    };
+  }
+  throw new Error(`${sourceLabel} has an unsupported writer schema`);
+}
+
+export function mongoBundleRevisionIso(revision: MongoBundleRevision | null): string | null {
+  return typeof revision === "string" ? revision : revision?.iso ?? null;
+}
+
+export function nextMongoBundleRevision(now = new Date()): MongoBundleRevisionV2 {
+  return { iso: now.toISOString(), writerSchema: BUNDLE_WRITER_SCHEMA };
+}
+
+export function mongoBundleRevisionFilter(
+  revision: MongoBundleRevision | null
+): Record<string, unknown> {
+  if (typeof revision === "string") return { updatedAt: revision };
+  if (revision) {
+    return {
+      "updatedAt.iso": revision.iso,
+      "updatedAt.writerSchema": BUNDLE_WRITER_SCHEMA,
+    };
+  }
+  return { $or: [{ updatedAt: { $exists: false } }, { updatedAt: null }] };
+}
+
+function sha256(text: string): string {
+  return createHash("sha256").update(text, "utf8").digest("hex");
+}
+
+export function encodeMongoBundleForStorage(bundle: DurableBundle): MongoStoredBundle {
+  const validated = validateDurableBundle(bundle);
+  const {
+    jobs,
+    contextSnapshots: _contextSnapshots,
+    ...bundleWithoutJobsAndContexts
+  } = validated;
+  const jobsBytes = Buffer.byteLength(jobs, "utf8");
+  if (jobsBytes > MAX_JOBS_UNCOMPRESSED_BYTES) {
+    throw new Error(
+      `durable ops jobs payload exceeds ${MAX_JOBS_UNCOMPRESSED_BYTES} bytes`
+    );
+  }
+  return {
+    ...bundleWithoutJobsAndContexts,
+    jobsEncoding: JOBS_ENCODING,
+    jobsGzipBase64: gzipSync(Buffer.from(jobs, "utf8"), { level: 9 }).toString("base64"),
+    jobsSha256: sha256(jobs),
+  };
+}
+
+/** Preserve the format that was explicitly hydrated; never auto-migrate on flush. */
+export function mongoBundleForWrite(
+  bundle: DurableBundle,
+  jobsCompressed: boolean
+): MongoStoredBundle {
+  const validated = validateDurableBundle(bundle);
+  if (jobsCompressed) return encodeMongoBundleForStorage(validated);
+  const { contextSnapshots: _contextSnapshots, ...plainBundle } = validated;
+  return plainBundle;
+}
+
+export function decodeMongoBundleFromStorage(
+  value: unknown,
+  sourceLabel = "Mongo durable ops bundle"
+): DurableBundle {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${sourceLabel} must be an object`);
+  }
+  const stored = value as MongoStoredBundle;
+  const hasCompressed = stored.jobsGzipBase64 !== undefined;
+  if (!hasCompressed) return validateDurableBundle(stored, sourceLabel);
+  if (
+    stored.jobsEncoding !== JOBS_ENCODING ||
+    typeof stored.jobsGzipBase64 !== "string" ||
+    typeof stored.jobsSha256 !== "string"
+  ) {
+    throw new Error(`${sourceLabel} has an unsupported jobs encoding`);
+  }
+  let jobs: string;
+  try {
+    jobs = gunzipSync(Buffer.from(stored.jobsGzipBase64, "base64"), {
+      maxOutputLength: MAX_JOBS_UNCOMPRESSED_BYTES,
+    }).toString("utf8");
+  } catch {
+    throw new Error(`${sourceLabel} contains an unreadable compressed jobs payload`);
+  }
+  if (sha256(jobs) !== stored.jobsSha256) {
+    throw new Error(`${sourceLabel} compressed jobs checksum mismatch`);
+  }
+  if (typeof stored.jobs === "string" && stored.jobs && stored.jobs !== jobs) {
+    throw new Error(`${sourceLabel} contains conflicting plain and compressed jobs`);
+  }
+  return validateDurableBundle({ ...stored, jobs }, sourceLabel);
 }
 
 interface ParsedContextSnapshotRow {
@@ -421,11 +596,12 @@ function bundlePath(): string {
 interface LoadedMongoBundle {
   bundle: DurableBundle;
   version: string;
-  updatedAt: string | null;
+  revision: MongoBundleRevision | null;
+  jobsCompressed: boolean;
 }
 
-function mongoVersionToken(updatedAt: string | null, contextCount: number): string {
-  return JSON.stringify([updatedAt, contextCount]);
+function mongoVersionToken(revision: MongoBundleRevision | null, contextCount: number): string {
+  return JSON.stringify([revision, contextCount]);
 }
 
 async function loadMongoBundleVersion(timeoutMS: number): Promise<string> {
@@ -443,7 +619,7 @@ async function loadMongoBundleVersion(timeoutMS: number): Promise<string> {
     ),
   ]);
   return mongoVersionToken(
-    typeof doc?.updatedAt === "string" ? doc.updatedAt : null,
+    parseMongoBundleRevision(doc?.updatedAt, "Mongo durable ops revision probe"),
     contextCount
   );
 }
@@ -466,7 +642,7 @@ async function loadMongoBundle(timeoutMS: number): Promise<LoadedMongoBundle> {
       .find({}, { projection: { snapshot: 1 }, timeoutMS, signal: controller.signal })
       .sort({ _id: 1 })
       .toArray();
-    const legacyBundle = validateDurableBundle(
+    const legacyBundle = decodeMongoBundleFromStorage(
       doc?.bundle ?? emptyBundle(),
       "Mongo durable ops bundle"
     );
@@ -474,11 +650,17 @@ async function loadMongoBundle(timeoutMS: number): Promise<LoadedMongoBundle> {
     if (legacyContexts !== undefined && typeof legacyContexts !== "string") {
       throw new Error("legacy ops bundle contextSnapshots must be a string");
     }
+    const revision = parseMongoBundleRevision(
+      doc?.updatedAt,
+      "Mongo durable ops revision"
+    );
     return {
-      updatedAt: typeof doc?.updatedAt === "string" ? doc.updatedAt : null,
-      version: mongoVersionToken(
-        typeof doc?.updatedAt === "string" ? doc.updatedAt : null,
-        contextDocuments.length
+      revision,
+      version: mongoVersionToken(revision, contextDocuments.length),
+      jobsCompressed: Boolean(
+        doc?.bundle &&
+          typeof doc.bundle === "object" &&
+          typeof (doc.bundle as MongoStoredBundle).jobsGzipBase64 === "string"
       ),
       bundle: {
         ...emptyBundle(),
@@ -519,27 +701,30 @@ async function saveMongoContexts(
 
 async function saveMongoBundle(
   bundle: DurableBundle,
-  expectedUpdatedAt: string | null,
+  expectedRevision: MongoBundleRevision | null,
+  jobsCompressed: boolean,
   timeoutMs = 20_000
-): Promise<{ version: string; updatedAt: string }> {
+): Promise<{
+  version: string;
+  revision: MongoBundleRevisionV2;
+  jobsCompressed: boolean;
+}> {
   bundle = validateDurableBundle(bundle);
   const deadline = Date.now() + timeoutMs;
   const db = await getMongoDb();
   if (!db) throw new Error("MongoDB unavailable for durable ops store");
   await saveMongoContexts(db, bundle.contextSnapshots ?? "", deadline);
-  const { contextSnapshots: _contextSnapshots, ...bundleWithoutContexts } = bundle;
-  const updatedAt = new Date().toISOString();
-  const filter = expectedUpdatedAt
-    ? { _id: "current", updatedAt: expectedUpdatedAt }
-    : {
-        _id: "current",
-        $or: [{ updatedAt: { $exists: false } }, { updatedAt: null }],
-      };
+  const bundleForMongo = mongoBundleForWrite(bundle, jobsCompressed);
+  const revision = nextMongoBundleRevision();
+  const filter = {
+    _id: "current",
+    ...mongoBundleRevisionFilter(expectedRevision),
+  };
   const result = await db.collection(OPS_BUNDLE_COLLECTION).updateOne(
     filter as never,
-    { $set: { bundle: bundleWithoutContexts, updatedAt } },
+    { $set: { bundle: bundleForMongo, updatedAt: revision } },
     {
-      upsert: expectedUpdatedAt === null,
+      upsert: expectedRevision === null,
       timeoutMS: remainingTimeoutMs(deadline),
     }
   );
@@ -550,7 +735,11 @@ async function saveMongoBundle(
     {},
     { timeoutMS: remainingTimeoutMs(deadline) }
   );
-  return { version: mongoVersionToken(updatedAt, contextCount), updatedAt };
+  return {
+    version: mongoVersionToken(revision, contextCount),
+    revision,
+    jobsCompressed,
+  };
 }
 
 function loadFileBundle(): DurableBundle {
@@ -574,7 +763,8 @@ interface DurableMeta {
   lastFlushAt: string | null;
   backend: OpsBackendKind;
   bundleVersion: string | null;
-  bundleUpdatedAt: string | null;
+  bundleRevision: MongoBundleRevision | null;
+  jobsCompressed: boolean;
   hydrationPromise?: Promise<Error | null>;
 }
 
@@ -589,7 +779,8 @@ function newMeta(): DurableMeta {
     lastFlushAt: null,
     backend: opsBackend(),
     bundleVersion: null,
-    bundleUpdatedAt: null,
+    bundleRevision: null,
+    jobsCompressed: false,
   };
 }
 
@@ -669,7 +860,14 @@ export async function durableStorageDiagnostics(): Promise<DurableStorageDiagnos
   const fields = Object.fromEntries(
     BUNDLE_KEYS.filter(key => key !== "contextSnapshots").map(key => [
       key,
-      { $strLenBytes: { $ifNull: [`$bundle.${key}`, ""] } },
+      key === "jobs"
+        ? {
+            $add: [
+              { $strLenBytes: { $ifNull: ["$bundle.jobs", ""] } },
+              { $strLenBytes: { $ifNull: ["$bundle.jobsGzipBase64", ""] } },
+            ],
+          }
+        : { $strLenBytes: { $ifNull: [`$bundle.${key}`, ""] } },
     ])
   );
   const [rows, contextDocuments] = await Promise.all([
@@ -702,10 +900,163 @@ export async function durableStorageDiagnostics(): Promise<DurableStorageDiagnos
   ) as Record<DurableBundleKey, number>;
   return {
     backend,
-    updatedAt: typeof row?.updatedAt === "string" ? row.updatedAt : null,
+    updatedAt: mongoBundleRevisionIso(
+      parseMongoBundleRevision(row?.updatedAt, "Mongo durable ops diagnostic revision")
+    ),
     bundleBytes: Number.isFinite(Number(row?.bundleBytes)) ? Number(row?.bundleBytes) : null,
     fieldBytes,
     contextDocuments,
+  };
+}
+
+export interface DurableJobsMigrationResult {
+  migrated: boolean;
+  writerFenced: boolean;
+  previousUpdatedAt: string | null;
+  updatedAt: string | null;
+  logicalBytes: number;
+  storedBytes: number;
+  sha256: string;
+  backupId: string | null;
+}
+
+/** One-time, CAS-protected storage-format migration; logical job bytes stay identical. */
+export async function migrateMongoJobsToCompressedStorage(
+  deadline = Date.now() + 40_000
+): Promise<DurableJobsMigrationResult> {
+  if (opsBackend() !== "mongo") {
+    throw new Error("jobs compression migration requires the Mongo durable backend");
+  }
+  const db = await getMongoDb();
+  if (!db) throw new Error("MongoDB unavailable for jobs compression migration");
+  const doc = await db.collection(OPS_BUNDLE_COLLECTION).findOne(
+    { _id: "current" as never },
+    {
+      projection: {
+        updatedAt: 1,
+        "bundle.jobs": 1,
+        "bundle.jobsEncoding": 1,
+        "bundle.jobsGzipBase64": 1,
+        "bundle.jobsSha256": 1,
+      },
+      timeoutMS: Math.min(25_000, remainingTimeoutMs(deadline)),
+    }
+  ) as { updatedAt?: unknown; bundle?: MongoStoredBundle } | null;
+  if (!doc?.bundle) throw new Error("Mongo durable ops bundle is missing");
+  const previousRevision = parseMongoBundleRevision(
+    doc.updatedAt,
+    "Mongo jobs migration revision"
+  );
+  const previousUpdatedAt = mongoBundleRevisionIso(previousRevision);
+  if (typeof doc.bundle.jobsGzipBase64 === "string") {
+    const jobs = decodeMongoBundleFromStorage(doc.bundle, "compressed jobs migration probe").jobs;
+    let currentRevision = previousRevision;
+    let writerFenced = typeof previousRevision !== "string" && previousRevision !== null;
+    if (!writerFenced) {
+      const fencedRevision = nextMongoBundleRevision();
+      const fenceResult = await db.collection(OPS_BUNDLE_COLLECTION).updateOne(
+        {
+          _id: "current",
+          ...mongoBundleRevisionFilter(previousRevision),
+        } as never,
+        { $set: { updatedAt: fencedRevision } },
+        { timeoutMS: Math.min(10_000, remainingTimeoutMs(deadline)) }
+      );
+      if (fenceResult.matchedCount !== 1) {
+        throw new Error("durable ops bundle changed while installing writer fence");
+      }
+      currentRevision = fencedRevision;
+      writerFenced = true;
+    }
+    return {
+      migrated: false,
+      writerFenced,
+      previousUpdatedAt,
+      updatedAt: mongoBundleRevisionIso(currentRevision),
+      logicalBytes: Buffer.byteLength(jobs, "utf8"),
+      storedBytes: Buffer.byteLength(doc.bundle.jobsGzipBase64, "utf8"),
+      sha256: sha256(jobs),
+      backupId: null,
+    };
+  }
+  if (typeof doc.bundle.jobs !== "string") {
+    throw new Error("Mongo durable ops jobs field is not a string");
+  }
+  const jobs = doc.bundle.jobs;
+  // Reuse the full validator for the JSONL evidence boundary before mutation.
+  validateDurableBundle({ ...emptyBundle(), jobs }, "jobs compression migration input");
+  const encoded = encodeMongoBundleForStorage({ ...emptyBundle(), jobs });
+  const payload = String(encoded.jobsGzipBase64 ?? "");
+  const digest = String(encoded.jobsSha256 ?? "");
+  const backupId = `jobs-${JOBS_ENCODING}-${digest}`;
+  await db.collection(OPS_MIGRATION_BACKUP_COLLECTION).updateOne(
+    { _id: backupId as never },
+    {
+      $setOnInsert: {
+        encoding: JOBS_ENCODING,
+        payload,
+        sha256: digest,
+        sourceUpdatedAt: previousUpdatedAt,
+        createdAt: new Date().toISOString(),
+      },
+    },
+    { upsert: true, timeoutMS: Math.min(15_000, remainingTimeoutMs(deadline)) }
+  );
+  const backup = await db.collection(OPS_MIGRATION_BACKUP_COLLECTION).findOne(
+    { _id: backupId as never },
+    {
+      projection: { encoding: 1, payload: 1, sha256: 1 },
+      timeoutMS: Math.min(5_000, remainingTimeoutMs(deadline)),
+    }
+  );
+  if (
+    backup?.encoding !== JOBS_ENCODING ||
+    typeof backup?.payload !== "string" ||
+    backup?.sha256 !== digest
+  ) {
+    throw new Error("compressed jobs migration backup verification failed");
+  }
+  const recoveredJobs = decodeMongoBundleFromStorage(
+    {
+      jobsEncoding: backup.encoding,
+      jobsGzipBase64: backup.payload,
+      jobsSha256: backup.sha256,
+    },
+    "compressed jobs migration backup"
+  ).jobs;
+  if (recoveredJobs !== jobs) {
+    throw new Error("compressed jobs migration backup round-trip mismatch");
+  }
+  const revision = nextMongoBundleRevision();
+  const filter = {
+    _id: "current",
+    ...mongoBundleRevisionFilter(previousRevision),
+  };
+  const result = await db.collection(OPS_BUNDLE_COLLECTION).updateOne(
+    filter as never,
+    {
+      $set: {
+        "bundle.jobsEncoding": JOBS_ENCODING,
+        "bundle.jobsGzipBase64": payload,
+        "bundle.jobsSha256": digest,
+        updatedAt: revision,
+      },
+      $unset: { "bundle.jobs": "" },
+    },
+    { timeoutMS: Math.min(15_000, remainingTimeoutMs(deadline)) }
+  );
+  if (result.matchedCount !== 1) {
+    throw new Error("durable ops bundle changed during jobs compression migration");
+  }
+  return {
+    migrated: true,
+    writerFenced: true,
+    previousUpdatedAt,
+    updatedAt: revision.iso,
+    logicalBytes: Buffer.byteLength(jobs, "utf8"),
+    storedBytes: Buffer.byteLength(payload, "utf8"),
+    sha256: digest,
+    backupId,
   };
 }
 
@@ -825,14 +1176,20 @@ export async function hydrateDurableOps(
       }
       const loaded = backend === "mongo"
         ? await loadMongoBundle(timeoutMs)
-        : { bundle: loadFileBundle(), version: null, updatedAt: null };
+        : {
+            bundle: loadFileBundle(),
+            version: null,
+            revision: null,
+            jobsCompressed: false,
+          };
       const bundle = loaded.bundle;
       applyBundleToDisk(bundle);
       compactDurableOpsOnDisk();
       state.hydrated = true;
       state.lastHydratedAt = new Date().toISOString();
       state.bundleVersion = loaded.version;
-      state.bundleUpdatedAt = loaded.updatedAt;
+      state.bundleRevision = loaded.revision;
+      state.jobsCompressed = loaded.jobsCompressed;
       state.lastHydrateFailedAt = null;
       state.hydrateRefreshFailed = false;
       return null;
@@ -868,9 +1225,14 @@ export async function flushDurableOps(): Promise<void> {
   const bundle = captureBundleFromDisk();
   const state = meta();
   if (backend === "mongo") {
-    const saved = await saveMongoBundle(bundle, state.bundleUpdatedAt);
+    const saved = await saveMongoBundle(
+      bundle,
+      state.bundleRevision,
+      state.jobsCompressed
+    );
     state.bundleVersion = saved.version;
-    state.bundleUpdatedAt = saved.updatedAt;
+    state.bundleRevision = saved.revision;
+    state.jobsCompressed = saved.jobsCompressed;
   } else {
     saveFileBundle(bundle);
   }

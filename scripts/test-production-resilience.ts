@@ -36,6 +36,94 @@ async function main(): Promise<void> {
   const durable = await import("@/lib/competitions/premier-league/ops/durable-store");
   durable.resetDurableMetaForTests();
 
+  const compressionJobs = Array.from({ length: 200 }, (_, index) =>
+    JSON.stringify({ jobId: `job-${index}`, status: "PENDING", stage: "T7D" })
+  ).join("\n") + "\n";
+  const encodedBundle = durable.encodeMongoBundleForStorage({
+    ...emptyBundle(),
+    jobs: compressionJobs,
+  });
+  assert.equal("jobs" in encodedBundle, false);
+  assert.ok(
+    String(encodedBundle.jobsGzipBase64).length < Buffer.byteLength(compressionJobs, "utf8")
+  );
+  assert.equal(
+    durable.decodeMongoBundleFromStorage(encodedBundle).jobs,
+    compressionJobs
+  );
+  const legacyWrite = durable.mongoBundleForWrite(
+    { ...emptyBundle(), jobs: compressionJobs },
+    false
+  );
+  assert.equal(legacyWrite.jobs, compressionJobs);
+  assert.equal("jobsGzipBase64" in legacyWrite, false);
+  const compressedWrite = durable.mongoBundleForWrite(
+    { ...emptyBundle(), jobs: compressionJobs },
+    true
+  );
+  assert.equal("jobs" in compressedWrite, false);
+  assert.equal(typeof compressedWrite.jobsGzipBase64, "string");
+  assert.throws(
+    () => durable.decodeMongoBundleFromStorage({ ...encodedBundle, jobsSha256: "0".repeat(64) }),
+    /checksum mismatch/
+  );
+  assert.throws(
+    () => durable.encodeMongoBundleForStorage({
+      ...emptyBundle(),
+      jobs: `${JSON.stringify({
+        jobId: "oversized",
+        padding: "x".repeat(8 * 1024 * 1024),
+      })}\n`,
+    }),
+    /exceeds 8388608 bytes/
+  );
+  const legacyRevision = "2026-08-26T00:00:00.000Z";
+  assert.equal(durable.parseMongoBundleRevision(legacyRevision), legacyRevision);
+  const fencedRevision = durable.nextMongoBundleRevision(
+    new Date("2026-08-26T00:01:00.000Z")
+  );
+  assert.deepEqual(fencedRevision, {
+    iso: "2026-08-26T00:01:00.000Z",
+    writerSchema: 2,
+  });
+  assert.deepEqual(durable.parseMongoBundleRevision(fencedRevision), fencedRevision);
+  assert.deepEqual(durable.mongoBundleRevisionFilter(legacyRevision), {
+    updatedAt: legacyRevision,
+  });
+  assert.deepEqual(durable.mongoBundleRevisionFilter(fencedRevision), {
+    "updatedAt.iso": fencedRevision.iso,
+    "updatedAt.writerSchema": 2,
+  });
+  const oldWriterPostMigrationFilter = {
+    $or: [{ updatedAt: { $exists: false } }, { updatedAt: null }],
+  };
+  assert.notDeepEqual(
+    durable.mongoBundleRevisionFilter(fencedRevision),
+    oldWriterPostMigrationFilter
+  );
+  assert.throws(
+    () => durable.parseMongoBundleRevision({ iso: fencedRevision.iso, writerSchema: 1 }),
+    /unsupported writer schema/
+  );
+  assert.throws(
+    () => durable.requireCompleteMongoStoredBundle({}),
+    /sourceObservations is missing/
+  );
+  const partialStoredBundle = { ...legacyWrite };
+  delete partialStoredBundle.fixturesOverlay;
+  assert.throws(
+    () => durable.requireCompleteMongoStoredBundle(partialStoredBundle),
+    /fixturesOverlay is missing/
+  );
+  assert.equal(
+    durable.requireCompleteMongoStoredBundle(legacyWrite).jobs,
+    compressionJobs
+  );
+  assert.equal(
+    typeof durable.requireCompleteMongoStoredBundle(encodedBundle).jobsGzipBase64,
+    "string"
+  );
+
   const originalRead = fs.readFileSync;
   let bundleReads = 0;
   fs.readFileSync = ((file: fs.PathOrFileDescriptor, ...args: unknown[]) => {
@@ -265,6 +353,38 @@ async function main(): Promise<void> {
     "utf8"
   );
   assert.match(observerRouteSource, /hydrateDurableFixtures\(\)/);
+  const storageRouteSource = fs.readFileSync(
+    path.join(process.cwd(), "app", "api", "ops", "storage", "route.ts"),
+    "utf8"
+  );
+  assert.match(storageRouteSource, /acquireTickLock\("jobs-compression-migration"\)/);
+  assert.match(storageRouteSource, /finally\s*{\s*await releaseTickLock\(leaseId\)/);
+  assert.match(storageRouteSource, /maxDuration\s*=\s*60/);
+  assert.match(storageRouteSource, /Date\.now\(\)\s*\+\s*50_000/);
+  assert.match(storageRouteSource, /migrateMongoJobsToCompressedStorage\(deadline\)/);
+  const backupRestoreSource = fs.readFileSync(
+    path.join(process.cwd(), "scripts", "export-ops-bundle.ts"),
+    "utf8"
+  );
+  assert.match(backupRestoreSource, /decodeMongoBundleFromStorage\([\s\S]*storedBundle/);
+  assert.match(backupRestoreSource, /requireCompleteMongoStoredBundle/);
+  assert.match(backupRestoreSource, /encodeMongoBundleForStorage\(logicalBundle\)/);
+  assert.match(backupRestoreSource, /football-oracle-ops-backup-v2/);
+  assert.match(backupRestoreSource, /pl_match_context_snapshots/);
+  assert.match(backupRestoreSource, /acquireTickLock\("ops-bundle-export"\)/);
+  assert.match(backupRestoreSource, /acquireTickLock\("ops-bundle-restore"\)/);
+  assert.match(backupRestoreSource, /updatedAt:\s*nextMongoBundleRevision\(\)/);
+  assert.match(backupRestoreSource, /withTransaction/);
+  assert.match(backupRestoreSource, /contexts\.deleteMany/);
+  assert.match(backupRestoreSource, /contexts\.insertMany/);
+  assert.match(backupRestoreSource, /contextDocuments:\s*unknown/);
+  assert.match(backupRestoreSource, /contextCount:\s*number/);
+  assert.match(backupRestoreSource, /contextSha256:\s*string/);
+  assert.match(backupRestoreSource, /context count\/checksum mismatch/);
+  assert.match(backupRestoreSource, /requireResolvedContextReferences/);
+  assert.match(backupRestoreSource, /contextSnapshotId/);
+  assert.match(backupRestoreSource, /MONGODB_DB !== "football_oracle"/);
+  assert.match(backupRestoreSource, /finally\s*{\s*await releaseTickLock\(lock\.leaseId\)/);
 
   const { marketRecorderFreshnessReasons } = await import(
     "@/lib/competitions/premier-league/market/health"
