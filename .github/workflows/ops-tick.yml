@@ -70,6 +70,7 @@ jobs:
           for i in $(seq 1 "$ROUNDS"); do
             ROUND_STARTED_AT="$(date +%s)"
             AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            : > /tmp/tick-body
             CODE="$(curl -sS -o /tmp/tick-body -w "%{http_code}" \
               --max-time 90 \
               -H "Authorization: Bearer ${CRON_SECRET}" \
@@ -99,6 +100,7 @@ jobs:
           # concurrency group prevents duplicate market polls, while recorder
           # and ledger cadence gates decide whether external work is due.
           if [ "$MODE" = "once" ]; then
+            : > /tmp/observer-body
             OBSERVER_CODE="$(curl -sS -o /tmp/observer-body -w "%{http_code}" \
               --max-time 58 \
               -H "Authorization: Bearer ${CRON_SECRET}" \

@@ -50,7 +50,10 @@ export async function loadLedgerState(): Promise<LedgerState> {
   if (matchLedgerBackend() === "mongo") {
     const db = await getMongoDb();
     if (!db) return emptyLedgerState();
-    const doc = await db.collection(COL_STATE).findOne({ _id: "current" as never });
+    const doc = await db.collection(COL_STATE).findOne(
+      { _id: "current" as never },
+      { timeoutMS: 4_000 }
+    );
     if (!doc) return emptyLedgerState();
     const { _id, ...rest } = doc as Record<string, unknown>;
     void _id;
@@ -72,7 +75,11 @@ export async function saveLedgerState(state: LedgerState): Promise<void> {
     if (!db) return;
     await db
       .collection(COL_STATE)
-      .updateOne({ _id: "current" as never }, { $set: state }, { upsert: true });
+      .updateOne(
+        { _id: "current" as never },
+        { $set: state },
+        { upsert: true, timeoutMS: 4_000 }
+      );
     return;
   }
   const file = statePath();

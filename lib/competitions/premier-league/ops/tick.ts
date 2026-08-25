@@ -299,12 +299,14 @@ export async function runLiveOpsObservers(
         const { runLedgerTick } = await import("@/lib/match-ledger/tick");
         const result = await runLedgerTick({
           now,
-          // Five competitions retain deliberate spacing, but a hosted
-          // observer never sleeps through Retry-After inside a 60s function.
+          // The free tier permits ten requests/minute. One five-league pass
+          // therefore stays below quota even with shorter spacing, while the
+          // bounded worst case (5 x 4s requests + 4 x 1.5s gaps) leaves more
+          // than half of a 60s function for durable materialization.
           // A 429 is persisted as an explicit failure and retried later.
-          providerTimeoutMs: 5_000,
+          providerTimeoutMs: 4_000,
           providerMaxRetries: 0,
-          interRequestDelayMs: 4_000,
+          interRequestDelayMs: 1_500,
         });
         if (result.ran && result.errors.length) {
           console.warn("[ledger] ingest reported errors:", result.errors.join("; "));

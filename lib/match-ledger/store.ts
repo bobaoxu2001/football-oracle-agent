@@ -93,19 +93,29 @@ export async function appendObservations(
     const db = await getMongoDb();
     if (!db) throw new Error("match ledger: mongo backend selected but unavailable");
     const col = db.collection(COL_OBSERVATIONS);
-    let written = 0;
-    let skipped = 0;
+    // One provider response contains hundreds of fixtures. Issuing one Atlas
+    // round trip per row made a healthy idempotent replay exceed Vercel's
+    // 60-second function budget. De-duplicate the request first, then use
+    // set-on-insert upserts: the original observation remains immutable and a
+    // replay is still a no-op, but the whole pass is one bounded operation.
+    const unique = new Map<string, MatchObservation>();
     for (const row of rows) {
-      try {
-        await col.insertOne({ ...row, _id: row.observationId } as never);
-        written += 1;
-      } catch (err) {
-        // Duplicate _id is the idempotent path, not a failure.
-        if ((err as { code?: number }).code === 11000) skipped += 1;
-        else throw err;
-      }
+      if (!unique.has(row.observationId)) unique.set(row.observationId, row);
     }
-    return { written, skipped };
+    const result = await col.bulkWrite(
+      [...unique.values()].map((row) => ({
+        updateOne: {
+          filter: { _id: row.observationId },
+          update: { $setOnInsert: { ...row, _id: row.observationId } },
+          upsert: true,
+        },
+      })) as never,
+      { ordered: false, timeoutMS: 12_000 }
+    );
+    return {
+      written: result.upsertedCount,
+      skipped: rows.length - result.upsertedCount,
+    };
   }
 
   const file = observationPath();
@@ -134,9 +144,16 @@ export async function listObservations(filter?: {
   if (matchLedgerBackend() === "mongo") {
     const db = await getMongoDb();
     if (!db) return [];
+    const query: Record<string, string> = {};
+    if (filter?.competition) query.competition = filter.competition;
+    if (filter?.season) query.season = filter.season;
+    if (filter?.canonicalMatchId) query.canonicalMatchId = filter.canonicalMatchId;
     rows = (await db
       .collection(COL_OBSERVATIONS)
-      .find({}, { projection: { _id: 0 } })
+      // Filtering in Mongo is important even without a warm index: routes
+      // requesting one competition must not download and materialize the
+      // complete five-league observation history in the function runtime.
+      .find(query, { projection: { _id: 0 }, timeoutMS: 10_000 })
       .toArray()) as unknown as MatchObservation[];
   } else {
     rows = readJsonlFile<MatchObservation>(observationPath());
@@ -182,7 +199,7 @@ export async function loadTeamIdentityRegistry(): Promise<TeamIdentityRegistry> 
     if (!db) return {};
     const rows = (await db
       .collection(COL_IDENTITY)
-      .find({}, { projection: { _id: 0 } })
+      .find({}, { projection: { _id: 0 }, timeoutMS: 8_000 })
       .toArray()) as unknown as TeamIdentityRecord[];
     const out: TeamIdentityRegistry = {};
     for (const r of rows) out[`${r.competition}::${r.providerTeamId}`] = r;
@@ -203,13 +220,18 @@ export async function saveTeamIdentityRegistry(registry: TeamIdentityRegistry): 
     const db = await getMongoDb();
     if (!db) throw new Error("match ledger: mongo backend selected but unavailable");
     const col = db.collection(COL_IDENTITY);
-    for (const record of Object.values(registry)) {
-      await col.updateOne(
-        { _id: `${record.competition}::${record.providerTeamId}` as never },
-        { $set: record },
-        { upsert: true }
-      );
-    }
+    const records = Object.values(registry);
+    if (!records.length) return;
+    await col.bulkWrite(
+      records.map((record) => ({
+        updateOne: {
+          filter: { _id: `${record.competition}::${record.providerTeamId}` },
+          update: { $set: record },
+          upsert: true,
+        },
+      })) as never,
+      { ordered: false, timeoutMS: 8_000 }
+    );
     return;
   }
   writeFileAtomic(identityPath(), `${JSON.stringify(registry, null, 2)}\n`);

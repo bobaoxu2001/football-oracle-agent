@@ -353,6 +353,17 @@ async function main(): Promise<void> {
     "utf8"
   );
   assert.match(observerRouteSource, /hydrateDurableFixtures\(\)/);
+  const matchLedgerStoreSource = fs.readFileSync(
+    path.join(process.cwd(), "lib", "match-ledger", "store.ts"),
+    "utf8"
+  );
+  assert.match(matchLedgerStoreSource, /col\.bulkWrite\(/);
+  assert.match(matchLedgerStoreSource, /\$setOnInsert/);
+  assert.match(matchLedgerStoreSource, /\.find\(query,\s*\{ projection:/);
+  assert.doesNotMatch(
+    matchLedgerStoreSource,
+    /collection\(COL_OBSERVATIONS\)[\s\S]{0,120}\.find\(\{\},/
+  );
   const storageRouteSource = fs.readFileSync(
     path.join(process.cwd(), "app", "api", "ops", "storage", "route.ts"),
     "utf8"
@@ -437,7 +448,12 @@ async function main(): Promise<void> {
     "utf8"
   );
   assert.match(workflow, /cron: "\*\/5 \* \* \* \*"/);
-  assert.match(workflow, /if \[ "\$MODE" = "once" \]; then\n\s+OBSERVER_CODE=/);
+  assert.match(workflow, /: > \/tmp\/tick-body/);
+  assert.match(workflow, /: > \/tmp\/observer-body/);
+  assert.match(
+    workflow,
+    /if \[ "\$MODE" = "once" \]; then[\s\S]*?: > \/tmp\/observer-body[\s\S]*?OBSERVER_CODE=/
+  );
   assert.match(workflow, /observer_state=http_\$\{OBSERVER_CODE\}[\s\S]*?fail=1/);
   assert.match(workflow, /github\.event_name == 'workflow_dispatch'[\s\S]*?github\.event\.inputs\.mode == 'loop'/);
   assert.match(workflow, /ROUND_STARTED_AT=/);
@@ -446,9 +462,9 @@ async function main(): Promise<void> {
     path.join(process.cwd(), "lib", "competitions", "premier-league", "ops", "tick.ts"),
     "utf8"
   );
-  assert.match(opsTickSource, /providerTimeoutMs:\s*5_000/);
+  assert.match(opsTickSource, /providerTimeoutMs:\s*4_000/);
   assert.match(opsTickSource, /providerMaxRetries:\s*0/);
-  assert.match(opsTickSource, /interRequestDelayMs:\s*4_000/);
+  assert.match(opsTickSource, /interRequestDelayMs:\s*1_500/);
 
   console.log("Production resilience tests passed");
 }
