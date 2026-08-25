@@ -3,6 +3,7 @@ import Link from "next/link";
 import { shadowEvaluationReport } from "@/lib/competitions/premier-league/shadow/report";
 import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
+import { canonicalLedgerMetrics } from "@/lib/competitions/premier-league/ledger-metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 export default async function ShadowPage() {
   await hydrateDurableOps();
   const report = shadowEvaluationReport(PREMIER_LEAGUE_CURRENT_SEASON);
+  const ledgerMetrics = canonicalLedgerMetrics(PREMIER_LEAGUE_CURRENT_SEASON);
 
   return (
     <div className="container py-8 md:py-12">
@@ -22,13 +24,14 @@ export default async function ShadowPage() {
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {report.season} · paired forward evaluation
         </p>
-        <h1 className="mt-2 text-3xl font-black tracking-tight">Baseline vs shadow</h1>
+        <h1 className="mt-2 text-3xl font-black tracking-tight">Production vs shadow</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Production serves <span className="text-foreground">{report.servingVersion}</span> and
           always will until a promotion is decided deliberately. The challenger{" "}
-          <span className="text-foreground">{report.shadowVersion}</span> is frozen alongside it
-          before every kickoff and settled against the same result, so the two accumulate genuinely
-          paired out-of-sample evidence.
+          <span className="text-foreground">{report.shadowVersion}</span> accumulates genuinely
+          paired out-of-sample evidence: when an eligible paired freeze succeeds, both tracks are
+          frozen at the same cutoff and settled against the same result. Missed pairs stay visible
+          and are never backfilled.
         </p>
         <p className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3 text-xs text-amber-100/90">
           This page exists to test whether current-season evidence adds signal. It does not assume
@@ -36,10 +39,11 @@ export default async function ShadowPage() {
         </p>
       </section>
 
-      <section className="mx-auto mb-8 grid max-w-3xl gap-3 sm:grid-cols-4">
-        <Stat label="Baseline frozen" value={String(report.frozenBaselineSnapshots)} />
-        <Stat label="Shadow frozen" value={String(report.frozenShadowSnapshots)} />
-        <Stat label="Paired evidence" value={String(report.collection.pairedEvidence)} />
+      <section className="mx-auto mb-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Stat label="Production snapshots" value={String(ledgerMetrics.production.totalForecastSnapshots)} />
+        <Stat label="Shadow snapshots" value={String(ledgerMetrics.shadow.totalForecastSnapshots)} />
+        <Stat label="Settled shadow snapshots" value={String(ledgerMetrics.shadow.settledForecastSnapshots)} />
+        <Stat label="Unique settled fixtures" value={String(ledgerMetrics.shadow.uniqueFixturesSettled)} />
         <Stat label="Shadow freezing" value={report.shadowEnabled ? "ON" : "OFF"} />
       </section>
 
@@ -70,7 +74,8 @@ export default async function ShadowPage() {
           />
           <Line label="Frozen pairs" value={String(report.collection.frozenPairs)} />
           <Line label="Settled pairs" value={String(report.collection.settledPairs)} />
-          <Line label="Paired evidence n" value={String(report.collection.pairedEvidence)} />
+          <Line label="Paired forecast-snapshot evidence n" value={String(report.collection.pairedEvidence)} />
+          <Line label="Unique settled fixtures" value={String(ledgerMetrics.shadow.uniqueFixturesSettled)} />
           <Line label="Unpaired baseline-only" value={String(report.collection.unpairedBaselineOnly)} />
           <Line
             label="Orphan shadow settlements"
@@ -186,9 +191,9 @@ export default async function ShadowPage() {
         ) : (
           <p className="text-muted-foreground">
             Headline metrics are withheld until {report.promotion.minForDisplay} paired settlements
-            exist. Reporting a Brier delta over {report.pairedSettlements}{" "}
-            {report.pairedSettlements === 1 ? "match" : "matches"} would invite exactly the
-            conclusion this evaluation is designed to avoid.
+            exist. Reporting a Brier delta over {report.pairedSettlements} forecast-snapshot pairs
+            across {ledgerMetrics.shadow.uniqueFixturesSettled} unique fixtures would invite exactly
+            the conclusion this evaluation is designed to avoid.
           </p>
         )}
       </section>
@@ -261,7 +266,7 @@ export default async function ShadowPage() {
         </p>
         <p className="mt-4">
           <Link href="/live" className="text-neon hover:underline">
-            ← Live ledger
+            ← Production ledger
           </Link>
         </p>
       </section>

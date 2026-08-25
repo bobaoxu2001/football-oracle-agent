@@ -43,12 +43,13 @@ export default async function MarketPage() {
     <div className="container py-8 md:py-12">
       <section className="mx-auto mb-8 max-w-3xl">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Phase 2B0 · observational only
+          Market observations · external benchmark data
         </p>
         <h1 className="mt-2 text-3xl font-black tracking-tight">Recorded market 1X2</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Market-implied fair probabilities from bookmaker decimal odds after proportional de-vig.
-          This is another forecast. It is not an edge, a stake, or a recommendation.
+          These observations are never production-model inputs. Model-vs-market evaluation is not
+          implemented in Phase 4A; this is not an edge, a stake, or a recommendation.
         </p>
       </section>
 
@@ -73,13 +74,14 @@ export default async function MarketPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-muted-foreground">
+              <caption className="sr-only">Latest observational bookmaker consensus by fixture</caption>
               <thead>
                 <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em]">
-                  <th className="py-2 pr-3 font-medium">Fixture</th>
-                  <th className="py-2 pr-3 font-medium">Books</th>
-                  <th className="py-2 pr-3 font-medium">Fair H/D/A</th>
-                  <th className="py-2 pr-3 font-medium">Margin</th>
-                  <th className="py-2 font-medium">Observed</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Fixture</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Books</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Fair H/D/A</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Margin</th>
+                  <th scope="col" className="py-2 font-medium">Observed</th>
                 </tr>
               </thead>
               <tbody>
@@ -110,7 +112,7 @@ export default async function MarketPage() {
 
       <p className="mx-auto max-w-3xl text-xs text-muted-foreground">
         <Link href="/live" className="text-neon hover:underline">
-          Live ledger
+          Production ledger
         </Link>
         {" · "}
         <Link href="/health" className="text-neon hover:underline">

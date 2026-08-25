@@ -103,6 +103,8 @@ export interface ForecastTimelinePoint {
   forecastId: string;
   cutoffAt: string;
   generatedAt: string;
+  kickoffAtFreeze: string | null;
+  validForCurrentKickoff: boolean;
   predictionStage: PredictionStage;
   modelVersion: string;
   result: MatchForecast["result"];

@@ -10,9 +10,9 @@ const inter = Inter({
 });
 
 const SITE_NAME = "Football Oracle";
-const SITE_TITLE = "Football Oracle — Auditable Premier League forecasts";
+const SITE_TITLE = "Football Oracle · Auditable Premier League production forecasts";
 const SITE_DESCRIPTION =
-  "Auditable Premier League match probabilities, exact-score distributions and grounded agent explanations from immutable production forecasts.";
+  "Auditable Premier League match probabilities, exact-score distributions and grounded model explanations from immutable production forecasts.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
@@ -21,14 +21,12 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   keywords: [
     "Premier League",
-    "World Cup 2026",
-    "AI agent",
-    "predictions",
-    "Monte Carlo",
-    "Elo",
+    "pre-match forecasts",
+    "probability distributions",
+    "production ledger",
+    "forecast audit",
+    "expected goals",
     "Dixon-Coles",
-    "Gemini",
-    "MongoDB",
   ],
   openGraph: {
     siteName: SITE_NAME,
@@ -47,9 +45,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`dark ${inter.variable}`}>
       <body className="stadium-bg min-h-screen font-sans">
+        <a href="#main-content" className="sr-only left-3 top-3 z-50 rounded-lg bg-neon px-4 py-2 text-sm font-bold text-primary-foreground focus:not-sr-only focus:fixed focus:outline-none focus:ring-2 focus:ring-white">
+          Skip to main content
+        </a>
         <div className="relative flex min-h-screen flex-col">
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
           <footer className="border-t border-white/5 py-8 text-center text-xs text-muted-foreground">
             <p>
               Football Oracle · Auditable Premier League production forecasts · Elo + Dixon-Coles.

@@ -33,6 +33,19 @@ export interface SettlementRecord {
   verificationId?: string;
 }
 
+/**
+ * Result of one idempotent settlement pass.
+ *
+ * `records` is the complete set of settlement rows for the eligible snapshots.
+ * `inserted` contains only first writes from this pass; `existing` contains
+ * replay hits. None of these counts is a durable settlement-operation count.
+ */
+export interface SettlementBatchResult {
+  records: SettlementRecord[];
+  inserted: SettlementRecord[];
+  existing: SettlementRecord[];
+}
+
 const DEFAULT_PATH = path.resolve(
   process.cwd(),
   "data/processed/premier-league/settlements.jsonl"
@@ -146,12 +159,12 @@ export function persistSettlement(rec: SettlementRecord): SettlementRecord {
   return rec;
 }
 
-export function settleFixture(
+export function settleFixtureDetailed(
   fixture: Fixture,
   settledAt = new Date().toISOString(),
   options: { evaluationClass?: EvaluationClass; verificationId?: string } = {}
-): SettlementRecord[] {
-  if (!canSettle(fixture)) return [];
+): SettlementBatchResult {
+  if (!canSettle(fixture)) return { records: [], inserted: [], existing: [] };
   const snaps = listLiveSnapshots({
     fixtureId: fixture.id,
     season: fixture.season,
@@ -161,20 +174,36 @@ export function settleFixture(
   // frozen stage, so re-reading the whole file per row was quadratic in the
   // size of a ledger that only ever grows.
   const byKey = new Map(loadSettlements().map((e) => [e.snapshotUniqueKey, e]));
-  const written: SettlementRecord[] = [];
+  const records: SettlementRecord[] = [];
+  const inserted: SettlementRecord[] = [];
+  const existing: SettlementRecord[] = [];
   for (const snap of snaps) {
     const rec = settlementFromSnapshot(snap, fixture, settledAt);
     if (options.verificationId) rec.verificationId = options.verificationId;
     const prior = byKey.get(rec.snapshotUniqueKey);
     if (prior) {
-      written.push(prior);
+      records.push(prior);
+      existing.push(prior);
       continue;
     }
     appendSettlement(rec);
     byKey.set(rec.snapshotUniqueKey, rec);
-    written.push(rec);
+    records.push(rec);
+    inserted.push(rec);
   }
-  return written;
+  return { records, inserted, existing };
+}
+
+/**
+ * Back-compatible settlement enumerator. Callers that report new writes must
+ * use {@link settleFixtureDetailed}; replay returns existing rows here.
+ */
+export function settleFixture(
+  fixture: Fixture,
+  settledAt = new Date().toISOString(),
+  options: { evaluationClass?: EvaluationClass; verificationId?: string } = {}
+): SettlementRecord[] {
+  return settleFixtureDetailed(fixture, settledAt, options).records;
 }
 
 export function clearSettlementsForTests(): void {

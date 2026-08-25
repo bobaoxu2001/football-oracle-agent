@@ -9,7 +9,7 @@ interface Props {
   source: PersistMode | null;
 }
 
-/** The agent's memory rail — recent prediction interactions. */
+/** Legacy private-storage status card. Public recent-session enumeration is disabled. */
 export function RecentPredictions({ items, source }: Props) {
   return (
     <div className="glass rounded-2xl p-5">
@@ -17,7 +17,7 @@ export function RecentPredictions({ items, source }: Props) {
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-neon" />
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neon">
-            Agent memory
+            Private storage
           </span>
         </div>
         {source && (
@@ -37,7 +37,7 @@ export function RecentPredictions({ items, source }: Props) {
 
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No predictions yet. Ask the agent something to start its memory.
+          Public recent-session history is disabled. Questions and answers stay private.
         </p>
       ) : (
         <ul className="space-y-2.5">

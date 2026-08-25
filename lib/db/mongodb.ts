@@ -146,7 +146,7 @@ export async function mongoConnected(): Promise<boolean> {
   return (await getMongoDb()) !== null;
 }
 
-/** Count stored prediction sessions (for the Agent Memory Center). */
+/** Count privately stored prediction sessions for operational status. */
 export async function countPredictions(): Promise<{
   total: number;
   source: PersistMode;

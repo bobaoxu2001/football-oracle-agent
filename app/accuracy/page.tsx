@@ -4,6 +4,7 @@ import { computeTrackRecord, type VariantKey } from "@/lib/prediction-engine/tra
 import { loadDcReport } from "@/lib/prediction-engine/dcReport";
 import { MatchLog } from "@/components/accuracy/match-log";
 import { livePerformanceReport } from "@/lib/competitions/premier-league/live-ledger";
+import { canonicalLedgerMetrics } from "@/lib/competitions/premier-league/ledger-metrics";
 import { shadowEvaluationReport } from "@/lib/competitions/premier-league/shadow/report";
 import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
@@ -26,12 +27,13 @@ const VARIANT_LABEL: Record<VariantKey, string> = {
   full: "+ injuries + tactics + bounce",
   drawFlat: "+ flat draw boost",
   "full+draw": "+ smart draw layer",
-  "+cal": "+ confidence calibration (LIVE)",
+  "+cal": "+ confidence calibration (reconstructed)",
 };
 
 export default async function AccuracyPage() {
   await hydrateDurableOps();
   const production = livePerformanceReport("LIVE_OOS", PREMIER_LEAGUE_CURRENT_SEASON);
+  const ledgerMetrics = canonicalLedgerMetrics(PREMIER_LEAGUE_CURRENT_SEASON);
   const shadow = shadowEvaluationReport(PREMIER_LEAGUE_CURRENT_SEASON);
   const track = computeTrackRecord();
   const dc = loadDcReport();
@@ -46,8 +48,8 @@ export default async function AccuracyPage() {
         <p className="mx-auto mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">Premier League production snapshots, experimental shadow pairs and historical World Cup reconstruction answer different questions. They are never pooled into one headline accuracy claim.</p>
       </section>
       <section className="mx-auto mb-12 grid max-w-5xl gap-4 md:grid-cols-3">
-        <EvidenceCard label="Premier League production" value={`${production.nSettled} settled`} status={production.brier === null ? "Metrics withheld" : `RPS ${production.rps?.toFixed(3)}`} copy={`${production.nPredictions} immutable LIVE_OOS snapshots. ${production.sampleNote}`} href="/live" />
-        <EvidenceCard label="Shadow challenger" value={`${shadow.collection.pairedEvidence} paired`} status={shadow.promotion.status} copy={shadow.sampleNote} href="/shadow" />
+        <EvidenceCard label="Premier League production" value={`${ledgerMetrics.production.settledForecastSnapshots} settled snapshots`} status={`${ledgerMetrics.production.uniqueFixturesSettled} unique settled fixtures`} copy={`${ledgerMetrics.production.totalForecastSnapshots} immutable production forecast snapshots. ${production.sampleNote}`} href="/live" />
+        <EvidenceCard label="Shadow challenger" value={`${ledgerMetrics.shadow.settledForecastSnapshots} paired snapshots`} status={`${ledgerMetrics.shadow.uniqueFixturesSettled} unique settled fixtures · ${shadow.promotion.status}`} copy={shadow.sampleNote} href="/shadow" />
         <EvidenceCard label="World Cup reconstruction" value={`${track.nMatches} matches`} status="Historical only" copy="Walk-forward chronology is enforced inside a completed dataset, but forecasts were not proven frozen and served live before every kickoff." href="#world-cup-reconstruction" />
       </section>
       {/* hero */}
@@ -108,17 +110,17 @@ export default async function AccuracyPage() {
               </h2>
             </div>
             <p className="mb-5 max-w-3xl text-sm text-muted-foreground">
-              The live engine is an <strong className="text-foreground">Elo → Dixon-Coles → Monte
-              Carlo</strong> stack in TypeScript. A completely separate{" "}
+              The TypeScript reconstruction engine is an <strong className="text-foreground">Elo → Dixon-Coles → Monte
+              Carlo</strong> stack. A completely separate{" "}
               <strong className="text-foreground">ridge Dixon-Coles</strong> bivariate-Poisson model
               (Python, refit nightly) is leave-one-out scored on the same fixtures. When two models
               built differently land near the same walk-forward score, it is a useful consistency
-              check—not proof that either forecast was served live before kickoff.
+              check—not proof that either reconstruction was served before kickoff.
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <ModelCard
-                title="Live TypeScript engine"
-                subtitle="Walk-forward reconstruction · full stack"
+                title="TypeScript reconstruction engine"
+                subtitle="Walk-forward historical reconstruction · full stack"
                 rows={[
                   ["RPS skill vs baseline", signedPct(track.skill.rpsSkill, 1)],
                   ["Top-pick accuracy", pct(live.topPickAcc)],
@@ -147,12 +149,12 @@ export default async function AccuracyPage() {
           <div className="mb-1 flex items-center gap-2">
             <Layers className="h-4 w-4 text-neon" />
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-neon">
-              What each engine layer earns
+              What each reconstruction layer earns
             </h2>
           </div>
           <p className="mb-4 text-sm text-muted-foreground">
-            Cumulative variants, each adding one layer. Lower RPS is better — this is why the agent is
-            a pipeline, not a single number.
+            Cumulative variants, each adding one layer. Lower RPS is better; this is why the
+            reconstruction is a pipeline, not a single number.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[34rem] text-sm">
@@ -193,9 +195,9 @@ export default async function AccuracyPage() {
             </table>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            The live stack cuts RPS from {base.rps.toFixed(3)} (plain Elo) to{" "}
+            The reconstructed stack cuts RPS from {base.rps.toFixed(3)} (plain Elo) to{" "}
             <span className="text-foreground">{live.rps.toFixed(3)}</span> — a{" "}
-            {signedPct((base.rps - live.rps) / base.rps, 0)} improvement from the agent&apos;s
+            {signedPct((base.rps - live.rps) / base.rps, 0)} improvement from the reconstruction&apos;s
             learning, tactical and calibration layers.
           </p>
         </div>
@@ -213,7 +215,7 @@ export default async function AccuracyPage() {
               </h2>
             </div>
             <p className="mb-4 text-sm text-muted-foreground">
-              When the live model says an outcome is X% likely, does it happen ~X% of the time?
+              When the reconstructed model says an outcome is X% likely, does it happen ~X% of the time?
               Closer columns = better-calibrated probabilities.
             </p>
             <div className="space-y-3">

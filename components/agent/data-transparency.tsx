@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import type { AgentResponse } from "@/lib/agent/types";
 
 /**
- * Data Transparency card — shows judges exactly what produced this answer, with
+ * Data transparency card — shows exactly what produced this research answer, with
  * values reflecting the CURRENT runtime state (live vs demo, Mongo vs memory,
  * Gemini vs deterministic). Builds trust that this is not fabricated AI output.
  */
@@ -51,7 +51,7 @@ export function DataTransparency({ response }: { response: AgentResponse }) {
       strong: true,
     },
     { icon: <Newspaper className="h-3.5 w-3.5" />, label: "News", value: news.value, strong: news.live },
-    { icon: <Database className="h-3.5 w-3.5" />, label: "Memory", value: memory.value, strong: memory.strong },
+    { icon: <Database className="h-3.5 w-3.5" />, label: "Private storage", value: memory.value, strong: memory.strong },
     { icon: <Cpu className="h-3.5 w-3.5" />, label: "LLM", value: llm.value, strong: llm.strong },
   ];
 

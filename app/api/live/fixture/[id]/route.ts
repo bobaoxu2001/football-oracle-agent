@@ -3,15 +3,20 @@ import { fixtureLiveView } from "@/lib/competitions/premier-league/live-ledger";
 import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { getVerification } from "@/lib/competitions/premier-league/ops/result-feed";
+import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
+import { jobsForFixture } from "@/lib/competitions/premier-league/ops/job-ledger";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
+  await hydrateDurableOps();
   const fixture = liveFixtures().find((f) => f.id === id);
   if (!fixture) return NextResponse.json({ error: "unknown fixture" }, { status: 404 });
   const view = fixtureLiveView(id);
   const verification = getVerification(id);
+  const jobs = jobsForFixture(id);
+  const currentKickoff = fixture.kickoffUtc ?? fixture.kickoff ?? null;
   return NextResponse.json({
     fixture: {
       id: fixture.id,
@@ -28,12 +33,29 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       Object.entries(view.byStage).map(([stage, row]) => [
         stage,
         {
+          schedulerJob:
+            jobs
+              .filter((job) => job.stage === stage)
+              .sort((a, b) => {
+                const aCurrent = a.kickoffUtc === currentKickoff ? 1 : 0;
+                const bCurrent = b.kickoffUtc === currentKickoff ? 1 : 0;
+                return bCurrent - aCurrent || b.updatedAt.localeCompare(a.updatedAt);
+              })[0] ?? null,
           predicted: row.snapshot
             ? {
                 home: row.snapshot.homeProbability,
                 draw: row.snapshot.drawProbability,
                 away: row.snapshot.awayProbability,
                 asOf: row.snapshot.asOf,
+                generatedAt:
+                  typeof row.snapshot.sourceState?.computedAt === "string"
+                    ? row.snapshot.sourceState.computedAt
+                    : row.snapshot.createdAt,
+                kickoffAtFreeze: row.snapshot.kickoff,
+                validForCurrentKickoff:
+                  !row.snapshot.kickoff ||
+                  (currentKickoff !== null &&
+                    Date.parse(row.snapshot.kickoff) === Date.parse(currentKickoff)),
                 modelVersion: row.snapshot.modelVersion,
               }
             : null,
@@ -50,5 +72,19 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         },
       ])
     ),
+    immutableTimeline: view.snapshots.map((snapshot) => ({
+      snapshotKey: snapshot.provenance.uniqueKey,
+      stage: snapshot.predictionStage,
+      cutoffAt: snapshot.asOf,
+      generatedAt:
+        typeof snapshot.sourceState?.computedAt === "string"
+          ? snapshot.sourceState.computedAt
+          : snapshot.createdAt,
+      kickoffAtFreeze: snapshot.kickoff,
+      validForCurrentKickoff:
+        !snapshot.kickoff ||
+        (currentKickoff !== null && Date.parse(snapshot.kickoff) === Date.parse(currentKickoff)),
+      modelVersion: snapshot.modelVersion,
+    })),
   });
 }

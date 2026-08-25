@@ -111,7 +111,7 @@ export function buildChampionExplanation(c: ChampionAnswer): string {
     (t, i) => `${i + 1}. ${t.flag} ${t.name} — ${(t.champion * 100).toFixed(1)}% (Elo ${t.elo})`
   );
   return (
-    `The agent ran ${c.simulationsRun.toLocaleString()} full-tournament Monte Carlo simulations — every group, the best-third tiebreaks, and the knockout bracket — and tallied how often each nation lifted the trophy.\n\n` +
+    `The World Cup research model ran ${c.simulationsRun.toLocaleString()} full-tournament Monte Carlo simulations — every group, the best-third tiebreaks, and the knockout bracket — and tallied how often each nation lifted the trophy.\n\n` +
     `Top contenders:\n${lines.join("\n")}\n\n` +
     `Favourites are driven by Elo strength and a kinder simulated path; high-variance knockout football keeps the field wide open.`
   );
@@ -126,7 +126,7 @@ export async function polishWithGemini(
   context: string
 ): Promise<{ text: string; enhanced: boolean }> {
   const prompt =
-    `You are WorldCup Oracle, an expert, hype-but-credible football analyst. ` +
+    `You are the Football Oracle World Cup research analyst. ` +
     `Rewrite the analysis below into 2-3 tight, engaging paragraphs for a fan. ` +
     `Keep every number and fact EXACTLY as given — do not invent stats. Be confident and fun, not flowery.\n\n` +
     `Context: ${context}\n\nAnalysis to rewrite:\n${deterministic}`;

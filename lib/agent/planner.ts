@@ -289,7 +289,7 @@ function planLabelsFor(intent: AgentIntent, competition: CompetitionId = "world-
     case "model-explanation":
       return [
         "Collect the model's dimensions",
-        "Explain engine, news & memory layers",
+        "Explain engine, news & private-storage boundaries",
         "List the known limitations",
       ];
     default:

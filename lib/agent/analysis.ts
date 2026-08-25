@@ -462,14 +462,14 @@ export function buildTeamComparison(a: TeamRef, b: TeamRef) {
 
 export function buildModelExplanation() {
   const explanation = [
-    `**How WorldCup Oracle Agent works.**`,
+    `**How the Football Oracle World Cup research model works.**`,
     ``,
     `• **Team strength:** every one of the 48 qualified teams carries a calibrated **Elo rating**; the three hosts get a +75 home bonus.`,
     `• **Match model:** Elo gaps feed a **Dixon-Coles bivariate Poisson** goal model (ρ = −0.13) that produces win/draw/loss probabilities and full scoreline grids.`,
     `• **Simulation:** each matchup is sampled **10,000 times** with a seeded Monte Carlo; tournament questions simulate the entire official 2026 format — 12 groups, FIFA tie-breakers, the 8 best third-placed teams, Annex C routing, and the R32→Final tree (validated across all 495 third-place combinations).`,
     `• **News layer:** stored \`team_news\` signals (live API if configured, otherwise clearly-labeled demo data) apply a **capped** probability nudge — high impact ≈ 4.5 pts, medium ≈ 2, max ±10 per team — always shown as base vs adjusted.`,
     `• **Discipline:** fair-play conduct points (yellow −1 … yellow+direct red −5) are modeled as a tie-breaker and a team-level suspension-risk signal.`,
-    `• **Memory:** every session is saved to **MongoDB Atlas** (\`predictions\` + \`team_news\`) and recalled on /memory.`,
+    `• **Private reliability storage:** configured sessions and news batches may be retained privately for operational continuity; they are not a public product feed.`,
     `• **LLM layer (optional):** DeepSeek/Gemini classify intent and polish explanations — they **never** produce probabilities, news, or injuries.`,
     ``,
     `**Limitations:** no lineup/player-level data; form enters only through capped news signals; demo news is sample data; probabilities are calibrated estimates, not guarantees.`,
@@ -477,14 +477,14 @@ export function buildModelExplanation() {
 
   return {
     explanation,
-    summary: "Elo → Dixon-Coles → 10,000-run Monte Carlo on the official 2026 format, with capped news adjustments, discipline awareness, MongoDB memory, and an optional LLM narration layer.",
+    summary: "Historical World Cup research: Elo → Dixon-Coles → 10,000-run Monte Carlo on the official 2026 format, with capped news adjustments, discipline awareness, and an optional LLM narration layer.",
     factors: [
       { label: "Team strength", value: "Calibrated Elo (48 teams, host +75)", weight: "high" },
       { label: "Match model", value: "Dixon-Coles bivariate Poisson (ρ=−0.13)", weight: "high" },
       { label: "Simulation", value: "10,000 seeded Monte Carlo runs", weight: "high" },
       { label: "News layer", value: "Capped ±10 pts/team, base vs adjusted", weight: "medium" },
       { label: "Discipline", value: "Fair-play points + suspension risk", weight: "low" },
-      { label: "Memory", value: "MongoDB Atlas (predictions + team_news)", weight: "medium" },
+      { label: "Private storage", value: "Operational retention when configured", weight: "low" },
     ] as StructuredFactor[],
     rulesApplied: [
       "Official 2026 format: 48 teams, 12 groups, top-2 + 8 best thirds, Annex C R32 routing",

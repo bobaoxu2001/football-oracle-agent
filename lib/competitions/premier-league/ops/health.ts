@@ -6,9 +6,12 @@ import { evaluateDataGate } from "../data-gate";
 import { liveCompetitionSeason, liveFixtures } from "../fixture-store";
 import { kickoffCertaintyCounts } from "../kickoff-certainty";
 import { canonicalizeFixtureStatus } from "../ingest";
-import { livePerformanceReport, operationalLiveOosUnion } from "../live-ledger";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "../config";
 import { PRODUCTION_MODEL_VERSION } from "../model-tracks";
+import {
+  canonicalLedgerMetrics,
+  type CanonicalLedgerMetrics,
+} from "../ledger-metrics";
 import { jobCounts, listJobs } from "./job-ledger";
 import { loadOpsTickState, TICK_CADENCE_MS } from "./tick";
 import { loadScheduleRevisions } from "./fixture-sync";
@@ -17,7 +20,6 @@ import { loadVerifications, resultConflicts, loadSettlementCorrections } from ".
 import { nextScheduledJob } from "./scheduler";
 import { apiFootballConfigured, footballDataConfigured } from "./sources";
 import type { DataConflict, HealthState } from "./types";
-import { loadSettlements } from "../settlement";
 import { durableStatus } from "./durable-store";
 import { isProductionRuntime } from "./tick-auth";
 import { mongoConfigured } from "@/lib/db/mongodb";
@@ -31,6 +33,8 @@ const RESULT_STALE_AFTER_KICKOFF_MS = 6 * HOUR;
 export interface HealthReport {
   overall: HealthState;
   reasons: string[];
+  /** Canonical, explicitly scoped count contract shared with every public API. */
+  ledgerMetrics: CanonicalLedgerMetrics;
   season: {
     label: string;
     status: string | null;
@@ -91,13 +95,16 @@ export interface HealthReport {
     apiFootball: boolean;
     officialBaseline: true;
   };
-  liveOos: {
-    total: number;
-    settled: number;
-    unsettled: number;
-    committed: number;
-    operational: number;
-    stages: Record<string, number>;
+  productionLedger: {
+    role: "production";
+    totalForecastSnapshots: number;
+    settledForecastSnapshots: number;
+    unsettledForecastSnapshots: number;
+    uniqueFixturesForecast: number;
+    uniqueFixturesSettled: number;
+    committedForecastSnapshots: number;
+    operationalForecastSnapshots: number;
+    forecastSnapshotsByStage: Record<string, number>;
   };
   results: {
     lastAttempt: string | null;
@@ -109,7 +116,12 @@ export interface HealthReport {
     verified: number;
   };
   settlement: {
-    succeeded: number;
+    persistedSnapshotSettlementRecords: number;
+    linkedForecastSnapshotRecords: number;
+    orphanSettlementRecords: number;
+    successfulSettlementEvents: null;
+    eventCountStatus: "unavailable";
+    eventCountNote: string;
     failed: number;
     pendingOrConflict: number;
     corrections: number;
@@ -135,13 +147,11 @@ export function buildHealthReport(now = new Date()): HealthReport {
   const jobs = listJobs();
   const counts = jobCounts(jobs);
   const nextJob = nextScheduledJob(nowIso);
-  const live = livePerformanceReport("LIVE_OOS", PREMIER_LEAGUE_CURRENT_SEASON);
-  const union = operationalLiveOosUnion(PREMIER_LEAGUE_CURRENT_SEASON);
+  const ledgerMetrics = canonicalLedgerMetrics(PREMIER_LEAGUE_CURRENT_SEASON);
   const verifs = loadVerifications();
   const rConflicts = resultConflicts();
   const scheduleRevs = loadScheduleRevisions();
   const ratingEvents = listRatingEvents();
-  const settlements = loadSettlements().filter((s) => s.evaluationClass === "LIVE_OOS");
   const corrections = loadSettlementCorrections();
 
   const fixtureConflicts: DataConflict[] = fixtures
@@ -246,6 +256,7 @@ export function buildHealthReport(now = new Date()): HealthReport {
   return {
     overall,
     reasons,
+    ledgerMetrics,
     season: {
       label: season?.season ?? PREMIER_LEAGUE_CURRENT_SEASON,
       status: season?.status ?? null,
@@ -310,13 +321,18 @@ export function buildHealthReport(now = new Date()): HealthReport {
       apiFootball: apiFootballConfigured(),
       officialBaseline: true,
     },
-    liveOos: {
-      total: union.total,
-      settled: live.nSettled,
-      unsettled: Math.max(0, union.total - live.nSettled),
-      committed: union.committed,
-      operational: union.operational,
-      stages: live.stages,
+    productionLedger: {
+      role: "production",
+      totalForecastSnapshots: ledgerMetrics.production.totalForecastSnapshots,
+      settledForecastSnapshots: ledgerMetrics.production.settledForecastSnapshots,
+      unsettledForecastSnapshots: ledgerMetrics.production.unsettledForecastSnapshots,
+      uniqueFixturesForecast: ledgerMetrics.production.uniqueFixturesForecast,
+      uniqueFixturesSettled: ledgerMetrics.production.uniqueFixturesSettled,
+      committedForecastSnapshots: ledgerMetrics.production.committedForecastSnapshots,
+      operationalForecastSnapshots: ledgerMetrics.production.operationalForecastSnapshots,
+      forecastSnapshotsByStage: Object.fromEntries(
+        ledgerMetrics.production.byStage.map((row) => [row.stage, row.totalForecastSnapshots])
+      ),
     },
     results: {
       lastAttempt: tick.lastResultSyncAt,
@@ -328,7 +344,13 @@ export function buildHealthReport(now = new Date()): HealthReport {
       verified: verifs.filter((v) => v.status === "VERIFIED_FINAL").length,
     },
     settlement: {
-      succeeded: settlements.length,
+      persistedSnapshotSettlementRecords:
+        ledgerMetrics.settlements.persistedSnapshotSettlementRecords,
+      linkedForecastSnapshotRecords: ledgerMetrics.settlements.linkedForecastSnapshotRecords,
+      orphanSettlementRecords: ledgerMetrics.settlements.orphanSettlementRecords,
+      successfulSettlementEvents: ledgerMetrics.settlements.successfulSettlementEvents,
+      eventCountStatus: ledgerMetrics.settlements.eventCountStatus,
+      eventCountNote: ledgerMetrics.settlements.eventCountNote,
       failed: 0,
       pendingOrConflict: verifs.filter((v) => v.status === "CONFLICT" || v.status === "PROVISIONAL").length,
       corrections: corrections.length,

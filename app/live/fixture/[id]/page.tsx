@@ -10,6 +10,7 @@ import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable
 import { compareFixture } from "@/lib/competitions/premier-league/shadow/compare";
 import { listCanonicalMatches } from "@/lib/match-ledger/store";
 import { ModelComparison } from "@/components/shadow/model-comparison";
+import { jobsForFixture } from "@/lib/competitions/premier-league/ops/job-ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function FixtureLivePage({ params }: { params: Promise<{ id
   const home = getClub(fixture.homeSlug);
   const away = getClub(fixture.awaySlug);
   const view = fixtureLiveView(id);
+  const jobs = jobsForFixture(id);
   const verification = getVerification(id);
   const ledgerMatches = await listCanonicalMatches({
     competition: "premier-league",
@@ -77,35 +79,65 @@ export default async function FixtureLivePage({ params }: { params: Promise<{ id
       <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
         <h2 className="mb-3 font-semibold">Predictions by stage</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-muted-foreground">
+          <table className="w-full min-w-[48rem] text-left text-xs text-muted-foreground">
+            <caption className="sr-only">Production snapshots and scheduler status by forecast stage</caption>
             <thead>
               <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em]">
-                <th className="py-2 pr-3 font-medium">Stage</th>
-                <th className="py-2 pr-3 font-medium">H / D / A</th>
-                <th className="py-2 pr-3 font-medium">Brier</th>
-                <th className="py-2 pr-3 font-medium">RPS</th>
-                <th className="py-2 font-medium">LogLoss</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Stage</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Scheduler status</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Cutoff</th>
+                <th scope="col" className="py-2 pr-3 font-medium">H / D / A</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Brier</th>
+                <th scope="col" className="py-2 pr-3 font-medium">RPS</th>
+                <th scope="col" className="py-2 font-medium">LogLoss</th>
               </tr>
             </thead>
             <tbody>
-              {Object.entries(view.byStage).map(([stage, row]) => (
-                <tr key={stage} className="border-b border-white/5">
-                  <td className="py-1.5 pr-3 text-foreground">{stage}</td>
-                  <td className="py-1.5 pr-3">
-                    {row.snapshot
-                      ? `${(row.snapshot.homeProbability * 100).toFixed(1)} / ${(row.snapshot.drawProbability * 100).toFixed(1)} / ${(row.snapshot.awayProbability * 100).toFixed(1)}`
-                      : "—"}
-                  </td>
-                  <td className="py-1.5 pr-3">{fmt(row.settlement?.brier, 4)}</td>
-                  <td className="py-1.5 pr-3">{fmt(row.settlement?.rps, 4)}</td>
-                  <td className="py-1.5">{fmt(row.settlement?.logLoss, 4)}</td>
-                </tr>
-              ))}
+              {Object.entries(view.byStage).map(([stage, row]) => {
+                const currentKickoff = fixture.kickoffUtc ?? fixture.kickoff ?? null;
+                const stageJobs = jobs
+                  .filter((job) => job.stage === stage)
+                  .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+                const job =
+                  stageJobs.find((candidate) => candidate.kickoffUtc === currentKickoff) ??
+                  stageJobs[0] ??
+                  null;
+                const snapshotMatchesCurrentKickoff =
+                  !row.snapshot?.kickoff ||
+                  (currentKickoff !== null &&
+                    Date.parse(row.snapshot.kickoff) === Date.parse(currentKickoff));
+                const status = row.snapshot
+                  ? snapshotMatchesCurrentKickoff
+                    ? "SUCCEEDED"
+                    : "SUPERSEDED_KICKOFF"
+                  : job?.status ?? "NOT_SCHEDULED";
+                return (
+                  <tr key={stage} className="border-b border-white/5">
+                    <th scope="row" className="py-1.5 pr-3 font-medium text-foreground">{stage}</th>
+                    <td className={status === "MISSED" || status === "SUPERSEDED_KICKOFF" ? "py-1.5 pr-3 font-semibold text-amber-200" : "py-1.5 pr-3"}>
+                      {status}
+                    </td>
+                    <td className="py-1.5 pr-3 tabular-nums">
+                      {row.snapshot?.asOf ?? job?.plannedAsOf ?? "—"}
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      {row.snapshot
+                        ? `${(row.snapshot.homeProbability * 100).toFixed(1)} / ${(row.snapshot.drawProbability * 100).toFixed(1)} / ${(row.snapshot.awayProbability * 100).toFixed(1)}`
+                        : "—"}
+                    </td>
+                    <td className="py-1.5 pr-3">{fmt(row.settlement?.brier, 4)}</td>
+                    <td className="py-1.5 pr-3">{fmt(row.settlement?.rps, 4)}</td>
+                    <td className="py-1.5">{fmt(row.settlement?.logLoss, 4)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          FINAL_PREKICK is the last valid model freeze before kickoff. It is not lineup-confirmed.
+          T7D is the deterministic rolling-early stage. A missed window remains MISSED and is never
+          backfilled. FINAL_PREKICK is the last valid model freeze before kickoff; it is not
+          lineup-confirmed.
         </p>
       </section>
 
@@ -115,7 +147,7 @@ export default async function FixtureLivePage({ params }: { params: Promise<{ id
 
       <p className="mx-auto max-w-3xl text-sm">
         <Link href="/live" className="text-neon hover:underline">
-          ← Live ledger
+          ← Production ledger
         </Link>
         {" · "}
         <Link href="/shadow" className="text-neon hover:underline">

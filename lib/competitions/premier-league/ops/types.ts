@@ -8,7 +8,7 @@
 import type { FixtureStatus, KickoffCertainty, VerificationStatus } from "@/lib/identity/types";
 import type { CanonicalPredictionStage } from "@/lib/snapshots/types";
 
-export const TIMED_STAGES = ["T24H", "T2H", "T60M", "FINAL_PREKICK"] as const;
+export const TIMED_STAGES = ["T7D", "T24H", "T2H", "T60M", "FINAL_PREKICK"] as const;
 export type TimedStage = (typeof TIMED_STAGES)[number];
 
 export const JOB_STATUSES = [
@@ -82,6 +82,10 @@ export interface PredictionJob {
   failureClass: FailureClass | null;
   retryCount: number;
   blockedReason: string | null;
+  /** Cutoff-admissible fixture evidence retained across planner upserts. */
+  cutoffFixtureRetrievedAt?: string | null;
+  cutoffKickoffCertainty?: KickoffCertainty | null;
+  cutoffFixtureDataVersion?: string | null;
   createdAt: string;
   updatedAt: string;
 }

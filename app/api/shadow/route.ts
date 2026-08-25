@@ -6,6 +6,7 @@ import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
 import { listCanonicalMatches } from "@/lib/match-ledger/store";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 import { productionModelVersion } from "@/lib/competitions/premier-league/shadow/track";
+import { canonicalLedgerMetrics } from "@/lib/competitions/premier-league/ledger-metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const fixtureId = url.searchParams.get("fixture");
     const season = PREMIER_LEAGUE_CURRENT_SEASON;
+    const ledgerMetrics = canonicalLedgerMetrics(season);
 
     if (fixtureId) {
       const fixture = liveFixtures().find((f) => f.id === fixtureId);
@@ -43,6 +45,10 @@ export async function GET(req: Request) {
       });
       return NextResponse.json({
         servingModelVersion: productionModelVersion(),
+        ledgerMetrics: {
+          production: ledgerMetrics.production,
+          shadow: ledgerMetrics.shadow,
+        },
         experimental: comparison.shadow.modelVersion,
         disclaimer:
           "The shadow model is a challenger under evaluation. It is never served as the product's prediction and a probability difference is not evidence that either model is better.",
@@ -53,6 +59,10 @@ export async function GET(req: Request) {
     const report = shadowEvaluationReport(season);
     return NextResponse.json({
       servingModelVersion: productionModelVersion(),
+      ledgerMetrics: {
+        production: ledgerMetrics.production,
+        shadow: ledgerMetrics.shadow,
+      },
       disclaimer:
         "Paired forward out-of-sample evaluation. Headline metrics are withheld below the display threshold, and promotion is never automatic.",
       ...report,

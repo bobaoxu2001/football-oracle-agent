@@ -49,4 +49,10 @@ export {
 } from "./model-tracks";
 export { evaluateDataGate, upcomingLiveFixtures, type DataGateStatus } from "./data-gate";
 export { liveOosCount, ledgerCounts, livePerformanceReport, fixtureLiveView } from "./live-ledger";
+export {
+  canonicalLedgerMetrics,
+  buildCanonicalLedgerMetrics,
+  type CanonicalLedgerMetrics,
+  type ForecastTrackMetrics,
+} from "./ledger-metrics";
 export { buildHealthReport, runLiveOpsTick } from "./ops";

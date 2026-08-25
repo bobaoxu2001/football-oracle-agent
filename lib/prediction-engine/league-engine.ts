@@ -11,7 +11,10 @@ import type { MatchPrediction, ModelFactor } from "@/lib/types";
 import { matchProb, scorelineGrid } from "./elo";
 import { loadProductionParams } from "@/lib/competitions/premier-league/model-tracks";
 import { ratingsAsOf } from "@/lib/competitions/premier-league/ratings";
-import { liveRatingsAsOf } from "@/lib/competitions/premier-league/ops/live-ratings";
+import {
+  liveRatingEventsAsOf,
+  liveRatingsAsOf,
+} from "@/lib/competitions/premier-league/ops/live-ratings";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { completedPremierLeagueFixtures } from "@/lib/competitions/premier-league/data";
 import { auditPrediction } from "@/lib/model-auditor/audit";
@@ -22,6 +25,7 @@ import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league
 import { SEASON_INIT_VERSION } from "@/lib/competitions/premier-league/model-tracks";
 import { liveCompetitionSeason } from "@/lib/competitions/premier-league/fixture-store";
 import type { SnapshotOrigin } from "@/lib/competitions/premier-league/ops/types";
+import type { KickoffCertainty } from "@/lib/identity/types";
 
 export interface LeaguePredictOptions {
   asOf?: string;
@@ -32,7 +36,9 @@ export interface LeaguePredictOptions {
   evaluationClass?: EvaluationClass;
   origin?: SnapshotOrigin;
   computedAt?: string;
-  fixtureDataVersion?: string;
+  fixtureDataVersion?: string | null;
+  kickoffCertaintyAtFreeze?: KickoffCertainty | null;
+  fixtureRetrievedAt?: string | null;
   /** Test/back-compat: skip live rating events and use date-strict historical ratings. */
   ratingsMode?: "live" | "historical";
 }
@@ -177,6 +183,12 @@ export function snapshotPremierLeagueMatch(
     kickoffUtc: kickoff,
     intended: options.evaluationClass,
   });
+  const ratingEvents =
+    options.ratingsMode === "historical" ? [] : liveRatingEventsAsOf(asOf);
+  const latestRatingEventAppliedAt = ratingEvents
+    .map((event) => event.appliedAt)
+    .sort()
+    .at(-1) ?? null;
   return createSnapshot({
     fixtureId: pred.matchId,
     competition: "premier-league",
@@ -216,13 +228,20 @@ export function snapshotPremierLeagueMatch(
       eloHome: pred.eloA,
       eloAway: pred.eloB,
       fixturesUsed: completedPremierLeagueFixtures().filter(
-        (f) => f.date < (pred.asOf ?? "9999-12-31")
-      ).length,
+        (f) => f.date < asOf.slice(0, 10)
+      ).length + ratingEvents.length,
+      ratingEventsUsed: ratingEvents.length,
+      ratingEventIds: ratingEvents.map((event) => event.eventId),
+      latestRatingEventAppliedAt,
       ratingStateAsOf: asOf,
       computedAt: options.computedAt ?? asOf,
       origin: options.origin ?? "manual",
       fixtureDataVersion:
-        options.fixtureDataVersion ?? liveCompetitionSeason()?.dataVersion ?? null,
+        Object.prototype.hasOwnProperty.call(options, "fixtureDataVersion")
+          ? options.fixtureDataVersion ?? null
+          : liveCompetitionSeason()?.dataVersion ?? null,
+      kickoffCertaintyAtFreeze: options.kickoffCertaintyAtFreeze ?? null,
+      fixtureRetrievedAt: options.fixtureRetrievedAt ?? null,
       seasonInitVersion: SEASON_INIT_VERSION,
     },
     provenanceNotes:

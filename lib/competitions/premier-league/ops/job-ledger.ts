@@ -85,12 +85,18 @@ export function upsertJobs(jobs: PredictionJob[]): PredictionJob[] {
     const merged: PredictionJob = {
       ...prev,
       ...job,
-      status: prev.status === "RUNNING" || prev.status === "FAILED" ? prev.status : job.status,
+      createdAt: prev.createdAt,
+      status:
+        job.status === "MISSED"
+          ? "MISSED"
+          : prev.status === "RUNNING" || prev.status === "FAILED"
+            ? prev.status
+            : job.status,
       retryCount: prev.retryCount,
       snapshotKey: prev.snapshotKey ?? job.snapshotKey,
       attemptedAt: prev.attemptedAt,
-      completedAt: prev.completedAt,
-      failureReason: prev.failureReason,
+      completedAt: job.status === "MISSED" ? job.completedAt : prev.completedAt,
+      failureReason: job.status === "MISSED" ? job.failureReason : prev.failureReason,
       updatedAt: job.updatedAt,
     };
     if (JSON.stringify(merged) !== JSON.stringify(prev)) {

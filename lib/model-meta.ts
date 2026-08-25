@@ -11,6 +11,7 @@
  */
 
 export const MODEL_VERSION = "pl-baseline-v0.1.0";
-export const MODEL_NAME = "Football Oracle — Premier League live + World Cup plugin";
+export const MODEL_NAME = "Football Oracle — Auditable Premier League production forecasts";
 
 export const WORLD_CUP_MODEL_VERSION = "wc-live-v1.0.0";
+export const WORLD_CUP_RESEARCH_MODEL_NAME = "Football Oracle — World Cup research archive";

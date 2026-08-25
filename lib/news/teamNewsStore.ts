@@ -150,7 +150,7 @@ export async function saveTeamNews(
   return "memory";
 }
 
-/** Aggregate stats for the Agent Memory Center. Always succeeds. */
+/** Aggregate private-storage stats for the compatibility status page. */
 export async function getNewsStats(): Promise<{
   source: "mongodb" | "memory";
   total: number;

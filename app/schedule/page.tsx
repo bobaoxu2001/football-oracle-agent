@@ -16,9 +16,9 @@ import { fmtDatetime } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Schedule · WorldCup Oracle Agent",
+  title: "World Cup research schedule · Football Oracle",
   description:
-    "World Cup 2026 group stage schedule — drawn pairings with standings that update from completed match results, plus the official knockout bracket.",
+    "Archived World Cup 2026 schedule research, separated from Premier League production forecasting.",
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -65,23 +65,23 @@ function fmtShortDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-/** Agent-page link that pre-submits a match question (slug → clean name). */
+/** Research-archive link that pre-submits a match question (slug → clean name). */
 function askHref(slugA: string, slugB: string): string {
   const a = getTeam(slugA).name;
   const b = getTeam(slugB).name;
-  return `/?q=${encodeURIComponent(`Who will win ${a} vs ${b}?`)}`;
+  return `/research/world-cup?q=${encodeURIComponent(`Who will win ${a} vs ${b}?`)}`;
 }
 
-/** Small "ask the agent about this match" affordance used on fixture rows. */
+/** Small research-agent affordance used on fixture rows. */
 function AskOracleLink({ slugA, slugB }: { slugA: string; slugB: string }) {
   return (
     <Link
       href={askHref(slugA, slugB)}
-      title={`Ask the Oracle: ${getTeam(slugA).name} vs ${getTeam(slugB).name}`}
-      aria-label={`Ask the Oracle about ${getTeam(slugA).name} vs ${getTeam(slugB).name}`}
+      title={`Ask the World Cup research agent: ${getTeam(slugA).name} vs ${getTeam(slugB).name}`}
+      aria-label={`Ask the World Cup research agent about ${getTeam(slugA).name} vs ${getTeam(slugB).name}`}
       className="inline-flex shrink-0 items-center gap-1 rounded-full border border-neon/20 bg-neon/[0.04] px-2 py-0.5 text-[10px] font-semibold text-neon/90 transition hover:border-neon/50 hover:bg-neon/[0.12] hover:text-neon"
     >
-      <Sparkles className="h-3 w-3" /> Ask
+      <Sparkles className="h-3 w-3" aria-hidden="true" /> Ask
     </Link>
   );
 }
@@ -122,15 +122,18 @@ export default async function SchedulePage() {
   return (
     <div className="container py-8 md:py-12">
       <header className="mb-6">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Research archive · World Cup · separate evidence track
+        </p>
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <CalendarDays className="h-5 w-5 text-neon" />
-          <h1 className="text-2xl font-black tracking-tight sm:text-3xl">World Cup 2026 Schedule</h1>
+          <h1 className="text-2xl font-black tracking-tight sm:text-3xl">World Cup 2026 research schedule</h1>
           <span className="chip text-[10px] text-amber-300/80">
-            <Database className="h-3 w-3" /> official draw · live results
+            <Database className="h-3 w-3" /> official draw · recorded results
           </span>
         </div>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Group tables update from completed match results. Kickoff times and venues aren&apos;t in
+          This archived research view is not part of Premier League production forecasting. Group tables update from completed match results. Kickoff times and venues aren&apos;t in
           the bundled draw data, so they stay <strong>TBA</strong> until a verified source provides
           them.
         </p>

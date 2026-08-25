@@ -8,8 +8,10 @@ import { createHash } from "node:crypto";
 
 const STORE = path.join(os.tmpdir(), `foa-2a1-${process.pid}.jsonl`);
 const ARCHIVE = path.join(os.tmpdir(), `foa-2a1-arch-${process.pid}.jsonl`);
+const OPERATIONAL = path.join(os.tmpdir(), `foa-2a1-ops-${process.pid}.jsonl`);
 process.env.SNAPSHOT_STORE_PATH = STORE;
 process.env.LIVE_OOS_ARCHIVE_PATH = ARCHIVE;
+process.env.PL_OPERATIONAL_LIVE_OOS_PATH = OPERATIONAL;
 
 import {
   archiveLiveOosSnapshots,
@@ -32,6 +34,7 @@ import {
 } from "@/lib/competitions/premier-league/kickoff-certainty";
 import { upsertFixtures } from "@/lib/competitions/premier-league/ingest";
 import { liveOosCount, snapshotsOfClass } from "@/lib/competitions/premier-league/live-ledger";
+import { canonicalLedgerMetrics } from "@/lib/competitions/premier-league/ledger-metrics";
 import { PRODUCTION_MODEL_VERSION } from "@/lib/competitions/premier-league/model-tracks";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 import type { Fixture } from "@/lib/identity/types";
@@ -96,7 +99,19 @@ check("index may have aliases but enumeration does not", snapshotIndexStats().un
 
 const committed = loadCommittedLiveOos();
 check("committed LIVE_OOS unique count is 380", committed.length === 380);
-check("liveOosCount headline is 380", liveOosCount() === 380);
+const canonicalLedger = canonicalLedgerMetrics();
+check(
+  "canonical committed forecast snapshots remain 380",
+  canonicalLedger.production.committedForecastSnapshots === 380
+);
+check(
+  "canonical operational forecast snapshots include the isolated working row",
+  canonicalLedger.production.operationalForecastSnapshots === 1
+);
+check(
+  "canonical production total is committed plus operational snapshots",
+  canonicalLedger.production.totalForecastSnapshots === 381 && liveOosCount() === 381
+);
 
 // ── Archive idempotency ─────────────────────────────────────────────────
 const sample = committed.slice(0, 5);

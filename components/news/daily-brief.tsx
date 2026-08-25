@@ -82,7 +82,7 @@ export function DailyBrief({ limit = 4 }: { limit?: number }) {
                 })}
                 {it.prompt && (
                   <Link
-                    href={`/?q=${encodeURIComponent(it.prompt)}`}
+                    href={`/research/world-cup?q=${encodeURIComponent(it.prompt)}`}
                     className="ml-auto inline-flex items-center gap-1 rounded-full border border-neon/25 bg-neon/[0.06] px-2.5 py-1 text-[10px] font-semibold text-neon transition hover:border-neon/50 hover:bg-neon/[0.12]"
                   >
                     <Sparkles className="h-3 w-3" /> Ask the Oracle
@@ -147,7 +147,7 @@ export function DailyBriefCompact({ limit = 3 }: { limit?: number }) {
             </p>
             {it.prompt && (
               <Link
-                href={`/?q=${encodeURIComponent(it.prompt)}`}
+                href={`/research/world-cup?q=${encodeURIComponent(it.prompt)}`}
                 className="mt-2 inline-flex w-fit items-center gap-1 rounded-full border border-neon/25 bg-neon/[0.06] px-2.5 py-1 text-[10px] font-semibold text-neon transition hover:border-neon/50 hover:bg-neon/[0.12]"
               >
                 <Sparkles className="h-3 w-3" /> Ask Oracle

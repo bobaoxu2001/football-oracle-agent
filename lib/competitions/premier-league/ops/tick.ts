@@ -4,7 +4,7 @@
 
 import type { Fixture } from "@/lib/identity/types";
 import { liveFixtures, replaceLiveFixtures, resetSeasonBundleCache } from "../fixture-store";
-import { canSettle, settleFixture } from "../settlement";
+import { canSettle, settleFixtureDetailed } from "../settlement";
 import { officialBaselineSource, defaultLiveSources, type FixtureSource } from "./sources";
 import { collectSourceObservations, persistScheduleRevisions, syncFixturesFromObservations } from "./fixture-sync";
 import { executeEligibleJobs, planPredictionJobs, refreshJobStatuses } from "./scheduler";
@@ -41,6 +41,7 @@ export interface TickResult {
   jobsFailed: number;
   jobsMissed: number;
   resultConflicts: DataConflict[];
+  /** New immutable settlement records inserted this tick; replay hits are excluded. */
   settled: number;
   ratingsApplied: number;
   /** Challenger snapshots frozen this tick. Never affects the baseline count. */
@@ -181,11 +182,11 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     };
     if (!canSettle(finished)) continue;
     try {
-      const rows = settleFixture(finished, now, {
+      const batch = settleFixtureDetailed(finished, now, {
         evaluationClass: "LIVE_OOS",
         verificationId: `${v.fixtureId}::${v.verifiedAt ?? now}`,
       });
-      settled += rows.length;
+      settled += batch.inserted.length;
     } catch (err) {
       errors.push(`settle ${v.fixtureId}: ${(err as Error).message}`);
     }

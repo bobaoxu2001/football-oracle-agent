@@ -2,7 +2,7 @@
   "name": "football-oracle-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "Football Oracle — Premier League baseline forecasts plus the preserved World Cup 2026 plugin.",
+  "description": "Football Oracle — auditable Premier League production forecasts with isolated research archives.",
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
@@ -60,9 +60,12 @@
     "test:shadow": "tsx scripts/test-shadow-model.ts",
     "test:match-forecast": "tsx scripts/test-match-forecast.ts",
     "test:phase3": "tsx scripts/test-phase3-hardening.ts",
+    "test:phase4a-ledger": "tsx scripts/test-phase4a-ledger-metrics.ts",
+    "test:phase4a-rolling": "tsx scripts/test-phase4a-rolling.ts",
+    "test:phase4a-public": "tsx scripts/test-phase4a-public-consistency.ts",
     "ledger:backfill": "tsx scripts/backfill-big-five.ts",
     "ledger:dry-run": "tsx scripts/backfill-big-five.ts --dry-run",
-    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts && tsx scripts/test-phase2a-1.ts && tsx scripts/test-phase2a-2.ts && tsx scripts/test-phase2a-3.ts && tsx scripts/test-phase2a-4.ts && tsx scripts/test-phase2b0.ts && tsx scripts/test-hardening.ts && tsx scripts/test-match-ledger.ts && tsx scripts/test-shadow-model.ts && tsx scripts/test-match-forecast.ts && tsx scripts/test-phase3-hardening.ts"
+    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts && tsx scripts/test-phase2a-1.ts && tsx scripts/test-phase2a-2.ts && tsx scripts/test-phase2a-3.ts && tsx scripts/test-phase2a-4.ts && tsx scripts/test-phase2b0.ts && tsx scripts/test-hardening.ts && tsx scripts/test-match-ledger.ts && tsx scripts/test-shadow-model.ts && tsx scripts/test-match-forecast.ts && tsx scripts/test-phase3-hardening.ts && tsx scripts/test-phase4a-ledger-metrics.ts && tsx scripts/test-phase4a-rolling.ts && tsx scripts/test-phase4a-public-consistency.ts"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.1",

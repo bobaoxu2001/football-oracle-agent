@@ -19,7 +19,6 @@ import { ReasoningTimeline } from "./reasoning-timeline";
 import { PredictionCard } from "./prediction-card";
 import { SimulationCenter } from "./simulation-center";
 import { ChampionBoard } from "./champion-board";
-import { RecentPredictions } from "./recent-predictions";
 import { NewsImpact } from "./news-impact";
 import { TeamNewsDigest } from "./team-news-digest";
 import { DataTransparency } from "./data-transparency";
@@ -30,19 +29,17 @@ import { GroupTableCard } from "./group-table-card";
 import { TournamentStateBadge } from "./tournament-state-badge";
 import { cn } from "@/lib/utils";
 import type { AgentResponse, ReasoningStep } from "@/lib/agent/types";
-import type { StoredPrediction, PersistMode } from "@/lib/db/mongodb";
 import { LANGUAGES, DEFAULT_LANG, isLangCode, type LangCode } from "@/lib/i18n/languages";
 import { SUGGESTED_PROMPTS, t } from "@/lib/i18n/prompts";
 
-// Judge-friendly demo rail: one prompt per flagship capability. Each click goes
-// through the normal submit() path, so behavior is identical to typing.
+// Research examples use the normal submit() path, so behavior is identical to typing.
 const DEMO_PROMPTS: { q: string; hint: string }[] = [
-  { q: "谁会赢得世界杯冠军？", hint: "Chinese tournament forecast — DeepSeek narrative" },
-  { q: "Can Portugal still win the World Cup?", hint: "Live tournament-state gating (football-data.org)" },
+  { q: "谁会赢得世界杯冠军？", hint: "Tournament forecast in Chinese" },
+  { q: "Can Portugal still win the World Cup?", hint: "Recorded tournament-state gating" },
   { q: "How do best third-place teams advance?", hint: "2026 rules explainer" },
-  { q: "Compare Argentina and France", hint: "Team comparison — model dimensions" },
-  { q: "Brazil locker room conflict", hint: "Contextual news signals (GNews)" },
-  { q: "Argentina's path to the final", hint: "Gemini escalation · bracket path reasoning" },
+  { q: "Compare Argentina and France", hint: "Research model comparison" },
+  { q: "Brazil locker room conflict", hint: "Contextual research signals" },
+  { q: "Argentina's path to the final", hint: "Bracket-path reasoning" },
 ];
 
 // Minimal local typings for the Web Speech API (not in every TS lib version).
@@ -80,19 +77,16 @@ interface Turn {
 }
 
 export function AgentChat({
-  initialRecent,
   initialQuery,
   geminiTools = false,
 }: {
-  initialRecent: { items: StoredPrediction[]; source: PersistMode };
-  /** Deep-linked question (/?q=…) — auto-submitted once on mount. */
+  /** Deep-linked research question (/research/world-cup?q=…) — auto-submitted once on mount. */
   initialQuery?: string;
   /** Server-checked flag: the Gemini function-calling tool loop is available. */
   geminiTools?: boolean;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState("");
-  const [recent, setRecent] = useState(initialRecent);
   const [busy, setBusy] = useState(false);
   const [lang, setLang] = useState<LangCode>(DEFAULT_LANG);
   const [listening, setListening] = useState(false);
@@ -134,16 +128,6 @@ export function AgentChat({
     }
   }, []);
 
-  const refreshRecent = useCallback(async () => {
-    try {
-      const res = await fetch("/api/predictions/recent?limit=6", { cache: "no-store" });
-      const data = await res.json();
-      setRecent({ items: data.items, source: data.source });
-    } catch {
-      /* ignore — memory rail is best-effort */
-    }
-  }, []);
-
   const lastContextTeams = useCallback((): string[] | undefined => {
     for (let i = turns.length - 1; i >= 0; i--) {
       const r = turns[i].response;
@@ -163,7 +147,7 @@ export function AgentChat({
       const contextTeams = isFollowUp ? lastContextTeams() : undefined;
       setTurns((t) => [...t, { id, query, isFollowUp, status: "analyzing", progress: 0 }]);
 
-      // Animated "thinking" — advance the placeholder steps for demo drama.
+      // Animated progress makes the deterministic research steps visible.
       const startedAt = Date.now();
       const interval = setInterval(() => {
         setTurns((t) =>
@@ -198,7 +182,6 @@ export function AgentChat({
               tn.id === id ? { ...tn, status: "done", response: data } : tn
             )
           );
-          refreshRecent();
         }
       } catch {
         clearInterval(interval);
@@ -213,10 +196,10 @@ export function AgentChat({
         setBusy(false);
       }
     },
-    [busy, lang, lastContextTeams, refreshRecent]
+    [busy, lang, lastContextTeams]
   );
 
-  // Deep-linked question (/?q=… from Schedule rows / Daily Brief chips):
+  // Deep-linked question (/research/world-cup?q=… from research schedule rows):
   // auto-submit through the normal submit() path. Tracking the last submitted
   // query (not a boolean) lets a SECOND brief chip clicked from the homepage
   // fire too, while never re-submitting the same query twice.
@@ -290,16 +273,16 @@ export function AgentChat({
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-neon to-electric text-2xl shadow-glow">
               ⚽
             </div>
-            <h2 className="text-lg font-bold">Ask the Oracle anything about the 2026 World Cup</h2>
+            <h2 className="text-lg font-bold">Ask the World Cup research agent</h2>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
               I&apos;ll plan the analysis, resolve the teams, run 10,000 Monte Carlo simulations,
-              explain my reasoning, and remember the result.
+              and explain the archived research model&apos;s reasoning.
             </p>
 
-            {/* judge-friendly demo rail — one click per flagship capability */}
+            {/* Research examples — one click per supported capability. */}
             <div className="mt-4 border-t border-white/[0.06] pt-4">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-neon">
-                Try these
+                Research examples
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 {DEMO_PROMPTS.map((p) => (
@@ -456,9 +439,8 @@ export function AgentChat({
         <div ref={bottomRef} />
       </div>
 
-      {/* ── side rail ── */}
+      {/* ── research-method rail ── */}
       <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
-        <RecentPredictions items={recent.items} source={recent.source} />
         <PipelineCard />
       </aside>
     </div>
@@ -648,12 +630,12 @@ function PipelineCard() {
     "Prediction Engine",
     "Monte Carlo Simulator",
     "Explanation Generator",
-    "MongoDB Memory",
+    "Private reliability store",
   ];
   return (
     <div className="glass rounded-2xl p-5">
       <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neon">
-        Agent pipeline
+        Research pipeline
       </span>
       <ol className="mt-3 space-y-1.5">
         {stages.map((s, i) => (
@@ -745,18 +727,18 @@ function plainText(s: string): string {
     .trim();
 }
 
-/** Memory-saved indicator — makes the MongoDB memory layer visible in the flow. */
+/** Private-retention indicator; storage is operational infrastructure, not a public feed. */
 function MemoryBadge({ persisted }: { persisted: "mongodb" | "memory" }) {
   const mongo = persisted === "mongodb";
   return (
     <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-xs">
       <Database className={cn("h-3.5 w-3.5", mongo ? "text-neon" : "text-muted-foreground")} />
       <span className="text-muted-foreground">
-        Saved to agent memory ·{" "}
+        Retained privately for reliability ·{" "}
         <span className={cn("font-semibold", mongo ? "text-neon" : "text-foreground")}>
           {mongo ? "MongoDB Atlas" : "In-memory fallback"}
         </span>
-        {" "}— this session, its probabilities and news context are now recallable.
+        {" "}— prompts and answers are not publicly enumerable.
       </span>
     </div>
   );

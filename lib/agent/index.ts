@@ -412,7 +412,7 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
       reasoningSteps: steps,
       structured,
       explanation: text,
-      fanInsight: "🔍 Deterministic engine + capped news layer + MongoDB memory — the LLM only narrates, never invents numbers.",
+      fanInsight: "Deterministic research engine + capped news layer + private reliability storage — the LLM only narrates and never invents numbers.",
       llmEnhanced: enhanced,
       llmProvider: provider,
       persisted,

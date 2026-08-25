@@ -239,7 +239,7 @@ const conflictSync = syncFixturesFromObservations({
 check("kickoff disagreement is SOURCE_CONFLICT", conflictSync.conflicts.length === 1 && conflictSync.fixtures[0].verificationStatus === "SOURCE_CONFLICT");
 check("conflict does not guess a kickoff", conflictSync.fixtures[0].kickoffUtc === arsenalLeeds.kickoffUtc);
 
-// ── Scheduler A: DEFAULT cannot timed-stage ─────────────────────────────
+// ── Scheduler A: DEFAULT gets rolling T7D, later stages stay blocked ────
 clearLiveOpsForTests();
 const defFx = fx({
   id: "pl-2026-27-everton-chelsea",
@@ -250,7 +250,12 @@ const defFx = fx({
 });
 const nowInT24 = new Date(Date.parse(defFx.kickoffUtc!) - 24 * 3600_000).toISOString();
 planPredictionJobs({ fixtures: [defFx], now: nowInT24 });
-check("DEFAULT creates no timed jobs", listJobs().length === 0);
+check(
+  "DEFAULT records all stage outcomes without enabling confirmed-only stages",
+  listJobs().length === 5 &&
+    listJobs().find((j) => j.stage === "T7D")?.status === "MISSED" &&
+    listJobs().filter((j) => j.stage !== "T7D").every((j) => j.status === "BLOCKED")
+);
 check("DEFAULT cannot schedule T24H", canScheduleTimedPrediction(defFx, "T24H") === false);
 
 // ── Scheduler B/C: CONFIRMED T24H exactly once ──────────────────────────
@@ -409,7 +414,7 @@ check(
   Boolean(gRev) && gRev.oldStatus === "POSTPONED" && gRev.newStatus === "SCHEDULED" && gRev.oldKickoff === gKickOld && gRev.newKickoff === gKickNew && gRev.oldCertainty !== gRev.newCertainty
 );
 planPredictionJobs({ fixtures: gSync1.fixtures, now: "2026-08-18T10:05:00.000Z" });
-check("future timed jobs replanned from the new kickoff (4)", listJobs().filter((j) => j.kickoffUtc === gKickNew && (j.status === "PENDING" || j.status === "ELIGIBLE")).length === 4);
+check("future timed jobs replanned from the new kickoff (5)", listJobs().filter((j) => j.kickoffUtc === gKickNew && (j.status === "PENDING" || j.status === "ELIGIBLE")).length === 5);
 check("no live jobs remain on the obsolete kickoff", listJobs().filter((j) => j.kickoffUtc === gKickOld && (j.status === "PENDING" || j.status === "ELIGIBLE" || j.status === "BLOCKED")).length === 0);
 check("old frozen prediction preserved and immutable", listSnapshots().find((s) => s.provenance.uniqueKey === gSnap!.provenance.uniqueKey)?.homeProbability === gSnap!.homeProbability);
 
@@ -427,14 +432,14 @@ check("repeat payloads cause no logical change and no extra revisions", gSync2.c
 persistScheduleRevisions(gSync1.revisions);
 check("exactly one resume revision persisted", loadScheduleRevisions().filter((r) => r.fixtureId === gFx.id && r.oldStatus === "POSTPONED" && r.newStatus === "SCHEDULED").length === 1);
 planPredictionJobs({ fixtures: gSync3.fixtures, now: "2026-08-18T10:20:00.000Z" });
-check("still exactly 4 jobs for the new kickoff (no duplicates)", listJobs().filter((j) => j.kickoffUtc === gKickNew).length === 4);
+check("still exactly 5 jobs for the new kickoff (no duplicates)", listJobs().filter((j) => j.kickoffUtc === gKickNew).length === 5);
 check("exactly one snapshot survives the whole flow", listSnapshots().filter((s) => s.fixtureId === gFx.id).length === 1);
 
 const gJobsBefore = listJobs().length;
 resetJobCache();
 resetSnapshotCache();
 check("restart: jobs restored from disk", listJobs().length === gJobsBefore);
-check("restart: new jobs PENDING, old jobs CANCELLED or SUCCEEDED", listJobs().filter((j) => j.kickoffUtc === gKickNew).every((j) => j.status === "PENDING") && listJobs().filter((j) => j.kickoffUtc === gKickOld).every((j) => j.status === "CANCELLED" || j.status === "SUCCEEDED"));
+check("restart: new jobs PENDING, old jobs terminal", listJobs().filter((j) => j.kickoffUtc === gKickNew).every((j) => j.status === "PENDING") && listJobs().filter((j) => j.kickoffUtc === gKickOld).every((j) => j.status === "CANCELLED" || j.status === "SUCCEEDED" || j.status === "MISSED"));
 check("restart: frozen snapshot unchanged", listSnapshots().find((s) => s.provenance.uniqueKey === gSnap!.provenance.uniqueKey)?.homeProbability === gSnap!.homeProbability);
 
 // ── Scheduler G2: resume safety (conflicts + terminal states) ───────────
@@ -507,7 +512,7 @@ const gSameKick = syncFixturesFromObservations({
 });
 check("POSTPONED resumes when the rearranged kickoff was already known (same kickoff, now CONFIRMED)", canonicalizeFixtureStatus(gSameKick.fixtures[0].status) === "SCHEDULED" && gSameKick.fixtures[0].kickoffUtc === gKickNew && gSameKick.fixtures[0].kickoffCertainty === "CONFIRMED");
 planPredictionJobs({ fixtures: gSameKick.fixtures, now: "2026-08-18T10:05:00.000Z" });
-check("same-kickoff resume also plans the 4 future jobs", listJobs().filter((j) => j.kickoffUtc === gKickNew && (j.status === "PENDING" || j.status === "ELIGIBLE")).length === 4);
+check("same-kickoff resume also plans the 5 future jobs", listJobs().filter((j) => j.kickoffUtc === gKickNew && (j.status === "PENDING" || j.status === "ELIGIBLE")).length === 5);
 const gPast = syncFixturesFromObservations({
   fixtures: [{ ...gFx, status: "POSTPONED" as const }],
   observations: [obs({ source: SOURCE_FOOTBALL_DATA, fixtureId: gFx.id, homeSlug: "arsenal", awaySlug: "coventry", kickoffUtc: "2026-08-10T19:00:00.000Z", certainty: "CONFIRMED", status: "SCHEDULED" })],
@@ -759,7 +764,13 @@ async function rest() {
     persistFixturePatches: false,
     skipNetwork: true,
   });
-  check("tick against DEFAULT+CONFIRMED plans only CONFIRMED timed jobs", listJobs().every((j) => j.fixtureId === confFx.id));
+  check(
+    "tick records DEFAULT T7D while confirmed-only DEFAULT stages cannot execute",
+    listJobs().some((j) => j.fixtureId === defFx.id && j.stage === "T7D") &&
+      listJobs()
+        .filter((j) => j.fixtureId === defFx.id && j.stage !== "T7D")
+        .every((j) => j.status === "BLOCKED" || j.status === "MISSED")
+  );
   check("second tick does not duplicate jobs", tick2.jobsFailed === 0);
   void tick1;
 
@@ -768,7 +779,10 @@ async function rest() {
   check("health overall is a known state", ["HEALTHY", "DEGRADED", "BLOCKED"].includes(health.overall));
   check("health exposes DATA_READY", health.season.dataReady === "DATA_READY" || health.season.dataReady === "DATA_BLOCKED");
   check("health exposes job counts", typeof health.scheduler.jobs.PENDING === "number");
-  check("health exposes LIVE_OOS totals", typeof health.liveOos.total === "number");
+  check(
+    "health exposes production LIVE_OOS forecast-snapshot totals",
+    typeof health.productionLedger.totalForecastSnapshots === "number"
+  );
 
   // ── Abandoned / live not settleable ─────────────────────────────────────
   check("LIVE fixture cannot settle", canSettle({ ...confFx, status: "LIVE", homeGoals: 1, awayGoals: 0 }) === false);

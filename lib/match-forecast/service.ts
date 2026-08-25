@@ -2,6 +2,7 @@ import type { Fixture } from "@/lib/identity/types";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
 import { listLiveSnapshots } from "@/lib/competitions/premier-league/ops/live-snapshot-reader";
+import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 import { productionModelVersion } from "@/lib/competitions/premier-league/shadow/track";
 import { getTeamNews } from "@/lib/news/teamNewsStore";
 import type { TeamNewsItem } from "@/lib/news/types";
@@ -50,8 +51,42 @@ export function productionSnapshotsForMatch(
   snapshots: PredictionSnapshot[] = listLiveSnapshots({ fixtureId: matchId })
 ): PredictionSnapshot[] {
   return snapshots
-    .filter(isProductionForecastSnapshot)
-    .sort((a, b) => a.asOf.localeCompare(b.asOf));
+    .filter((snapshot) => snapshot.fixtureId === matchId && isProductionForecastSnapshot(snapshot))
+    .sort(
+      (a, b) =>
+        a.asOf.localeCompare(b.asOf) ||
+        snapshotGeneratedAt(a).localeCompare(snapshotGeneratedAt(b)) ||
+        a.provenance.uniqueKey.localeCompare(b.provenance.uniqueKey)
+    );
+}
+
+function snapshotGeneratedAt(snapshot: PredictionSnapshot): string {
+  const computedAt = snapshot.sourceState?.computedAt;
+  const origin = snapshot.sourceState?.origin;
+  return origin === "scheduled" && typeof computedAt === "string"
+    ? computedAt
+    : snapshot.createdAt;
+}
+
+function snapshotIsValidBeforeKickoff(
+  snapshot: PredictionSnapshot,
+  kickoffMs: number
+): boolean {
+  const cutoffMs = Date.parse(snapshot.asOf);
+  const generatedMs = Date.parse(snapshotGeneratedAt(snapshot));
+  return (
+    Number.isFinite(cutoffMs) &&
+    Number.isFinite(generatedMs) &&
+    Number.isFinite(kickoffMs) &&
+    cutoffMs < kickoffMs &&
+    generatedMs < kickoffMs
+  );
+}
+
+function snapshotMatchesKickoff(snapshot: PredictionSnapshot, kickoffMs: number): boolean {
+  if (!snapshot.kickoff) return true;
+  const frozenKickoffMs = Date.parse(snapshot.kickoff);
+  return Number.isFinite(frozenKickoffMs) && frozenKickoffMs === kickoffMs;
 }
 
 export function selectProductionSnapshot(
@@ -59,10 +94,11 @@ export function selectProductionSnapshot(
   snapshots: PredictionSnapshot[] = listLiveSnapshots({ fixtureId: fixture.id })
 ): PredictionSnapshot {
   const kickoffMs = Date.parse(fixture.kickoffUtc ?? "");
-  const eligible = productionSnapshotsForMatch(fixture.id, snapshots).filter((snapshot) => {
-    const cutoffMs = Date.parse(snapshot.asOf);
-    return Number.isFinite(cutoffMs) && Number.isFinite(kickoffMs) && cutoffMs < kickoffMs;
-  });
+  const eligible = productionSnapshotsForMatch(fixture.id, snapshots).filter(
+    (snapshot) =>
+      snapshotIsValidBeforeKickoff(snapshot, kickoffMs) &&
+      snapshotMatchesKickoff(snapshot, kickoffMs)
+  );
   const selected = eligible[eligible.length - 1];
   if (!selected) {
     throw new MatchForecastError(
@@ -89,6 +125,12 @@ function sourceStateForApi(snapshot: PredictionSnapshot): Record<string, unknown
     "eloAway",
     "fixturesUsed",
     "ratingStateAsOf",
+    "computedAt",
+    "ratingEventsUsed",
+    "ratingEventIds",
+    "latestRatingEventAppliedAt",
+    "kickoffCertaintyAtFreeze",
+    "fixtureRetrievedAt",
     "fixtureDataVersion",
     "seasonInitVersion",
     "origin",
@@ -129,6 +171,16 @@ export function buildMatchForecast(
       409
     );
   }
+  const generatedAt = snapshotGeneratedAt(snapshot);
+  const generatedAtMs = Date.parse(generatedAt);
+  const kickoffMs = Date.parse(fixture.kickoffUtc ?? "");
+  if (!Number.isFinite(generatedAtMs) || !Number.isFinite(kickoffMs) || generatedAtMs >= kickoffMs) {
+    throw new MatchForecastError(
+      `Forecast generation ${generatedAt} is not before kickoff.`,
+      "FORECAST_INTEGRITY",
+      409
+    );
+  }
 
   const { matrix, artifact } = scoreMatrixFromSnapshot(snapshot);
   const math = deriveForecastMath(matrix);
@@ -154,7 +206,7 @@ export function buildMatchForecast(
     home: { slug: fixture.homeSlug, name: getClub(fixture.homeSlug).name },
     away: { slug: fixture.awaySlug, name: getClub(fixture.awaySlug).name },
     kickoffUtc: fixture.kickoffUtc as string,
-    generatedAt: snapshot.createdAt,
+    generatedAt,
     cutoffAt: snapshot.asOf,
     modelVersion: snapshot.modelVersion,
     modelRole: "production",
@@ -168,7 +220,7 @@ export function buildMatchForecast(
     provenance: {
       modelVersion: snapshot.modelVersion,
       modelRole: "production",
-      generatedAt: snapshot.createdAt,
+      generatedAt,
       cutoffAt: snapshot.asOf,
       competition: "premier-league",
       season: snapshot.season,
@@ -183,7 +235,12 @@ export function buildMatchForecast(
       ],
       inputSnapshots: safeSourceState,
       dataFreshness: {
-        fixtureRetrievedAt: fixture.retrievedAt ?? null,
+        fixtureRetrievedAt:
+          typeof safeSourceState.fixtureRetrievedAt === "string"
+            ? safeSourceState.fixtureRetrievedAt
+            : fixture.retrievedAt && Date.parse(fixture.retrievedAt) <= Date.parse(snapshot.asOf)
+              ? fixture.retrievedAt
+              : null,
         ratingStateAsOf,
         latestInputAt: snapshot.asOf,
       },
@@ -199,7 +256,8 @@ export function buildMatchForecast(
   return forecast;
 }
 
-export function latestMatchForecast(matchId: string): MatchForecast {
+export async function latestMatchForecast(matchId: string): Promise<MatchForecast> {
+  await hydrateDurableOps();
   const fixture = resolvePremierLeagueFixture(matchId);
   return buildMatchForecast(fixture, selectProductionSnapshot(fixture));
 }
@@ -257,14 +315,14 @@ export function forecastTimeline(
   fixture: Fixture,
   snapshots: PredictionSnapshot[] = listLiveSnapshots({ fixtureId: fixture.id })
 ): ForecastTimelinePoint[] {
-  return productionSnapshotsForMatch(fixture.id, snapshots)
-    .filter((snapshot) => Date.parse(snapshot.asOf) < Date.parse(fixture.kickoffUtc ?? ""))
-    .map((snapshot) => {
-      const forecast = buildMatchForecast(fixture, snapshot);
+  return timelineSnapshotRows(fixture, snapshots).map(({ snapshot, fixtureAtFreeze, validForCurrentKickoff }) => {
+      const forecast = buildMatchForecast(fixtureAtFreeze, snapshot);
       return {
         forecastId: forecast.provenance.immutableForecastId,
         cutoffAt: forecast.cutoffAt,
         generatedAt: forecast.generatedAt,
+        kickoffAtFreeze: snapshot.kickoff,
+        validForCurrentKickoff,
         predictionStage: forecast.provenance.predictionStage,
         modelVersion: forecast.modelVersion,
         result: forecast.result,
@@ -273,6 +331,38 @@ export function forecastTimeline(
         expectedGoalsTotal: forecast.expectedGoals.total,
       };
     });
+}
+
+function timelineSnapshotRows(
+  fixture: Fixture,
+  snapshots: PredictionSnapshot[]
+): Array<{
+  snapshot: PredictionSnapshot;
+  fixtureAtFreeze: Fixture;
+  validForCurrentKickoff: boolean;
+}> {
+  const currentKickoffMs = Date.parse(fixture.kickoffUtc ?? fixture.kickoff ?? "");
+  return productionSnapshotsForMatch(fixture.id, snapshots)
+    .map((snapshot) => {
+      const kickoffAtFreeze = snapshot.kickoff ?? fixture.kickoffUtc ?? fixture.kickoff ?? null;
+      const kickoffAtFreezeMs = Date.parse(kickoffAtFreeze ?? "");
+      return {
+        snapshot,
+        fixtureAtFreeze: kickoffAtFreeze
+          ? { ...fixture, kickoff: kickoffAtFreeze, kickoffUtc: kickoffAtFreeze }
+          : fixture,
+        validForCurrentKickoff: snapshotMatchesKickoff(snapshot, currentKickoffMs),
+        kickoffAtFreezeMs,
+      };
+    })
+    .filter(({ snapshot, kickoffAtFreezeMs }) =>
+      snapshotIsValidBeforeKickoff(snapshot, kickoffAtFreezeMs)
+    )
+    .map(({ snapshot, fixtureAtFreeze, validForCurrentKickoff }) => ({
+      snapshot,
+      fixtureAtFreeze,
+      validForCurrentKickoff,
+    }));
 }
 
 function shallowInputDiff(
@@ -359,18 +449,24 @@ async function contextNews(
 }
 
 export async function getMatchIntelligence(matchId: string, now = new Date()): Promise<MatchIntelligence> {
+  await hydrateDurableOps();
   const fixture = resolvePremierLeagueFixture(matchId);
   const snapshots = listLiveSnapshots({ fixtureId: fixture.id });
   const selected = selectProductionSnapshot(fixture, snapshots);
   const forecast = buildMatchForecast(fixture, selected);
+  const timelineRows = timelineSnapshotRows(fixture, snapshots);
   const timeline = forecastTimeline(fixture, snapshots);
-  const previous = timeline.length > 1
-    ? buildMatchForecast(
-        fixture,
-        productionSnapshotsForMatch(fixture.id, snapshots).filter(
-          (snapshot) => Date.parse(snapshot.asOf) < Date.parse(fixture.kickoffUtc ?? "")
-        )[timeline.length - 2]
-      )
+  const selectedIndex = timelineRows.findIndex(
+    ({ snapshot }) => snapshot.provenance.uniqueKey === selected.provenance.uniqueKey
+  );
+  const previousRow = selectedIndex > 0
+    ? timelineRows
+        .slice(0, selectedIndex)
+        .reverse()
+        .find((row) => row.validForCurrentKickoff) ?? null
+    : null;
+  const previous = previousRow
+    ? buildMatchForecast(previousRow.fixtureAtFreeze, previousRow.snapshot)
     : null;
   const news = await contextNews(fixture, forecast.cutoffAt);
   return {

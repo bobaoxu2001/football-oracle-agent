@@ -14,33 +14,42 @@ import { TIMED_STAGES } from "./types";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
+const DAY = 24 * HOUR;
 
 export const STAGE_WINDOWS: Record<TimedStage, StageWindow> = {
+  T7D: {
+    stage: "T7D",
+    targetOffsetMs: -7 * DAY,
+    eligibleFromOffsetMs: -7 * DAY,
+    eligibleUntilOffsetMs: -7 * DAY + 2 * HOUR,
+    meaning:
+      "Scheduled seven-day rolling-early freeze using only inputs available at the canonical cutoff.",
+  },
   T24H: {
     stage: "T24H",
     targetOffsetMs: -24 * HOUR,
-    eligibleFromOffsetMs: -26 * HOUR,
+    eligibleFromOffsetMs: -24 * HOUR,
     eligibleUntilOffsetMs: -22 * HOUR,
     meaning: "Scheduled 24-hour pre-kickoff freeze of the current model.",
   },
   T2H: {
     stage: "T2H",
     targetOffsetMs: -2 * HOUR,
-    eligibleFromOffsetMs: -150 * MIN,
+    eligibleFromOffsetMs: -2 * HOUR,
     eligibleUntilOffsetMs: -90 * MIN,
     meaning: "Scheduled 2-hour pre-kickoff freeze of the current model.",
   },
   T60M: {
     stage: "T60M",
     targetOffsetMs: -60 * MIN,
-    eligibleFromOffsetMs: -75 * MIN,
+    eligibleFromOffsetMs: -60 * MIN,
     eligibleUntilOffsetMs: -45 * MIN,
     meaning: "Scheduled 60-minute pre-kickoff freeze of the current model.",
   },
   FINAL_PREKICK: {
     stage: "FINAL_PREKICK",
     targetOffsetMs: -10 * MIN,
-    eligibleFromOffsetMs: -20 * MIN,
+    eligibleFromOffsetMs: -10 * MIN,
     eligibleUntilOffsetMs: -5 * MIN,
     meaning:
       "Latest valid Football Oracle model snapshot frozen before kickoff using currently available inputs. Not a lineup-confirmed model.",

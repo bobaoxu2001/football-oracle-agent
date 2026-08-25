@@ -11,9 +11,9 @@ import type { NewsItemView } from "@/lib/agent/types";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Agent Memory Center · WorldCup Oracle Agent",
+  title: "Storage & privacy status · Football Oracle",
   description:
-    "A privacy-safe view of the agent's storage architecture and sourced team-news signals.",
+    "Operational status for private session storage and World Cup research signals. Conversations are never publicly exposed.",
 };
 
 const FEATURED = ["argentina", "germany", "brazil", "france"];
@@ -51,11 +51,11 @@ export default async function MemoryPage() {
       {/* hero */}
       <section className="mx-auto mb-8 max-w-3xl text-center">
         <div className="chip mx-auto mb-4 w-fit">
-          <Brain className="h-3.5 w-3.5 text-neon" />
-          MongoDB-powered agent memory
+          <LockKeyhole className="h-3.5 w-3.5 text-neon" />
+          Private operational storage
         </div>
         <h1 className="text-balance text-3xl font-black tracking-tight sm:text-4xl">
-          Agent <span className="neon-text">Memory Center</span>
+          Storage &amp; <span className="neon-text">privacy status</span>
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
           This page explains the storage layer without publishing anyone&apos;s prompts, answers,
@@ -74,14 +74,14 @@ export default async function MemoryPage() {
               <HardDrive className="h-4 w-4 text-amber-300" />
             )}
             <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neon">
-              Memory backend
+              Private session store
             </span>
           </div>
           <p className="text-lg font-bold">{connected ? "MongoDB Atlas" : "In-memory fallback"}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {connected
-              ? "Connected — predictions & team_news persist across sessions."
-              : "No MONGODB_URI / unreachable — the app runs fully on an in-process store. Predictions never break."}
+              ? "Connected — private reliability records and research team_news persist across sessions."
+              : "No MONGODB_URI / unreachable — private records use process-local storage only."}
           </p>
           <div className="mt-3 flex items-center gap-2">
             <span className="chip text-[10px]">
@@ -124,21 +124,21 @@ export default async function MemoryPage() {
           <div className="mb-3 flex items-center gap-2">
             <Brain className="h-4 w-4 text-neon" />
             <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neon">
-              Why MongoDB matters
+              Operational retention
             </span>
           </div>
           <ul className="space-y-1.5 text-xs text-foreground/85">
             <li>
-              <span className="font-semibold text-neon">predictions</span> — every session&apos;s
-              probabilities, simulation & reasoning steps.
+              <span className="font-semibold text-neon">private sessions</span> — retained for
+              reliability and never publicly enumerated.
             </li>
             <li>
               <span className="font-semibold text-neon">team_news</span> — classified daily signals,
               indexed by team / impact / category.
             </li>
             <li>
-              <span className="font-semibold text-neon">follow-up context</span> — the matchup &amp;
-              news the agent re-analyses on &quot;what-if&quot; questions.
+              <span className="font-semibold text-neon">request context</span> — supports bounded
+              follow-ups inside the World Cup research archive.
             </li>
           </ul>
         </div>
@@ -157,8 +157,11 @@ export default async function MemoryPage() {
       {/* stored team news */}
       <section>
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-neon">
-          <Radio className="h-4 w-4" /> Stored team-news signals
+          <Radio className="h-4 w-4" /> World Cup research signals
         </h2>
+        <p className="mb-4 max-w-3xl text-sm text-muted-foreground">
+          These archived national-team signals are isolated from Premier League production forecasts.
+        </p>
         <div className="grid gap-4 md:grid-cols-2">
           {featured.map(({ team, views }) => (
             <div key={team.slug} className="glass rounded-2xl p-4">

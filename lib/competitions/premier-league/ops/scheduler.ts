@@ -2,12 +2,12 @@
  * Prediction scheduler / planner.
  *
  * Produces candidate jobs. Does not mutate historical snapshots.
- * Timed stages require kickoffCertainty = CONFIRMED.
+ * T7D accepts an auditable published schedule; later timed stages require a
+ * confirmed kickoff.
  * Missed windows are marked MISSED and never backfilled.
  */
 
 import type { Fixture } from "@/lib/identity/types";
-import type { CanonicalPredictionStage } from "@/lib/snapshots/types";
 import { canScheduleTimedPrediction } from "../kickoff-certainty";
 import { canonicalizeFixtureStatus } from "../ingest";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "../config";
@@ -24,7 +24,13 @@ import {
 
 export const MAX_JOB_RETRIES = 3;
 
-export function isTimedSchedulingBlocked(fixture: Fixture): string | null {
+export interface CutoffFixtureEvidence {
+  fixtureRetrievedAt: string;
+  kickoffCertainty: NonNullable<Fixture["kickoffCertainty"]>;
+  fixtureDataVersion: string | null;
+}
+
+export function isTimedSchedulingBlocked(fixture: Fixture, stage: TimedStage): string | null {
   if (fixture.verificationStatus === "SOURCE_CONFLICT") {
     return "SOURCE_CONFLICT: kickoff disagreement; timed stages blocked";
   }
@@ -34,23 +40,56 @@ export function isTimedSchedulingBlocked(fixture: Fixture): string | null {
   if (status === "ABANDONED") return "fixture ABANDONED";
   if (status === "SUSPENDED") return "fixture SUSPENDED";
   if (status === "FINISHED") return "fixture FINISHED";
-  if (fixture.kickoffCertainty !== "CONFIRMED") {
-    return `kickoffCertainty=${fixture.kickoffCertainty ?? "missing"} (CONFIRMED required)`;
-  }
   if (!fixture.kickoffUtc && !fixture.kickoff) return "missing kickoff timestamp";
+  if (!canScheduleTimedPrediction(fixture, stage)) {
+    const allowed = stage === "T7D" ? "CONFIRMED, PROVISIONAL, or DEFAULT" : "CONFIRMED";
+    return `kickoffCertainty=${fixture.kickoffCertainty ?? "missing"} (${allowed} required for ${stage})`;
+  }
   return null;
+}
+
+function admissibleFixtureEvidence(
+  fixture: Fixture,
+  stage: TimedStage,
+  plannedAsOf: string
+): CutoffFixtureEvidence | null {
+  if (isTimedSchedulingBlocked(fixture, stage)) return null;
+  const retrievedAt = fixture.retrievedAt;
+  const retrievedAtMs = Date.parse(retrievedAt ?? "");
+  const cutoffMs = Date.parse(plannedAsOf);
+  if (!retrievedAt || !Number.isFinite(retrievedAtMs) || retrievedAtMs > cutoffMs) return null;
+  return {
+    fixtureRetrievedAt: retrievedAt,
+    kickoffCertainty: fixture.kickoffCertainty!,
+    fixtureDataVersion: fixture.sourceId ?? fixture.source ?? null,
+  };
+}
+
+function evidenceFromJob(job: PredictionJob | null | undefined): CutoffFixtureEvidence | null {
+  if (!job?.cutoffFixtureRetrievedAt || !job.cutoffKickoffCertainty) return null;
+  return {
+    fixtureRetrievedAt: job.cutoffFixtureRetrievedAt,
+    kickoffCertainty: job.cutoffKickoffCertainty,
+    fixtureDataVersion: job.cutoffFixtureDataVersion ?? null,
+  };
+}
+
+function attachEvidence(job: PredictionJob, evidence: CutoffFixtureEvidence | null): void {
+  job.cutoffFixtureRetrievedAt = evidence?.fixtureRetrievedAt ?? null;
+  job.cutoffKickoffCertainty = evidence?.kickoffCertainty ?? null;
+  job.cutoffFixtureDataVersion = evidence?.fixtureDataVersion ?? null;
 }
 
 export function buildJob(fixture: Fixture, stage: TimedStage, nowIso: string, modelVersion = PRODUCTION_MODEL_VERSION): PredictionJob {
   const kickoffUtc = (fixture.kickoffUtc ?? fixture.kickoff) as string;
   const w = windowFor(stage, kickoffUtc);
-  const blocked = isTimedSchedulingBlocked(fixture);
+  const blocked = isTimedSchedulingBlocked(fixture, stage);
   const ws = windowState(stage, kickoffUtc, Date.parse(nowIso));
   let status: PredictionJob["status"] = "PENDING";
   if (blocked) status = "BLOCKED";
   else if (ws === "eligible") status = "ELIGIBLE";
   else if (ws === "missed") status = "MISSED";
-  return {
+  const job: PredictionJob = {
     jobId: jobIdOf(fixture.id, stage, kickoffUtc),
     fixtureId: fixture.id,
     season: fixture.season ?? PREMIER_LEAGUE_CURRENT_SEASON,
@@ -70,9 +109,14 @@ export function buildJob(fixture: Fixture, stage: TimedStage, nowIso: string, mo
     failureClass: null,
     retryCount: 0,
     blockedReason: blocked,
+    cutoffFixtureRetrievedAt: null,
+    cutoffKickoffCertainty: null,
+    cutoffFixtureDataVersion: null,
     createdAt: nowIso,
     updatedAt: nowIso,
   };
+  attachEvidence(job, admissibleFixtureEvidence(fixture, stage, w.plannedAsOf));
+  return job;
 }
 
 export function planPredictionJobs(input: {
@@ -107,32 +151,60 @@ export function planPredictionJobs(input: {
     }
 
     if (postponedLike || !kickoffUtc) continue;
-    if (fixture.kickoffCertainty !== "CONFIRMED") {
-      for (const job of jobsForFixture(fixture.id)) {
-        if (["PENDING", "ELIGIBLE", "BLOCKED", "FAILED"].includes(job.status)) {
-          cancelled.push(
-            updateJob(job.jobId, {
-              status: "CANCELLED",
-              blockedReason: `cancelled: kickoffCertainty=${fixture.kickoffCertainty ?? "missing"}`,
-              updatedAt: nowIso,
-            })
-          );
-        }
-      }
-    }
-    if (fixture.kickoffCertainty !== "CONFIRMED" && fixture.verificationStatus === "SOURCE_CONFLICT") {
-      for (const stage of TIMED_STAGES) {
-        planned.push(buildJob(fixture, stage, nowIso, input.modelVersion));
-      }
-      continue;
-    }
-    if (fixture.kickoffCertainty !== "CONFIRMED") continue;
 
     for (const stage of TIMED_STAGES) {
-      if (!canScheduleTimedPrediction(fixture, stage)) continue;
       const job = buildJob(fixture, stage, nowIso, input.modelVersion);
       const prev = getJob(job.jobId);
       if (prev?.status === "SUCCEEDED" || prev?.status === "MISSED" || prev?.status === "CANCELLED") {
+        continue;
+      }
+
+      if (prev) job.createdAt = prev.createdAt;
+      const evidence = [evidenceFromJob(prev), evidenceFromJob(job)]
+        .filter((value): value is CutoffFixtureEvidence => Boolean(value))
+        .sort((a, b) => a.fixtureRetrievedAt.localeCompare(b.fixtureRetrievedAt))
+        .at(-1) ?? null;
+      attachEvidence(job, evidence);
+
+      const existingSnapshot = findScheduledSnapshot({
+        fixtureId: job.fixtureId,
+        stage,
+        modelVersion: job.modelVersion,
+        plannedAsOf: job.plannedAsOf,
+      });
+      if (existingSnapshot) {
+        if (prev) {
+          updateJob(prev.jobId, {
+            status: "SUCCEEDED",
+            snapshotKey: existingSnapshot.provenance.uniqueKey,
+            completedAt: existingSnapshot.createdAt,
+            failureReason: null,
+            blockedReason: null,
+            updatedAt: nowIso,
+          });
+          continue;
+        }
+        job.status = "SUCCEEDED";
+        job.snapshotKey = existingSnapshot.provenance.uniqueKey;
+        job.completedAt = existingSnapshot.createdAt;
+        job.blockedReason = null;
+        planned.push(job);
+        continue;
+      }
+
+      const plannedAsOfMs = Date.parse(job.plannedAsOf);
+      const firstSeenAfterCutoff = !prev && nowMs > plannedAsOfMs;
+      const blockedAfterCutoff = Boolean(job.blockedReason) && nowMs > plannedAsOfMs;
+      const missingCutoffEvidenceAfterCutoff = !evidence && nowMs > plannedAsOfMs;
+      if (firstSeenAfterCutoff || blockedAfterCutoff || missingCutoffEvidenceAfterCutoff) {
+        job.status = "MISSED";
+        job.failureReason = firstSeenAfterCutoff
+          ? "stage cutoff passed before job was planned; not backfilled"
+          : blockedAfterCutoff
+            ? `${job.blockedReason}; stage cutoff passed while blocked; not backfilled`
+            : `no cutoff-admissible fixture evidence exists for ${job.plannedAsOf}; not backfilled`;
+        job.completedAt = nowIso;
+        planned.push(job);
         continue;
       }
       if (prev?.status === "FAILED" && windowState(stage, job.kickoffUtc, nowMs) === "missed") {
@@ -233,9 +305,32 @@ export function executeEligibleJobs(input: {
       failed += 1;
       continue;
     }
-    const blocked = isTimedSchedulingBlocked(fixture);
+    const currentKickoff = fixture.kickoffUtc ?? fixture.kickoff ?? null;
+    if (currentKickoff !== job.kickoffUtc) {
+      updateJob(job.jobId, {
+        status: "CANCELLED",
+        blockedReason: "cancelled: kickoff changed before freeze",
+        completedAt: nowIso,
+        updatedAt: nowIso,
+      });
+      skipped += 1;
+      continue;
+    }
+    const blocked = isTimedSchedulingBlocked(fixture, job.stage);
     if (blocked) {
       updateJob(job.jobId, { status: "BLOCKED", blockedReason: blocked, updatedAt: nowIso });
+      skipped += 1;
+      continue;
+    }
+    const cutoffEvidence = evidenceFromJob(job);
+    if (!cutoffEvidence) {
+      updateJob(job.jobId, {
+        status: "MISSED",
+        failureReason: `no cutoff-admissible fixture evidence exists for ${job.plannedAsOf}; not backfilled`,
+        failureClass: "permanent-validation",
+        completedAt: nowIso,
+        updatedAt: nowIso,
+      });
       skipped += 1;
       continue;
     }
@@ -260,7 +355,7 @@ export function executeEligibleJobs(input: {
     attempted += 1;
     updateJob(job.jobId, { status: "RUNNING", attemptedAt: nowIso, updatedAt: nowIso });
     try {
-      const snap = freeze(fixture, job.stage, job.plannedAsOf, nowIso);
+      const snap = freeze(fixture, job.stage, job.plannedAsOf, nowIso, cutoffEvidence);
       updateJob(job.jobId, {
         status: "SUCCEEDED",
         snapshotKey: snap.provenance.uniqueKey,
@@ -294,22 +389,49 @@ export function executeEligibleJobs(input: {
 
 export function freezeScheduledStage(
   fixture: Fixture,
-  stage: CanonicalPredictionStage,
+  stage: TimedStage,
   plannedAsOf: string,
-  computedAt: string
+  computedAt: string,
+  suppliedEvidence?: CutoffFixtureEvidence
 ) {
-  if (!canScheduleTimedPrediction(fixture, stage)) {
+  const evidence = suppliedEvidence ?? admissibleFixtureEvidence(fixture, stage, plannedAsOf);
+  const evidencedFixture = evidence
+    ? {
+        ...fixture,
+        kickoffCertainty: evidence.kickoffCertainty,
+        retrievedAt: evidence.fixtureRetrievedAt,
+      }
+    : fixture;
+  if (!evidence || !canScheduleTimedPrediction(evidencedFixture, stage)) {
     throw new Error(
-      `Refusing ${stage} for ${fixture.id}: kickoffCertainty=${fixture.kickoffCertainty ?? "missing"}`
+      `Refusing ${stage} for ${fixture.id}: no cutoff-admissible fixture evidence`
     );
   }
   const kickoff = fixture.kickoffUtc ?? fixture.kickoff;
   if (!kickoff) throw new Error(`Refusing ${stage}: missing kickoff`);
+  const plannedAsOfMs = Date.parse(plannedAsOf);
+  const computedAtMs = Date.parse(computedAt);
+  const kickoffAtMs = Date.parse(kickoff);
+  if (!Number.isFinite(plannedAsOfMs) || !Number.isFinite(computedAtMs) || !Number.isFinite(kickoffAtMs)) {
+    throw new Error(`Refusing ${stage}: invalid cutoff, generation, or kickoff timestamp`);
+  }
   if (!plannedAsOfIsBeforeKickoff(plannedAsOf, kickoff)) {
     throw new Error(`Refusing ${stage}: plannedAsOf ${plannedAsOf} is not < kickoff ${kickoff}`);
   }
-  if (Date.parse(computedAt) >= Date.parse(kickoff)) {
+  if (computedAtMs < plannedAsOfMs) {
+    throw new Error(`Refusing ${stage}: computedAt ${computedAt} is before cutoff ${plannedAsOf}`);
+  }
+  if (computedAtMs >= kickoffAtMs) {
     throw new Error(`Refusing ${stage}: computedAt ${computedAt} is not < kickoff ${kickoff}`);
+  }
+  const fixtureRetrievedMs = Date.parse(evidence.fixtureRetrievedAt);
+  if (!Number.isFinite(fixtureRetrievedMs)) {
+    throw new Error(`Refusing ${stage}: fixture retrieval timestamp is missing or invalid`);
+  }
+  if (fixtureRetrievedMs > plannedAsOfMs) {
+    throw new Error(
+      `Refusing ${stage}: fixture evidence ${evidence.fixtureRetrievedAt} is after cutoff ${plannedAsOf}`
+    );
   }
   const snap = snapshotPremierLeagueMatch(fixture.homeSlug, fixture.awaySlug, {
     asOf: plannedAsOf,
@@ -320,7 +442,9 @@ export function freezeScheduledStage(
     evaluationClass: "LIVE_OOS",
     origin: "scheduled",
     computedAt,
-    fixtureDataVersion: fixture.sourceId ?? fixture.source ?? undefined,
+    fixtureDataVersion: evidence.fixtureDataVersion,
+    kickoffCertaintyAtFreeze: evidence.kickoffCertainty,
+    fixtureRetrievedAt: evidence.fixtureRetrievedAt,
   });
   archiveOperationalLiveOos([snap]);
   return snap;

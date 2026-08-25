@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Operational health · Football Oracle",
-  description: "Live-season operations: sync, jobs, results, settlement, ratings.",
+  description: "Premier League production operations: sync, jobs, results, settlement, and ratings.",
 };
 
 function tone(state: string): string {
@@ -63,7 +63,7 @@ export default async function HealthPage() {
     <div className="container py-8 md:py-12">
       <section className="mx-auto mb-8 max-w-3xl">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Phase 2A.2 · operations
+          Premier League production · operations
         </p>
         <h1 className="mt-2 text-3xl font-black tracking-tight">Operational health</h1>
         <p className="mt-3 text-sm text-muted-foreground">
@@ -157,7 +157,7 @@ export default async function HealthPage() {
         <ul className="space-y-1 text-muted-foreground">
           <li>football-data.org: {h.sources.footballData ? "configured" : "not configured"}</li>
           <li>API-Football: {h.sources.apiFootball ? "configured" : "not configured"}</li>
-          <li>Official baseline: yes</li>
+          <li>Bundled official schedule baseline: loaded</li>
           <li>
             Store: {h.persistence.backend}
             {h.persistence.durable ? " · durable" : " · ephemeral"}
@@ -169,20 +169,56 @@ export default async function HealthPage() {
       </section>
 
       <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
-        <h2 className="mb-3 font-semibold">LIVE_OOS / results / ratings</h2>
-        <ul className="space-y-1 text-muted-foreground">
-          <li>
-            LIVE_OOS total {h.liveOos.total} · settled {h.liveOos.settled} · unsettled{" "}
-            {h.liveOos.unsettled} · committed {h.liveOos.committed} · operational{" "}
-            {h.liveOos.operational}
-          </li>
+        <h2 className="font-semibold">Canonical production ledger metrics</h2>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          These are the same metric definitions used by Forecasts, Track Record, Production Ledger,
+          and the public APIs. Snapshot counts and unique-fixture counts are never interchangeable.
+        </p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[38rem] text-left text-xs text-muted-foreground">
+            <caption className="sr-only">Canonical LIVE_OOS health counts by model track</caption>
+            <thead>
+              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em]">
+                <th scope="col" className="py-2 pr-3 font-medium">Track</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Forecast snapshots</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Settled snapshots</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Unsettled snapshots</th>
+                <th scope="col" className="py-2 font-medium">Unique settled fixtures</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["Production", h.ledgerMetrics.production],
+                ["Shadow", h.ledgerMetrics.shadow],
+                ["All LIVE_OOS tracks", h.ledgerMetrics.allTracks],
+              ].map(([label, row]) => {
+                const track = row as typeof h.ledgerMetrics.production;
+                return (
+                  <tr key={String(label)} className="border-b border-white/5">
+                    <th scope="row" className="py-2 pr-3 font-medium text-foreground">{String(label)}</th>
+                    <td className="py-2 pr-3 tabular-nums">{track.totalForecastSnapshots}</td>
+                    <td className="py-2 pr-3 tabular-nums">{track.settledForecastSnapshots}</td>
+                    <td className="py-2 pr-3 tabular-nums">{track.unsettledForecastSnapshots}</td>
+                    <td className="py-2 tabular-nums">{track.uniqueFixturesSettled}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <ul className="mt-4 space-y-1 text-muted-foreground">
           <li>
             Results last success {dash(h.results.lastSuccess)} · verified {h.results.verified} ·
             pending {h.results.pending} · conflict {h.results.conflict}
           </li>
           <li>
-            Settlement succeeded {h.settlement.succeeded} · pending/conflict{" "}
-            {h.settlement.pendingOrConflict} · corrections {h.settlement.corrections}
+            Persisted settlement records {h.settlement.persistedSnapshotSettlementRecords} · linked
+            to forecast snapshots {h.settlement.linkedForecastSnapshotRecords} · orphan records{" "}
+            {h.settlement.orphanSettlementRecords}
+          </li>
+          <li>
+            Settlement operations/events: unavailable (no durable operation-event ledger) ·
+            pending/conflict {h.settlement.pendingOrConflict} · corrections {h.settlement.corrections}
           </li>
           <li>
             Rating state {h.ratings.modelVersion} · applied events {h.ratings.appliedEvents} · last{" "}
@@ -213,11 +249,11 @@ export default async function HealthPage() {
         </Link>
         {" · "}
         <Link href="/live" className="text-neon hover:underline">
-          Live ledger
+          Production ledger
         </Link>
         {" · "}
         <Link href="/" className="text-neon hover:underline">
-          Agent
+          Forecasts
         </Link>
       </p>
     </div>

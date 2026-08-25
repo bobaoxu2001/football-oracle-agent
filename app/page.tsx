@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, BarChart3, Database, FlaskConical, ShieldCheck, Sparkles } from "lucide-react";
 import { upcomingMatchForecasts } from "@/lib/match-forecast/service";
+import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
+import { canonicalLedgerMetrics } from "@/lib/competitions/premier-league/ledger-metrics";
+import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 import type { UpcomingMatchForecast } from "@/lib/match-forecast/types";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +22,10 @@ function kickoffLabel(value: string): string {
   }).format(new Date(value));
 }
 
-export default function Home() {
+export default async function Home() {
+  await hydrateDurableOps();
   const matches = upcomingMatchForecasts(6);
+  const ledgerMetrics = canonicalLedgerMetrics(PREMIER_LEAGUE_CURRENT_SEASON);
   const first = matches[0];
 
   return (
@@ -28,7 +33,7 @@ export default function Home() {
       <section className="mx-auto mb-10 max-w-5xl">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <span className="chip border-neon/30 text-neon">
-            <span className="h-1.5 w-1.5 rounded-full bg-neon" /> Premier League forecasting live
+            <span className="h-1.5 w-1.5 rounded-full bg-neon" /> Premier League production forecasts
           </span>
           <span className="chip">Production model · pl-live-v0.2.0</span>
         </div>
@@ -50,6 +55,21 @@ export default function Home() {
             </Link>
           ) : null}
         </div>
+      </section>
+
+      <section className="mx-auto mb-10 grid max-w-5xl gap-3 sm:grid-cols-3" aria-label="Production ledger summary">
+        <LedgerStat
+          label="Production forecast snapshots"
+          value={ledgerMetrics.production.totalForecastSnapshots}
+        />
+        <LedgerStat
+          label="Settled forecast snapshots"
+          value={ledgerMetrics.production.settledForecastSnapshots}
+        />
+        <LedgerStat
+          label="Unique settled fixtures"
+          value={ledgerMetrics.production.uniqueFixturesSettled}
+        />
       </section>
 
       <section className="mx-auto mb-12 max-w-6xl" aria-labelledby="upcoming-heading">
@@ -81,7 +101,7 @@ export default function Home() {
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5 md:col-span-2">
             <p className="text-sm font-bold">La Liga · Bundesliga · Serie A · Ligue 1</p>
-            <p className="mt-2 text-sm text-muted-foreground">Completed-match history is supported. User-facing forecasts are coming later; the site will not imply otherwise.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Completed-match history is supported. No forecasts are served for these leagues.</p>
             <Link href="/matches" className="mt-3 inline-flex text-xs font-semibold text-neon hover:underline">Browse historical ledgers →</Link>
           </div>
         </div>
@@ -92,9 +112,9 @@ export default function Home() {
         <h2 id="research-heading" className="mt-1 text-xl font-black tracking-tight">Evidence behind the product</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <ResearchLink href="/accuracy" icon={<BarChart3 className="h-4 w-4" />} title="Track record" copy="Production, shadow and reconstruction kept separate." />
-          <ResearchLink href="/shadow" icon={<FlaskConical className="h-4 w-4" />} title="Shadow lab" copy="Paired forward challenger evidence—never served as production." />
-          <ResearchLink href="/research/world-cup" icon={<Sparkles className="h-4 w-4" />} title="World Cup archive" copy="Preserved research plugin with its own evidence boundary." />
-          <ResearchLink href="/memory" icon={<Database className="h-4 w-4" />} title="Data & privacy" copy="Storage status without exposing user conversations." />
+          <ResearchLink href="/shadow" icon={<FlaskConical className="h-4 w-4" />} title="Shadow evaluation" copy="Paired forward challenger evidence—never served as production." />
+          <ResearchLink href="/research/world-cup" icon={<Sparkles className="h-4 w-4" />} title="World Cup research archive" copy="Historical reconstruction and agent research, isolated from production." />
+          <ResearchLink href="/live" icon={<Database className="h-4 w-4" />} title="Production ledger" copy="Every immutable Premier League production snapshot and settlement status." />
         </div>
         <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-neon" />
@@ -137,6 +157,15 @@ function ForecastCard({ item }: { item: UpcomingMatchForecast }) {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return <div><dt className="text-[10px] text-muted-foreground">{label}</dt><dd className="mt-0.5 font-bold tabular-nums">{value}</dd></div>;
+}
+
+function LedgerStat({ label, value }: { label: string; value: number }) {
+  return (
+    <Link href="/live" className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition hover:border-neon/25 hover:bg-white/[0.04]">
+      <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+      <span className="mt-1 block text-2xl font-black tabular-nums">{value}</span>
+    </Link>
+  );
 }
 
 function ResearchLink({ href, icon, title, copy }: { href: string; icon: React.ReactNode; title: string; copy: string }) {

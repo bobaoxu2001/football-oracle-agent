@@ -7,10 +7,15 @@
  */
 
 import type { RatingState } from "../ratings";
-import { liveStateFromEvents } from "./rating-events";
+import type { RatingAppliedEvent } from "./types";
+import { liveStateFromEvents, ratingEventsAsOf } from "./rating-events";
 
 export function liveRatingsAsOf(asOf: string): RatingState {
   return liveStateFromEvents(asOf);
+}
+
+export function liveRatingEventsAsOf(asOf: string): RatingAppliedEvent[] {
+  return ratingEventsAsOf(asOf);
 }
 
 export function ratingStateAsOfLabel(asOf: string): string {

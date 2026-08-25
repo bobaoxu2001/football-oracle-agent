@@ -9,9 +9,9 @@ import type { NewsItemView } from "@/lib/agent/types";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Daily Team News · WorldCup Oracle Agent",
+  title: "World Cup research news · Football Oracle",
   description:
-    "Recent injuries, squad changes, call-ups and tactical updates for World Cup 2026 national teams — the daily news intelligence the agent reasons over.",
+    "Archived World Cup 2026 team-news research, isolated from Premier League production forecasts.",
 };
 
 export default async function NewsPage() {
@@ -39,16 +39,19 @@ export default async function NewsPage() {
   return (
     <div className="container py-8 md:py-12">
       <section className="mx-auto mb-8 max-w-3xl text-center">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Research archive · World Cup · separate evidence track
+        </p>
         <div className="chip mx-auto mb-4 w-fit">
           <Newspaper className="h-3.5 w-3.5 text-neon" />
-          Daily news intelligence
+          Archived research signals
         </div>
         <h1 className="text-balance text-3xl font-black tracking-tight sm:text-4xl">
-          Daily <span className="neon-text">Team News</span>
+          World Cup <span className="neon-text">research news</span>
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
-          Recent injuries, squad replacements, call-ups, suspensions and tactical updates for tracked
-          2026 nations. The agent folds these signals into its match predictions.
+          Archived injuries, squad replacements, call-ups, suspensions and tactical updates for tracked
+          2026 nations. These signals belong to the World Cup research system and never enter Premier League production forecasts.
           {!live && (
             <>
               {" "}

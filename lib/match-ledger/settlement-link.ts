@@ -18,7 +18,10 @@
  */
 
 import type { Fixture } from "@/lib/identity/types";
-import { canSettle, settleFixture, type SettlementRecord } from "@/lib/competitions/premier-league/settlement";
+import {
+  canSettle,
+  settleFixtureDetailed,
+} from "@/lib/competitions/premier-league/settlement";
 import type { BigFiveCompetitionId } from "@/lib/competitions/types";
 import type { CanonicalMatch } from "./types";
 import { isCompletedMatch } from "./types";
@@ -54,7 +57,10 @@ export interface LedgerSettlementReport {
   competition: BigFiveCompetitionId;
   completedMatches: number;
   matchesAttempted: number;
+  /** New first-write-wins settlement records inserted by this pass. */
   settlementsWritten: number;
+  /** Idempotent replay hits resolved without writing another record. */
+  settlementRecordsExisting: number;
   /** Matches with no frozen pre-match snapshot — expected for ledger-only leagues. */
   matchesWithoutSnapshots: number;
   errors: string[];
@@ -81,6 +87,7 @@ export function settleCompletedMatches(input: {
     completedMatches: completed.length,
     matchesAttempted: 0,
     settlementsWritten: 0,
+    settlementRecordsExisting: 0,
     matchesWithoutSnapshots: 0,
     errors: [],
   };
@@ -90,12 +97,13 @@ export function settleCompletedMatches(input: {
     if (!fixture || !canSettle(fixture)) continue;
     report.matchesAttempted += 1;
     try {
-      const rows: SettlementRecord[] = settleFixture(fixture, settledAt, {
+      const batch = settleFixtureDetailed(fixture, settledAt, {
         evaluationClass: "LIVE_OOS",
         verificationId: `ledger::${match.canonicalMatchId}::${match.resultObservedAt ?? settledAt}`,
       });
-      if (!rows.length) report.matchesWithoutSnapshots += 1;
-      report.settlementsWritten += rows.length;
+      if (!batch.records.length) report.matchesWithoutSnapshots += 1;
+      report.settlementsWritten += batch.inserted.length;
+      report.settlementRecordsExisting += batch.existing.length;
     } catch (err) {
       report.errors.push(`${match.canonicalMatchId}: ${(err as Error).message}`);
     }

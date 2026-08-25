@@ -56,6 +56,30 @@ export function getRatingEvent(fixtureId: string): RatingAppliedEvent | null {
   return mem().byFixture.get(fixtureId) ?? null;
 }
 
+/**
+ * Rating evidence that was genuinely available at a forecast cutoff.
+ *
+ * Both guards are required. A match must already have kicked off, and this
+ * system must already have verified/applied its result. Filtering by kickoff
+ * alone would let a late result leak into a snapshot whose cutoff is backdated
+ * to before the result was known.
+ */
+export function ratingEventsAsOf(asOf: string): RatingAppliedEvent[] {
+  const cutoffMs = Date.parse(asOf.length === 10 ? `${asOf}T00:00:00.000Z` : asOf);
+  if (!Number.isFinite(cutoffMs)) throw new Error(`Invalid rating cutoff: ${asOf}`);
+  return listRatingEvents().filter((event) => {
+    const kickoffMs = Date.parse(event.kickoffUtc);
+    const appliedMs = Date.parse(event.appliedAt);
+    return (
+      Number.isFinite(kickoffMs) &&
+      Number.isFinite(appliedMs) &&
+      kickoffMs < cutoffMs &&
+      appliedMs >= kickoffMs &&
+      appliedMs <= cutoffMs
+    );
+  });
+}
+
 function persistStateSnapshot(events: RatingAppliedEvent[], at: string): void {
   writeJsonFile(ratingStateSnapshotPath(), {
     asOf: at,
@@ -143,7 +167,7 @@ export function applyVerifiedResultsInOrder(
 export function liveStateFromEvents(asOf: string): RatingState {
   const dateCutoff = asOf.length >= 10 ? asOf.slice(0, 10) : asOf;
   const state = ratingsAsOf(dateCutoff);
-  const events = listRatingEvents().filter((e) => Date.parse(e.kickoffUtc) < Date.parse(asOf.length === 10 ? `${asOf}T00:00:00.000Z` : asOf));
+  const events = ratingEventsAsOf(asOf);
   for (const e of events) {
     applyFixtureToRatings(state, {
       id: e.fixtureId,

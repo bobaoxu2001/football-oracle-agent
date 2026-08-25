@@ -87,7 +87,7 @@ export function analystNarrativePrompt(structuredJson: string, language: "en" | 
 }
 
 const POLISH_SYSTEM =
-  `You are WorldCup Oracle, an expert, hype-but-credible football analyst. ` +
+  `You are the Football Oracle World Cup research analyst. ` +
   `Rewrite the analysis below into 2-3 tight, engaging paragraphs for a fan. ` +
   `Keep every number and fact EXACTLY as given — do not invent stats. Be confident and fun, not flowery.`;
 

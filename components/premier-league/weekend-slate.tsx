@@ -30,10 +30,10 @@ export function PremierLeagueSlate() {
           <h2 className="text-lg font-bold tracking-tight">Upcoming Premier League fixtures</h2>
         </div>
         <Link
-          href="/?q=Who%20is%20most%20likely%20to%20win%20the%20Premier%20League%3F"
+          href="/live"
           className="text-xs font-medium text-neon hover:underline"
         >
-          Title odds →
+          Production ledger →
         </Link>
       </div>
       <p className="mb-4 text-sm text-amber-200/90">{currentHonestyText()}</p>
@@ -44,11 +44,10 @@ export function PremierLeagueSlate() {
           {upcoming.map((f) => {
             const h = getClub(f.homeSlug);
             const a = getClub(f.awaySlug);
-            const q = encodeURIComponent(`Who wins ${h.name} vs ${a.name}?`);
             return (
               <li key={f.id}>
                 <Link
-                  href={`/?q=${q}`}
+                  href={`/match/${f.id}`}
                   className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2 text-sm transition hover:border-neon/30"
                 >
                   <span>
@@ -70,7 +69,7 @@ export function PremierLeagueSlate() {
       )}
       <p className="mt-3 text-right text-[11px] text-muted-foreground">
         <Link href="/live" className="hover:text-foreground">
-          Live out-of-sample ledger →
+          Production ledger →
         </Link>
       </p>
     </section>

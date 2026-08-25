@@ -8,13 +8,13 @@ interface Props {
   live?: boolean;
 }
 
-/** The agent's visible workflow — a vertical timeline of reasoning steps. */
+/** The research system's visible workflow — a vertical timeline of reasoning steps. */
 export function ReasoningTimeline({ steps }: Props) {
   return (
     <div className="glass rounded-2xl p-5">
       <div className="mb-4 flex items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neon">
-          Agent reasoning
+          Research trace
         </span>
         <span className="chip text-[10px]">{steps.length} steps</span>
       </div>

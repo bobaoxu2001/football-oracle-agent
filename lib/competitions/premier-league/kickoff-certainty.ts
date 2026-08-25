@@ -12,11 +12,25 @@ import type { Fixture, KickoffCertainty } from "@/lib/identity/types";
 export const KICKOFF_CERTAINTIES = ["CONFIRMED", "PROVISIONAL", "DEFAULT", "TBD"] as const;
 
 export const TIMED_PREDICTION_STAGES: CanonicalPredictionStage[] = [
+  "T7D",
   "T24H",
   "T2H",
   "T60M",
   "FINAL_PREKICK",
 ];
+
+const CONFIRMED_ONLY_PREDICTION_STAGES = new Set<CanonicalPredictionStage>([
+  "T24H",
+  "T2H",
+  "T60M",
+  "FINAL_PREKICK",
+]);
+
+const T7D_KICKOFF_CERTAINTIES = new Set<KickoffCertainty>([
+  "CONFIRMED",
+  "PROVISIONAL",
+  "DEFAULT",
+]);
 
 /**
  * Classify a time as published in the official PL fixture release.
@@ -53,8 +67,16 @@ export function canScheduleTimedPrediction(
   stage: CanonicalPredictionStage
 ): boolean {
   if (!TIMED_PREDICTION_STAGES.includes(stage)) return true;
-  if (fixture.kickoffCertainty !== "CONFIRMED") return false;
-  return Boolean(fixture.kickoffUtc || fixture.kickoff);
+  if (!fixture.kickoffUtc && !fixture.kickoff) return false;
+  if (stage === "T7D") {
+    return Boolean(
+      fixture.kickoffCertainty && T7D_KICKOFF_CERTAINTIES.has(fixture.kickoffCertainty)
+    );
+  }
+  if (CONFIRMED_ONLY_PREDICTION_STAGES.has(stage)) {
+    return fixture.kickoffCertainty === "CONFIRMED";
+  }
+  return false;
 }
 
 export function kickoffCertaintyCounts(fixtures: Fixture[]): Record<KickoffCertainty, number> {

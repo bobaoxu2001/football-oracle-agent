@@ -11,8 +11,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/memory/status
- * Snapshot of the agent's memory layer for the Agent Memory Center:
- * backend (MongoDB Atlas vs in-memory), news mode/provider, counts, last update.
+ * Compatibility endpoint for private storage and archived research-data status:
+ * backend, news mode/provider, counts, and last update.
  * Always succeeds.
  */
 export async function GET() {

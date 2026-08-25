@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Match history · Football Oracle",
   description:
-    "Completed 2026-27 Big Five matches recorded in the canonical match ledger, with the frozen pre-kickoff forecast for each.",
+    "Completed 2026-27 Big Five matches recorded in the canonical match ledger, with frozen pre-kickoff forecasts shown where available.",
 };
 
 export default async function MatchesPage({
