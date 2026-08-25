@@ -102,7 +102,7 @@ jobs:
           if [ "$MODE" = "once" ]; then
             : > /tmp/observer-body
             OBSERVER_CODE="$(curl -sS -o /tmp/observer-body -w "%{http_code}" \
-              --max-time 58 \
+              --max-time 130 \
               -H "Authorization: Bearer ${CRON_SECRET}" \
               -H "User-Agent: football-oracle-ops-scheduler" \
               "$OBSERVER_URL" || true)"

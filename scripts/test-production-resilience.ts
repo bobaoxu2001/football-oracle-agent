@@ -353,6 +353,7 @@ async function main(): Promise<void> {
     "utf8"
   );
   assert.match(observerRouteSource, /hydrateDurableFixtures\(\)/);
+  assert.match(observerRouteSource, /maxDuration\s*=\s*120/);
   const matchLedgerStoreSource = fs.readFileSync(
     path.join(process.cwd(), "lib", "match-ledger", "store.ts"),
     "utf8"
@@ -450,6 +451,7 @@ async function main(): Promise<void> {
   assert.match(workflow, /cron: "\*\/5 \* \* \* \*"/);
   assert.match(workflow, /: > \/tmp\/tick-body/);
   assert.match(workflow, /: > \/tmp\/observer-body/);
+  assert.match(workflow, /OBSERVER_CODE=[\s\S]*?--max-time 130/);
   assert.match(
     workflow,
     /if \[ "\$MODE" = "once" \]; then[\s\S]*?: > \/tmp\/observer-body[\s\S]*?OBSERVER_CODE=/

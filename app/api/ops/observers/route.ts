@@ -7,7 +7,11 @@ import { authorizeOpsTick } from "@/lib/competitions/premier-league/ops/tick-aut
 import { hydrateDurableFixtures } from "@/lib/competitions/premier-league/ops/durable-store";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Observers are isolated from the 60-second production forecast tick. The
+// normal path is much faster, but a full five-league ingest must be allowed to
+// finish and persist an explicit result when Atlas or a provider is briefly
+// slow instead of being hard-killed at the old shared deadline.
+export const maxDuration = 120;
 
 export async function GET(req: NextRequest) {
   const auth = authorizeOpsTick(req);
