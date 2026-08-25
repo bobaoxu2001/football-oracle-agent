@@ -8,8 +8,10 @@ export function MatchRoomAgent({ matchId, home, away }: { matchId: string; home:
   const suggestions = [
     `Who is the model favorite in ${home} vs ${away}?`,
     "What is the probability of over 2.5 goals?",
+    "Will both teams score?",
     "What are the five most likely exact scores?",
     "Why does the production model lean this way?",
+    "What changed since the previous forecast?",
   ];
   const [question, setQuestion] = useState(suggestions[0]);
   const [response, setResponse] = useState<MatchAgentResponse | null>(null);

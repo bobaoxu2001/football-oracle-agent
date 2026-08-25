@@ -116,6 +116,12 @@ await check("homepage list is backend-produced production data", () => {
   assert.ok(cards.every((card) => card.forecast.modelVersion === "pl-live-v0.2.0"));
 });
 
+await check("Match Room exposes the required BTTS and history starter questions", () => {
+  const source = fs.readFileSync(path.resolve("components/match-room/match-agent.tsx"), "utf8");
+  assert.ok(source.includes("Will both teams score?"));
+  assert.ok(source.includes("What changed since the previous forecast?"));
+});
+
 await check("Arsenal-Chelsea Match Room acceptance values come from backend", async () => {
   const data = await getMatchIntelligence("pl-2026-27-arsenal-chelsea", new Date("2026-08-25T00:00:00Z"));
   assert.ok(Math.abs(data.forecast.result.homeWin - 0.6134875203) < 1e-8);
