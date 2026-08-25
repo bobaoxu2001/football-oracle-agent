@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <div className="relative flex min-h-screen flex-col">
           <Navbar />
-          <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
+          <main id="main-content" tabIndex={-1} className="min-w-0 flex-1">{children}</main>
           <footer className="border-t border-white/5 py-8 text-center text-xs text-muted-foreground">
             <p>
               Football Oracle · Auditable Premier League production forecasts · Elo + Dixon-Coles.

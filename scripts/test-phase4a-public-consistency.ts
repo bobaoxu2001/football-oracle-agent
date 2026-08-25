@@ -134,6 +134,17 @@ async function main(): Promise<void> {
     assert.equal(Object.values(sources).some((source) => source.includes("Settlement succeeded")), false);
   });
 
+  await check("wide accuracy evidence stays inside its mobile scroll container", () => {
+    const layout = fs.readFileSync(path.resolve("app/layout.tsx"), "utf8");
+    const accuracy = fs.readFileSync(path.resolve("app/accuracy/page.tsx"), "utf8");
+    assert.match(layout, /className="min-w-0 flex-1"/);
+    assert.match(accuracy, /w-full max-w-full overflow-x-auto overscroll-x-contain/);
+    assert.match(accuracy, /glass min-w-0 max-w-full/);
+    assert.match(accuracy, /grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-5/);
+    assert.match(accuracy, /min-w-0 lg:col-span-2/);
+    assert.match(accuracy, /min-w-0 lg:col-span-3/);
+  });
+
   console.log(`\nPhase 4A public consistency: ${passed} passed, 0 failed.`);
 }
 

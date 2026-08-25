@@ -41,7 +41,7 @@ export default async function AccuracyPage() {
   const base = track.variants.base;
 
   return (
-    <div className="container py-8 md:py-12">
+    <div className="container min-w-0 max-w-full py-8 md:py-12">
       <section className="mx-auto mb-8 max-w-4xl text-center">
         <div className="chip mx-auto mb-4 w-fit"><ShieldCheck className="h-3.5 w-3.5 text-neon" /> Evidence tracks kept separate</div>
         <h1 className="text-balance text-3xl font-black tracking-tight sm:text-5xl">Track record, <span className="neon-text">without mixing evidence.</span></h1>
@@ -144,8 +144,8 @@ export default async function AccuracyPage() {
       ) : null}
 
       {/* what each layer adds */}
-      <section className="mb-8">
-        <div className="glass rounded-2xl p-5 sm:p-6">
+      <section className="mb-8 min-w-0">
+        <div className="glass min-w-0 max-w-full rounded-2xl p-5 sm:p-6">
           <div className="mb-1 flex items-center gap-2">
             <Layers className="h-4 w-4 text-neon" />
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-neon">
@@ -156,7 +156,7 @@ export default async function AccuracyPage() {
             Cumulative variants, each adding one layer. Lower RPS is better; this is why the
             reconstruction is a pipeline, not a single number.
           </p>
-          <div className="overflow-x-auto">
+          <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
             <table className="w-full min-w-[34rem] text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -204,10 +204,10 @@ export default async function AccuracyPage() {
       </section>
 
       {/* calibration + match log */}
-      <section className="grid gap-6 lg:grid-cols-5">
+      <section className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-5">
         {/* calibration */}
-        <div className="lg:col-span-2">
-          <div className="glass h-full rounded-2xl p-5 sm:p-6">
+        <div className="min-w-0 lg:col-span-2">
+          <div className="glass min-w-0 h-full rounded-2xl p-5 sm:p-6">
             <div className="mb-1 flex items-center gap-2">
               <Gauge className="h-4 w-4 text-neon" />
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-neon">
@@ -253,8 +253,8 @@ export default async function AccuracyPage() {
         </div>
 
         {/* match log */}
-        <div className="lg:col-span-3">
-          <div className="glass h-full rounded-2xl p-5 sm:p-6">
+        <div className="min-w-0 lg:col-span-3">
+          <div className="glass min-w-0 h-full rounded-2xl p-5 sm:p-6">
             <div className="mb-1 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-neon" />
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-neon">
