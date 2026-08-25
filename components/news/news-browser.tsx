@@ -44,9 +44,10 @@ export function NewsBrowser({
   }, []);
 
   useEffect(() => {
-    if (selected !== initialSlug) loadTeam(selected);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
+    if (selected === initialSlug) return;
+    const timer = window.setTimeout(() => void loadTeam(selected), 0);
+    return () => window.clearTimeout(timer);
+  }, [initialSlug, loadTeam, selected]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);

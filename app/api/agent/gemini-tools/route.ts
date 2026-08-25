@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
 import { runGeminiAgent, geminiAgentEnabled } from "@/lib/llm/geminiAgent";
+import {
+  AiRouteTimeoutError,
+  aiRequestFingerprint,
+  anonymousRateLimitKey,
+  readBoundedJson,
+  RequestBodyTooLargeError,
+  requestBodyTooLarge,
+  runAiRequestDeduplicated,
+  takeDurablePublicAiRateLimit,
+  withAiRouteTimeout,
+} from "@/lib/match-forecast/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +29,17 @@ export const dynamic = "force-dynamic";
  * endpoint never errors the demo.
  */
 export async function POST(req: Request) {
+  if (requestBodyTooLarge(req)) {
+    return NextResponse.json({ error: "REQUEST_TOO_LARGE" }, { status: 413 });
+  }
+  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0] ?? null;
+  const rate = await takeDurablePublicAiRateLimit("gemini-tools", anonymousRateLimitKey(forwarded), Date.now(), 6);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "RATE_LIMITED", message: "Too many Gemini agent requests. Please retry shortly." },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
+    );
+  }
   if (!geminiAgentEnabled()) {
     return NextResponse.json({
       available: false,
@@ -27,16 +49,40 @@ export async function POST(req: Request) {
 
   let query = "";
   try {
-    const body = (await req.json()) as { query?: unknown };
-    query = String(body?.query ?? "").trim().slice(0, 300);
-  } catch {
+    const body = await readBoundedJson<{ query?: unknown }>(req);
+    if (typeof body.query === "string") query = body.query.trim();
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return NextResponse.json({ error: "REQUEST_TOO_LARGE" }, { status: 413 });
+    }
     /* empty/invalid body handled below */
   }
   if (!query) {
     return NextResponse.json({ available: true, error: "Provide a non-empty `query`." }, { status: 400 });
   }
+  if (query.length > 300) {
+    return NextResponse.json({ available: true, error: "Query must be 300 characters or fewer." }, { status: 413 });
+  }
 
-  const result = await runGeminiAgent(query);
+  let result;
+  try {
+    result = await runAiRequestDeduplicated(
+      aiRequestFingerprint("gemini-tools", { query }),
+      () => withAiRouteTimeout(runGeminiAgent(query, { maxRounds: 4, maxDurationMs: 18_000 }), 20_000)
+    );
+  } catch (error) {
+    if (error instanceof AiRouteTimeoutError) {
+      return NextResponse.json(
+        { available: true, settled: false, error: "AGENT_TIMEOUT" },
+        { status: 504 }
+      );
+    }
+    console.error("[/api/agent/gemini-tools] error:", error);
+    return NextResponse.json(
+      { available: true, settled: false, error: "PROVIDER_UNAVAILABLE" },
+      { status: 503 }
+    );
+  }
   if (!result) {
     return NextResponse.json({
       available: true,
@@ -54,6 +100,12 @@ export async function POST(req: Request) {
       rounds: result.rounds,
       toolCalls: result.toolCalls,
     },
-    { headers: { "Cache-Control": "no-store" } }
+    {
+      headers: {
+        "Cache-Control": "private, no-store",
+        "X-RateLimit-Limit": String(rate.limit),
+        "X-RateLimit-Remaining": String(rate.remaining),
+      },
+    }
   );
 }

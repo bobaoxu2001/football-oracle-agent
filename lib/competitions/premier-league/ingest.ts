@@ -14,6 +14,7 @@ import type {
   FixtureStatus,
   VerificationStatus,
 } from "@/lib/identity/types";
+import { seasonStatusAt } from "./season-status";
 import { resolveClubSlug, getClub } from "./clubs";
 import { kickoffLocalIso, kickoffUtcFromSource } from "./timezone";
 import { classifyOfficialKickoffCertainty } from "./kickoff-certainty";
@@ -355,7 +356,7 @@ export function ingestOfficial202627(options: {
     season: PREMIER_LEAGUE_CURRENT_SEASON,
     startDate: "2026-08-21",
     endDate: "2027-05-30",
-    status: "upcoming",
+    status: seasonStatusAt({ startDate: "2026-08-21", endDate: "2027-05-30" }, new Date(retrievedAt)),
     clubIds,
     clubSlugs: clubIds,
     expectedClubCount: 20,

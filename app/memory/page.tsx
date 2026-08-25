@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { Database, HardDrive, Brain, Radio, Clock, History } from "lucide-react";
-import { RecentPredictions } from "@/components/agent/recent-predictions";
+import { Database, HardDrive, Brain, Radio, Clock, LockKeyhole } from "lucide-react";
 import { NewsItemCard } from "@/components/news/news-item-card";
 import { relativeTime } from "@/components/news/news-badges";
 import { RefreshNewsButton } from "@/components/memory/refresh-news-button";
-import { getRecentPredictions, mongoConnected, countPredictions } from "@/lib/db/mongodb";
+import { mongoConnected, countPredictions } from "@/lib/db/mongodb";
 import { getNewsForTeam, getNewsStats, newsMode } from "@/lib/news/newsIngestor";
 import { teamRef } from "@/lib/agent/matchResolver";
 import type { NewsItemView } from "@/lib/agent/types";
@@ -14,14 +13,13 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Agent Memory Center · WorldCup Oracle Agent",
   description:
-    "The agent's MongoDB-backed memory: recent prediction sessions, stored team-news signals, follow-up context, and backend status (MongoDB Atlas or in-memory fallback).",
+    "A privacy-safe view of the agent's storage architecture and sourced team-news signals.",
 };
 
 const FEATURED = ["argentina", "germany", "brazil", "france"];
 
 export default async function MemoryPage() {
-  const [{ items: recent, source: recentSource }, connected, preds, newsStats] = await Promise.all([
-    getRecentPredictions(8),
+  const [connected, preds, newsStats] = await Promise.all([
     mongoConnected(),
     countPredictions(),
     getNewsStats(),
@@ -60,9 +58,8 @@ export default async function MemoryPage() {
           Agent <span className="neon-text">Memory Center</span>
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
-          MongoDB is the agent&apos;s memory layer — not just storage. It persists every prediction
-          session, the daily team-news signals it reasons over, and the follow-up context that lets
-          it pick up where you left off.
+          This page explains the storage layer without publishing anyone&apos;s prompts, answers,
+          context, or session history. Anonymous conversations are operational data, not a public feed.
         </p>
       </section>
 
@@ -88,9 +85,9 @@ export default async function MemoryPage() {
           </p>
           <div className="mt-3 flex items-center gap-2">
             <span className="chip text-[10px]">
-              <History className="h-3 w-3" /> {preds.total} session{preds.total === 1 ? "" : "s"}
+              <LockKeyhole className="h-3 w-3" /> {preds.total} private session{preds.total === 1 ? "" : "s"}
             </span>
-            <span className="chip text-[10px]">{recentSource === "mongodb" ? "MongoDB" : "In-memory"}</span>
+            <span className="chip text-[10px]">not publicly enumerable</span>
           </div>
         </div>
 
@@ -147,12 +144,14 @@ export default async function MemoryPage() {
         </div>
       </section>
 
-      {/* recent prediction sessions */}
-      <section className="mb-8">
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-neon">
-          <History className="h-4 w-4" /> Recent prediction sessions
+      <section className="mb-8 rounded-2xl border border-neon/20 bg-neon/[0.05] p-5">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <LockKeyhole className="h-4 w-4 text-neon" /> Conversation privacy
         </h2>
-        <RecentPredictions items={recent} source={recentSource} />
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+          The public site exposes neither raw anonymous questions nor generated answers. Records are
+          retained for internal reliability and are not rendered here or returned by the legacy recent-predictions API.
+        </p>
       </section>
 
       {/* stored team news */}

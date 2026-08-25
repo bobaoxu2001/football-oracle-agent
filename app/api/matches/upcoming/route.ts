@@ -1,0 +1,20 @@
+import { NextResponse } from "next/server";
+import { upcomingMatchForecasts } from "@/lib/match-forecast/service";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    return NextResponse.json(
+      { competition: "premier-league", support: "production", matches: upcomingMatchForecasts(8) },
+      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
+    );
+  } catch (error) {
+    console.error("[/api/matches/upcoming] error:", error);
+    return NextResponse.json(
+      { error: "UPCOMING_MATCHES_UNAVAILABLE", matches: [] },
+      { status: 503 }
+    );
+  }
+}

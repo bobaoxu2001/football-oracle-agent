@@ -3,13 +3,17 @@ import { Target, TrendingUp, Gauge, CheckCircle2, Layers, ShieldCheck } from "lu
 import { computeTrackRecord, type VariantKey } from "@/lib/prediction-engine/trackRecord";
 import { loadDcReport } from "@/lib/prediction-engine/dcReport";
 import { MatchLog } from "@/components/accuracy/match-log";
+import { livePerformanceReport } from "@/lib/competitions/premier-league/live-ledger";
+import { shadowEvaluationReport } from "@/lib/competitions/premier-league/shadow/report";
+import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
+import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Track Record · WorldCup Oracle Agent",
+  title: "Track Record · Football Oracle",
   description:
-    "The agent's verified out-of-sample accuracy: a walk-forward backtest of the live prediction stack against every completed 2026 World Cup result, cross-checked by an independent ridge Dixon-Coles model.",
+    "Production Premier League evidence, shadow evaluation and World Cup reconstruction shown as separate tracks.",
 };
 
 const pct = (x: number, d = 0) => `${(x * 100).toFixed(d)}%`;
@@ -25,7 +29,10 @@ const VARIANT_LABEL: Record<VariantKey, string> = {
   "+cal": "+ confidence calibration (LIVE)",
 };
 
-export default function AccuracyPage() {
+export default async function AccuracyPage() {
+  await hydrateDurableOps();
+  const production = livePerformanceReport("LIVE_OOS", PREMIER_LEAGUE_CURRENT_SEASON);
+  const shadow = shadowEvaluationReport(PREMIER_LEAGUE_CURRENT_SEASON);
   const track = computeTrackRecord();
   const dc = loadDcReport();
   const live = track.variants["+cal"];
@@ -33,19 +40,30 @@ export default function AccuracyPage() {
 
   return (
     <div className="container py-8 md:py-12">
+      <section className="mx-auto mb-8 max-w-4xl text-center">
+        <div className="chip mx-auto mb-4 w-fit"><ShieldCheck className="h-3.5 w-3.5 text-neon" /> Evidence tracks kept separate</div>
+        <h1 className="text-balance text-3xl font-black tracking-tight sm:text-5xl">Track record, <span className="neon-text">without mixing evidence.</span></h1>
+        <p className="mx-auto mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">Premier League production snapshots, experimental shadow pairs and historical World Cup reconstruction answer different questions. They are never pooled into one headline accuracy claim.</p>
+      </section>
+      <section className="mx-auto mb-12 grid max-w-5xl gap-4 md:grid-cols-3">
+        <EvidenceCard label="Premier League production" value={`${production.nSettled} settled`} status={production.brier === null ? "Metrics withheld" : `RPS ${production.rps?.toFixed(3)}`} copy={`${production.nPredictions} immutable LIVE_OOS snapshots. ${production.sampleNote}`} href="/live" />
+        <EvidenceCard label="Shadow challenger" value={`${shadow.collection.pairedEvidence} paired`} status={shadow.promotion.status} copy={shadow.sampleNote} href="/shadow" />
+        <EvidenceCard label="World Cup reconstruction" value={`${track.nMatches} matches`} status="Historical only" copy="Walk-forward chronology is enforced inside a completed dataset, but forecasts were not proven frozen and served live before every kickoff." href="#world-cup-reconstruction" />
+      </section>
       {/* hero */}
-      <section className="mx-auto mb-8 max-w-3xl text-center">
+      <section id="world-cup-reconstruction" className="mx-auto mb-8 max-w-3xl text-center scroll-mt-24">
         <div className="chip mx-auto mb-4 w-fit">
-          <ShieldCheck className="h-3.5 w-3.5 text-neon" />
-          Verified out-of-sample
+          <Layers className="h-3.5 w-3.5 text-neon" />
+          Historical reconstruction track
         </div>
-        <h1 className="text-balance text-3xl font-black tracking-tight sm:text-4xl">
-          The agent&apos;s <span className="neon-text">track record</span>
-        </h1>
+        <h2 className="text-balance text-3xl font-black tracking-tight sm:text-4xl">
+          World Cup <span className="neon-text">walk-forward audit</span>
+        </h2>
         <p className="mx-auto mt-3 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
-          Every completed 2026 World Cup match, graded honestly. The model predicts each fixture using{" "}
+          Every completed 2026 World Cup match is recomputed using{" "}
           <strong className="text-foreground">only the results before it</strong> — never its own
-          outcome — so this is a true walk-forward test of the live engine, not a curve fit. Scored on{" "}
+          outcome. That blocks direct target leakage inside the reconstruction, but it does not turn
+          a post-tournament dataset into a live frozen forecast ledger. Scored on{" "}
           <strong className="text-foreground">{track.nMatches} matches</strong> through{" "}
           {track.asOf || "—"}.
         </p>
@@ -80,13 +98,13 @@ export default function AccuracyPage() {
       </section>
 
       {/* two-model agreement */}
-      {dc && (
+      {dc ? (
         <section className="mb-8">
           <div className="glass rounded-2xl p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
               <Layers className="h-4 w-4 text-neon" />
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-neon">
-                Two independent models agree
+                Two retrospective models agree
               </h2>
             </div>
             <p className="mb-5 max-w-3xl text-sm text-muted-foreground">
@@ -94,13 +112,13 @@ export default function AccuracyPage() {
               Carlo</strong> stack in TypeScript. A completely separate{" "}
               <strong className="text-foreground">ridge Dixon-Coles</strong> bivariate-Poisson model
               (Python, refit nightly) is leave-one-out scored on the same fixtures. When two models
-              built differently land on the same out-of-sample skill, the number is real — not an
-              artefact of one pipeline.
+              built differently land near the same walk-forward score, it is a useful consistency
+              check—not proof that either forecast was served live before kickoff.
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <ModelCard
                 title="Live TypeScript engine"
-                subtitle="Walk-forward · full agent stack"
+                subtitle="Walk-forward reconstruction · full stack"
                 rows={[
                   ["RPS skill vs baseline", signedPct(track.skill.rpsSkill, 1)],
                   ["Top-pick accuracy", pct(live.topPickAcc)],
@@ -121,7 +139,7 @@ export default function AccuracyPage() {
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
       {/* what each layer adds */}
       <section className="mb-8">
@@ -147,8 +165,7 @@ export default function AccuracyPage() {
                 </tr>
               </thead>
               <tbody>
-                {track.variants &&
-                  (Object.keys(VARIANT_LABEL) as VariantKey[]).map((k) => {
+                {(Object.keys(VARIANT_LABEL) as VariantKey[]).map((k) => {
                     const v = track.variants[k];
                     const isLive = k === "+cal";
                     return (
@@ -254,10 +271,14 @@ export default function AccuracyPage() {
       <p className="mx-auto mt-8 max-w-3xl text-center text-xs text-muted-foreground">
         Numbers recompute from the results file on every load. RPS (Ranked Probability Score) is the
         football-forecasting standard — it rewards getting the home → draw → away order right, not
-        just the exact bucket. Verified out-of-sample; no result is used to predict itself.
+        just the exact bucket. Chronology is enforced within this historical reconstruction; it remains separate from the frozen Premier League production ledger.
       </p>
     </div>
   );
+}
+
+function EvidenceCard({ label, value, status, copy, href }: { label: string; value: string; status: string; copy: string; href: string }) {
+  return <a href={href} className="glass glass-hover block p-5 text-left"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neon">{label}</p><p className="mt-3 text-2xl font-black tabular-nums">{value}</p><p className="mt-1 text-xs font-semibold text-foreground/85">{status}</p><p className="mt-3 line-clamp-4 text-xs leading-relaxed text-muted-foreground">{copy}</p><span className="mt-4 inline-block text-xs font-semibold text-neon">Inspect track →</span></a>;
 }
 
 function MetricCard({

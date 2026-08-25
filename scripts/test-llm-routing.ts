@@ -129,7 +129,6 @@ const weakView = {
   ],
   netDirection: "neutral",
   headline: "No major negative signals.",
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any;
 check(
   "weak live batch → digest says no strong signal found",

@@ -65,7 +65,10 @@ interface FunctionDeclaration {
 }
 
 /** Injectable transport so the loop is testable without a network or a key. */
-export type GeminiTransport = (req: GeminiRequest) => Promise<GeminiResponse>;
+export type GeminiTransport = (
+  req: GeminiRequest,
+  options?: { timeoutMs?: number }
+) => Promise<GeminiResponse>;
 
 export interface ToolCallTrace {
   name: string;
@@ -236,11 +239,11 @@ async function executeTool(
 }
 
 // ── Default network transport (real Gemini REST) ─────────────────────────────
-const defaultTransport: GeminiTransport = async (req) => {
+const defaultTransport: GeminiTransport = async (req, options) => {
   const key = geminiApiKey();
   if (!key) throw new Error("no gemini key");
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
+  const timeout = setTimeout(() => controller.abort(), options?.timeoutMs ?? 8_000);
   try {
     const res = await fetch(geminiEndpoint(), {
       method: "POST",
@@ -281,10 +284,11 @@ export function geminiAgentEnabled(): boolean {
  */
 export async function runGeminiAgent(
   query: string,
-  opts: { transport?: GeminiTransport; maxRounds?: number; force?: boolean } = {}
+  opts: { transport?: GeminiTransport; maxRounds?: number; maxDurationMs?: number; force?: boolean } = {}
 ): Promise<GeminiAgentResult | null> {
   const transport = opts.transport ?? defaultTransport;
   const maxRounds = opts.maxRounds ?? 6;
+  const deadline = Date.now() + (opts.maxDurationMs ?? 25_000);
   if (!opts.transport && !opts.force && !geminiAgentEnabled()) return null;
 
   const contents: GeminiContent[] = [{ role: "user", parts: [{ text: query }] }];
@@ -292,13 +296,15 @@ export async function runGeminiAgent(
 
   try {
     for (let round = 1; round <= maxRounds; round++) {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) return null;
       const req: GeminiRequest = {
         contents,
         tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
         systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
         generationConfig: { temperature: 0.3 },
       };
-      const resp = await transport(req);
+      const resp = await transport(req, { timeoutMs: Math.min(8_000, remainingMs) });
       const parts = resp.candidates?.[0]?.content?.parts ?? [];
       const calls = parts.filter((p): p is Required<Pick<GeminiPart, "functionCall">> & GeminiPart => !!p.functionCall);
 

@@ -108,6 +108,7 @@ export function AgentChat({
 
   // Restore the chosen language; detect speech-recognition support (client only).
   useEffect(() => {
+    const timer = window.setTimeout(() => {
     try {
       const saved = localStorage.getItem("wcoa-lang");
       if (saved && isLangCode(saved)) setLang(saved);
@@ -119,6 +120,8 @@ export function AgentChat({
       webkitSpeechRecognition?: unknown;
     };
     setSpeechSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const changeLang = useCallback((code: LangCode) => {
@@ -682,8 +685,12 @@ function SpeakButton({
   const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
-    setSupported(typeof window !== "undefined" && "speechSynthesis" in window);
+    const timer = window.setTimeout(
+      () => setSupported(typeof window !== "undefined" && "speechSynthesis" in window),
+      0
+    );
     return () => {
+      window.clearTimeout(timer);
       try {
         window.speechSynthesis?.cancel();
       } catch {

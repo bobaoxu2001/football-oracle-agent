@@ -10,9 +10,9 @@ const inter = Inter({
 });
 
 const SITE_NAME = "Football Oracle";
-const SITE_TITLE = "Football Oracle — Premier League forecasts + World Cup plugin";
+const SITE_TITLE = "Football Oracle — Auditable Premier League forecasts";
 const SITE_DESCRIPTION =
-  "An AI agent that forecasts Premier League matches with walk-forward Elo and Dixon-Coles, and still runs the preserved World Cup 2026 plugin.";
+  "Auditable Premier League match probabilities, exact-score distributions and grounded agent explanations from immutable production forecasts.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="flex-1">{children}</main>
           <footer className="border-t border-white/5 py-8 text-center text-xs text-muted-foreground">
             <p>
-              Football Oracle · Premier League baseline + World Cup plugin · Elo + Dixon-Coles.
+              Football Oracle · Auditable Premier League production forecasts · Elo + Dixon-Coles.
             </p>
             <p className="mt-1">
               Predictions are model estimates for entertainment & informational use only.

@@ -16,6 +16,7 @@ import { listCanonicalMatches } from "./store";
 import { isCompletedMatch, type CanonicalMatch } from "./types";
 import { serializeMatchForApi, serializeTeamSeason, type SerializedMatch, type SerializedTeamSeason } from "./serialize";
 import { FOOTBALL_DATA_CAPABILITY } from "./providers/football-data";
+import { productionModelVersion } from "@/lib/competitions/premier-league/shadow/track";
 
 /**
  * The prediction that was frozen closest to kickoff WITHOUT crossing it.
@@ -65,6 +66,9 @@ function snapshotsByFixture(season: string): Map<string, PredictionSnapshot[]> {
     return out;
   }
   for (const s of rows) {
+    // Match history is a production surface. A challenger frozen later (or
+    // earlier) must never win the generic "latest before kickoff" selection.
+    if (s.modelVersion !== productionModelVersion()) continue;
     const list = out.get(s.fixtureId);
     if (list) list.push(s);
     else out.set(s.fixtureId, [s]);

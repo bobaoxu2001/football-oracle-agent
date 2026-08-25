@@ -17,6 +17,12 @@ import type { BacktestResult, Outcome } from "@/lib/evaluation/types";
 import { loadSettlements, type SettlementRecord } from "./settlement";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "./config";
 import { liveSnapshotUniverse } from "./ops/live-snapshot-reader";
+import { productionModelVersion } from "./shadow/track";
+
+function productionOnly(snapshots: PredictionSnapshot[]): PredictionSnapshot[] {
+  const version = productionModelVersion();
+  return snapshots.filter((snapshot) => snapshot.modelVersion === version);
+}
 
 export function operationalLiveOosUnion(season = PREMIER_LEAGUE_CURRENT_SEASON): {
   snapshots: PredictionSnapshot[];
@@ -57,7 +63,7 @@ export function snapshotsOfClass(
 }
 
 export function liveOosCount(season = PREMIER_LEAGUE_CURRENT_SEASON): number {
-  return snapshotsOfClass("LIVE_OOS", season).length;
+  return productionOnly(snapshotsOfClass("LIVE_OOS", season)).length;
 }
 
 export function stageBreakdown(
@@ -97,10 +103,18 @@ export function ledgerCounts(season = PREMIER_LEAGUE_CURRENT_SEASON): {
   const index = snapshotIndexStats();
   const indexed = listSnapshots().filter((s) => !season || s.season === season);
   const union = operationalLiveOosUnion(season);
+  const productionSnapshots = productionOnly(union.snapshots);
+  const committedKeys = new Set(
+    productionOnly(loadCommittedLiveOos().filter((s) => !season || s.season === season)).map(
+      (snapshot) => snapshot.provenance.uniqueKey
+    )
+  );
   return {
-    LIVE_OOS: union.total,
-    liveOosCommitted: union.committed,
-    liveOosOperational: union.operational,
+    LIVE_OOS: productionSnapshots.length,
+    liveOosCommitted: committedKeys.size,
+    liveOosOperational: productionSnapshots.filter(
+      (snapshot) => !committedKeys.has(snapshot.provenance.uniqueKey)
+    ).length,
     RETROSPECTIVE: indexed.filter((s) => s.evaluationClass === "RETROSPECTIVE").length,
     BACKTEST: indexed.filter((s) => s.evaluationClass === "BACKTEST").length,
     rawReferences: index.rawReferences,
@@ -184,11 +198,15 @@ export function livePerformanceReport(
   season = PREMIER_LEAGUE_CURRENT_SEASON
 ): LivePerformanceReport {
   const union = evaluationClass === "LIVE_OOS" ? operationalLiveOosUnion(season) : null;
-  const snaps = snapshotsOfClass(evaluationClass, season, {
+  const allSnapshots = snapshotsOfClass(evaluationClass, season, {
     source: evaluationClass === "LIVE_OOS" ? "union" : "index",
   });
+  const snaps = evaluationClass === "LIVE_OOS" ? productionOnly(allSnapshots) : allSnapshots;
   const settled = loadSettlements().filter(
-    (s) => s.evaluationClass === evaluationClass && s.season === season
+    (s) =>
+      s.evaluationClass === evaluationClass &&
+      s.season === season &&
+      (evaluationClass !== "LIVE_OOS" || s.modelVersion === productionModelVersion())
   );
   const nPredictions = snaps.length;
   const nSettled = settled.length;
@@ -221,8 +239,22 @@ export function livePerformanceReport(
     evaluationClass,
     nPredictions,
     nSettled,
-    nCommitted: union?.committed ?? nPredictions,
-    nOperational: union?.operational ?? 0,
+    nCommitted:
+      union === null
+        ? nPredictions
+        : productionOnly(
+            loadCommittedLiveOos().filter((snapshot) => snapshot.season === season)
+          ).length,
+    nOperational:
+      union === null
+        ? 0
+        : Math.max(
+            0,
+            nPredictions -
+              productionOnly(
+                loadCommittedLiveOos().filter((snapshot) => snapshot.season === season)
+              ).length
+          ),
     stages,
     byStage,
     sampleNote: tiny
@@ -238,8 +270,12 @@ export function livePerformanceReport(
 }
 
 export function fixtureLiveView(fixtureId: string, season = PREMIER_LEAGUE_CURRENT_SEASON) {
-  const snaps = operationalLiveOosUnion(season).snapshots.filter((s) => s.fixtureId === fixtureId);
-  const settlements = loadSettlements().filter((s) => s.fixtureId === fixtureId);
+  const snaps = productionOnly(
+    operationalLiveOosUnion(season).snapshots.filter((s) => s.fixtureId === fixtureId)
+  );
+  const settlements = loadSettlements().filter(
+    (s) => s.fixtureId === fixtureId && s.modelVersion === productionModelVersion()
+  );
   const byStage: Record<string, { snapshot: PredictionSnapshot | null; settlement: SettlementRecord | null }> = {};
   for (const stage of ["PRESEASON", "EARLY", "T24H", "T2H", "T60M", "FINAL_PREKICK"] as const) {
     const snapshot = snaps.find((s) => canonicalizePredictionStage(s.predictionStage) === stage) ?? null;

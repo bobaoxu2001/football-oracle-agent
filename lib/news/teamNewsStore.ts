@@ -12,6 +12,17 @@ import type { Collection } from "mongodb";
 import type { TeamNewsItem } from "./types";
 
 const COLLECTION = "team_news";
+const BATCH_COLLECTION = "team_news_batches";
+
+interface StoredTeamNewsItem extends TeamNewsItem {
+  batchId?: string;
+}
+
+interface ActiveNewsBatch {
+  team: string;
+  batchId: string;
+  activatedAt: Date;
+}
 
 // ---- In-memory fallback ----
 // Shared across route/page bundles via globalThis (see mongodb.ts for why).
@@ -33,10 +44,10 @@ export function getLastNewsUpdate(): Date | null {
   return __g.__wcoaNewsLast ?? null;
 }
 
-async function getCollection(): Promise<Collection<TeamNewsItem> | null> {
+async function getCollection(): Promise<Collection<StoredTeamNewsItem> | null> {
   const db = await getMongoDb();
   if (!db) return null;
-  const col = db.collection<TeamNewsItem>(COLLECTION);
+  const col = db.collection<StoredTeamNewsItem>(COLLECTION);
   if (!indexesEnsured) {
     try {
       await col.createIndexes([
@@ -44,6 +55,7 @@ async function getCollection(): Promise<Collection<TeamNewsItem> | null> {
         { key: { category: 1 }, name: "category" },
         { key: { impactLevel: 1 }, name: "impactLevel" },
         { key: { publishedAt: -1 }, name: "publishedAt" },
+        { key: { team: 1, batchId: 1 }, name: "team_batch" },
       ]);
       indexesEnsured = true;
     } catch {
@@ -51,6 +63,38 @@ async function getCollection(): Promise<Collection<TeamNewsItem> | null> {
     }
   }
   return col;
+}
+
+async function getBatchCollection(): Promise<Collection<ActiveNewsBatch> | null> {
+  const db = await getMongoDb();
+  return db ? db.collection<ActiveNewsBatch>(BATCH_COLLECTION) : null;
+}
+
+export interface SafeNewsBatchOperations {
+  stage: () => Promise<void>;
+  activate: () => Promise<void>;
+  discardStage: () => Promise<void>;
+  cleanupOld: () => Promise<void>;
+}
+
+/** Stage → activate pointer → cleanup. The last-known-good pointer moves only after staging succeeds. */
+export async function replaceNewsBatchSafely(ops: SafeNewsBatchOperations): Promise<void> {
+  try {
+    await ops.stage();
+    await ops.activate();
+  } catch (error) {
+    try {
+      await ops.discardStage();
+    } catch {
+      /* rollback is best-effort; the active pointer still references the old batch */
+    }
+    throw error;
+  }
+  try {
+    await ops.cleanupOld();
+  } catch {
+    /* stale inactive batches are harmless and can be cleaned on a later refresh */
+  }
 }
 
 /** A stable key to de-duplicate news items (same team + title). */
@@ -66,12 +110,31 @@ export async function saveTeamNews(
   team: string,
   items: TeamNewsItem[]
 ): Promise<"mongodb" | "memory"> {
-  markWrite();
   const col = await getCollection();
-  if (col) {
+  const batches = await getBatchCollection();
+  if (col && batches) {
+    const batchId = `${Date.now().toString(36)}-${crypto.randomUUID()}`;
+    const staged = items.map((item) => ({ ...item, batchId }));
     try {
-      await col.deleteMany({ team });
-      if (items.length) await col.insertMany(items);
+      await replaceNewsBatchSafely({
+        stage: async () => {
+          if (staged.length) await col.insertMany(staged, { ordered: true });
+        },
+        activate: async () => {
+          await batches.updateOne(
+            { team },
+            { $set: { team, batchId, activatedAt: new Date() } },
+            { upsert: true }
+          );
+        },
+        discardStage: async () => {
+          await col.deleteMany({ team, batchId });
+        },
+        cleanupOld: async () => {
+          await col.deleteMany({ team, batchId: { $ne: batchId } });
+        },
+      });
+      markWrite();
       return "mongodb";
     } catch (err) {
       console.warn("[team_news] write failed — using memory:", (err as Error)?.message);
@@ -83,6 +146,7 @@ export async function saveTeamNews(
   }
   memoryStore.push(...items);
   if (memoryStore.length > MEMORY_LIMIT) memoryStore.splice(0, memoryStore.length - MEMORY_LIMIT);
+  markWrite();
   return "memory";
 }
 
@@ -116,8 +180,10 @@ export async function getTeamNews(
   const col = await getCollection();
   if (col) {
     try {
+      const batch = await (await getBatchCollection())?.findOne({ team });
+      const filter = batch?.batchId ? { team, batchId: batch.batchId } : { team, batchId: { $exists: false } };
       const items = await col
-        .find({ team }, { projection: { _id: 0 } })
+        .find(filter, { projection: { _id: 0, batchId: 0 } })
         .sort({ publishedAt: -1 })
         .limit(limit)
         .toArray();
@@ -138,7 +204,9 @@ export async function hasStoredNews(team: string): Promise<boolean> {
   const col = await getCollection();
   if (col) {
     try {
-      return (await col.countDocuments({ team }, { limit: 1 })) > 0;
+      const batch = await (await getBatchCollection())?.findOne({ team });
+      const filter = batch?.batchId ? { team, batchId: batch.batchId } : { team, batchId: { $exists: false } };
+      return (await col.countDocuments(filter, { limit: 1 })) > 0;
     } catch {
       /* fall through to memory */
     }

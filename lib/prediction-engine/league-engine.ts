@@ -195,8 +195,15 @@ export function snapshotPremierLeagueMatch(
     away: pred.teamBWinProbability,
     homeExpectedGoals: pred.expectedGoalsA,
     awayExpectedGoals: pred.expectedGoalsB,
+    // Freeze the complete normalized 9×9 Dixon-Coles distribution. Older
+    // immutable rows stored only the top six; the Match Forecast service can
+    // reconstruct those from their frozen lambdas + rho without rewriting
+    // history. Every new snapshot carries the canonical probability artifact.
     scorelineDistribution: Object.fromEntries(
-      pred.topScorelines.map((s) => [s.score, s.prob])
+      scorelineGrid(pred.eloA, pred.eloB, params.homeAdvantage, {
+        rho: params.dcRho,
+        awayHomeShare: params.awayHomeShare,
+      }).map((s) => [`${s.a}–${s.b}`, s.p])
     ),
     modelParameters: {
       homeAdvantage: params.homeAdvantage,

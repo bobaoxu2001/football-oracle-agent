@@ -17,6 +17,7 @@ import {
   type IngestResult,
 } from "./ingest";
 import { applyKickoffCertainty } from "./kickoff-certainty";
+import { withEffectiveSeasonStatus } from "./season-status";
 import {
   clubSeasonsPath,
   fixtureRevisionsPath,
@@ -89,7 +90,8 @@ export function liveFixtures(): Fixture[] {
 }
 
 export function liveCompetitionSeason(): CompetitionSeason | null {
-  return loadSeasonBundle()?.season ?? null;
+  const season = loadSeasonBundle()?.season;
+  return season ? withEffectiveSeasonStatus(season) : null;
 }
 
 export function liveClubSeasons(): ClubSeason[] {
