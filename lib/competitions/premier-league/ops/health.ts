@@ -87,6 +87,8 @@ export interface HealthReport {
     durable: boolean;
     hydrated: boolean;
     lastHydratedAt: string | null;
+    lastHydrateFailedAt: string | null;
+    hydrateRefreshFailed: boolean;
     lastFlushAt: string | null;
     mongoConfigured: boolean;
   };
@@ -248,6 +250,14 @@ export function buildHealthReport(now = new Date()): HealthReport {
     overall = "BLOCKED";
     reasons.push("Mongo ops store selected but MONGODB_URI is missing");
   }
+  if (persist.backend !== "file" && (!persist.hydrated || persist.hydrateRefreshFailed)) {
+    if (overall !== "BLOCKED") overall = "DEGRADED";
+    reasons.push(
+      persist.hydrated
+        ? "durable ops refresh failed; serving the last verified in-process state"
+        : "durable ops state is not hydrated"
+    );
+  }
 
   if (overall === "HEALTHY") {
     reasons.push("data ready, live source configured, durable store and scheduler not blocked");
@@ -313,6 +323,8 @@ export function buildHealthReport(now = new Date()): HealthReport {
       durable: persist.durable,
       hydrated: persist.hydrated,
       lastHydratedAt: persist.lastHydratedAt,
+      lastHydrateFailedAt: persist.lastHydrateFailedAt,
+      hydrateRefreshFailed: persist.hydrateRefreshFailed,
       lastFlushAt: persist.lastFlushAt,
       mongoConfigured: mongoConfigured(),
     },

@@ -86,6 +86,12 @@ export async function ingestCompetition(input: {
   season?: string;
   observedAt?: string;
   matches?: FootballDataMatch[];
+  /** Hosted observers may bound retries to stay inside one function budget. */
+  providerOptions?: {
+    timeoutMs?: number;
+    maxRetries?: number;
+    sleepFn?: (ms: number) => Promise<void>;
+  };
 }): Promise<CompetitionIngestReport> {
   const season = input.season ?? BIG_FIVE_CURRENT_SEASON;
   const observedAt = input.observedAt ?? new Date().toISOString();
@@ -100,7 +106,11 @@ export async function ingestCompetition(input: {
       return report;
     }
     try {
-      const fetched = await fetchCompetitionMatches(input.competition, season);
+      const fetched = await fetchCompetitionMatches(
+        input.competition,
+        season,
+        input.providerOptions
+      );
       rows = fetched.matches;
       report.httpStatus = fetched.httpStatus;
       if (fetched.httpStatus !== 200) {
@@ -167,6 +177,8 @@ export async function ingestBigFive(input: {
   matchesByCompetition?: Partial<Record<BigFiveCompetitionId, FootballDataMatch[]>>;
   /** Gap between live provider calls. Ignored when payloads are injected. */
   interRequestDelayMs?: number;
+  providerTimeoutMs?: number;
+  providerMaxRetries?: number;
 } = {}): Promise<LedgerIngestReport> {
   const season = input.season ?? BIG_FIVE_CURRENT_SEASON;
   const ranAt = input.observedAt ?? new Date().toISOString();
@@ -186,6 +198,12 @@ export async function ingestBigFive(input: {
         season,
         observedAt: ranAt,
         matches: injected,
+        providerOptions: injected
+          ? undefined
+          : {
+              timeoutMs: input.providerTimeoutMs,
+              maxRetries: input.providerMaxRetries,
+            },
       })
     );
   }

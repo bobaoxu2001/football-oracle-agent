@@ -33,7 +33,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-background/85 backdrop-blur-xl">
       <div className="container flex min-h-16 items-center justify-between gap-3 py-2">
-        <Link href="/" className="group flex items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon" aria-label="Football Oracle home">
+        <Link href="/" prefetch={false} className="group flex items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon" aria-label="Football Oracle home">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neon text-primary-foreground shadow-glow"><Orbit className="h-5 w-5" aria-hidden="true" /></span>
           <span className="flex flex-col leading-none">
             <span className="text-sm font-black tracking-tight">Football <span className="text-neon">Oracle</span></span>
@@ -79,10 +79,10 @@ function isActive(pathname: string, href: string): boolean {
 
 function NavLink({ href, pathname, children }: { href: string; pathname: string; children: React.ReactNode }) {
   const active = isActive(pathname, href);
-  return <Link href={href} aria-current={active ? "page" : undefined} className={`inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{children}</Link>;
+  return <Link href={href} prefetch={false} aria-current={active ? "page" : undefined} className={`inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{children}</Link>;
 }
 
 function MenuLink({ href, pathname, onSelect, children }: { href: string; pathname: string; onSelect: () => void; children: React.ReactNode }) {
   const active = isActive(pathname, href);
-  return <Link href={href} aria-current={active ? "page" : undefined} onClick={onSelect} className={`flex min-h-11 items-center rounded-lg px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon ${active ? "bg-white/[0.05] font-semibold text-foreground" : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"}`}>{children}</Link>;
+  return <Link href={href} prefetch={false} aria-current={active ? "page" : undefined} onClick={onSelect} className={`flex min-h-11 items-center rounded-lg px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon ${active ? "bg-white/[0.05] font-semibold text-foreground" : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"}`}>{children}</Link>;
 }

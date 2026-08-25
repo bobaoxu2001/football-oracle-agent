@@ -84,6 +84,14 @@ function getClient(): Promise<MongoClient> | null {
       // more headroom than a local box; 2.5s was too tight on Vercel.
       serverSelectionTimeoutMS: 8000,
       connectTimeoutMS: 8000,
+      // Bound already-connected operations as well. The driver defaults these
+      // waits to unbounded, which let a degraded Atlas monitor pin Vercel
+      // functions until the platform's 60-second runtime timeout.
+      timeoutMS: 45_000,
+      waitQueueTimeoutMS: 5_000,
+      maxPoolSize: 10,
+      maxConnecting: 2,
+      maxIdleTimeMS: 60_000,
     });
     __gm.__wcoaMongoClient = client.connect().catch((err) => {
       console.warn("[mongodb] connection failed — using in-memory fallback:", err?.message);

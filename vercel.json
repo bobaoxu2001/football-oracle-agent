@@ -6,7 +6,7 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/ops/tick",
+      "path": "/api/ops/tick?core=1",
       "schedule": "0 4 * * *"
     }
   ]

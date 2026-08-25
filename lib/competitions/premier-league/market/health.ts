@@ -3,9 +3,9 @@
  */
 
 import { liveFixtures } from "../fixture-store";
-import type { MarketHealthState } from "./types";
+import type { MarketHealthState, MarketRecorderState } from "./types";
 import { marketSourceConfigured } from "./source";
-import { countConsensus, countObservations, listConsensus, listObservations, loadMarketState } from "./store";
+import { loadMarketState, marketHealthCounts } from "./store";
 import { QUOTA_CRITICAL, QUOTA_LOW } from "./cadence";
 
 export interface MarketHealthReport {
@@ -37,35 +37,62 @@ export interface MarketHealthReport {
   schemaVersion: string;
 }
 
-export async function buildMarketHealthReport(): Promise<MarketHealthReport> {
-  const state = await loadMarketState();
-  const [nObs, nCons, obs, cons] = await Promise.all([
-    countObservations(),
-    countConsensus(),
-    listObservations(),
-    listConsensus(),
+export const MARKET_HEALTH_SCHEDULER_JITTER_MS = 7 * 60_000;
+
+/** Freshness truth independent of quota/source-error classification. */
+export function marketRecorderFreshnessReasons(
+  state: Pick<MarketRecorderState, "lastSuccessAt" | "nextPollAt">,
+  now = new Date()
+): string[] {
+  if (!state.lastSuccessAt) {
+    return ["market recorder has not completed a successful poll"];
+  }
+  if (!state.nextPollAt) {
+    return ["market recorder has no next poll scheduled"];
+  }
+  const nextPollMs = Date.parse(state.nextPollAt);
+  if (!Number.isFinite(nextPollMs)) {
+    return ["market recorder next poll timestamp is invalid"];
+  }
+  if (now.getTime() > nextPollMs + MARKET_HEALTH_SCHEDULER_JITTER_MS) {
+    return [`market recorder overdue since ${state.nextPollAt}`];
+  }
+  return [];
+}
+
+export async function buildMarketHealthReport(now = new Date()): Promise<MarketHealthReport> {
+  const [state, counts] = await Promise.all([
+    loadMarketState(),
+    marketHealthCounts(),
   ]);
   const fixtures = liveFixtures();
-  const matched = new Set(obs.map((o) => o.canonicalFixtureId));
-  const books = new Set(obs.map((o) => o.bookmakerKey));
   const configured = marketSourceConfigured();
   const reasons: string[] = [];
   let overall: MarketHealthState = "HEALTHY";
   if (!configured) {
     overall = "UNCONFIGURED";
     reasons.push("ODDS_API_KEY not configured");
-  } else if (state.lastError && !state.lastSuccessAt) {
-    overall = "DEGRADED";
-    reasons.push(`market source error: ${state.lastError}`);
-  } else if (state.lastQuota.remaining != null && state.lastQuota.remaining < QUOTA_CRITICAL) {
-    overall = "DEGRADED";
-    reasons.push(`quota critical (${state.lastQuota.remaining} remaining); cadence floored`);
-  } else if (state.lastQuota.remaining != null && state.lastQuota.remaining < QUOTA_LOW) {
-    overall = "DEGRADED";
-    reasons.push(`quota low (${state.lastQuota.remaining} remaining); cadence reduced`);
-  } else if (state.lastFailedAt && state.lastSuccessAt && state.lastFailedAt > state.lastSuccessAt) {
-    overall = "DEGRADED";
-    reasons.push(`last poll failed: ${state.lastError ?? "unknown"}`);
+  } else {
+    const freshnessReasons = marketRecorderFreshnessReasons(state, now);
+    if (freshnessReasons.length) {
+      overall = "DEGRADED";
+      reasons.push(...freshnessReasons);
+    }
+    if (state.lastError && !state.lastSuccessAt) {
+      overall = "DEGRADED";
+      reasons.push(`market source error: ${state.lastError}`);
+    }
+    if (state.lastQuota.remaining != null && state.lastQuota.remaining < QUOTA_CRITICAL) {
+      overall = "DEGRADED";
+      reasons.push(`quota critical (${state.lastQuota.remaining} remaining); cadence floored`);
+    } else if (state.lastQuota.remaining != null && state.lastQuota.remaining < QUOTA_LOW) {
+      overall = "DEGRADED";
+      reasons.push(`quota low (${state.lastQuota.remaining} remaining); cadence reduced`);
+    }
+    if (state.lastFailedAt && state.lastSuccessAt && state.lastFailedAt > state.lastSuccessAt) {
+      overall = "DEGRADED";
+      reasons.push(`last poll failed: ${state.lastError ?? "unknown"}`);
+    }
   }
   if (overall === "HEALTHY") {
     reasons.push("market recorder configured; forecast health is independent");
@@ -89,13 +116,13 @@ export async function buildMarketHealthReport(): Promise<MarketHealthReport> {
     lastRequestCost: state.lastQuota.lastRequestCost,
     nextScheduledPoll: state.nextPollAt,
     currentCadenceMs: state.currentCadenceMs,
-    eventsHint: `${fixtures.length} canonical fixtures; ${cons.length} consensus rows`,
-    fixturesMatched: matched.size,
+    eventsHint: `${fixtures.length} canonical fixtures; ${counts.consensusStored} consensus rows`,
+    fixturesMatched: counts.fixturesMatched,
     unmatched: 0,
     ambiguous: 0,
-    bookmakersObserved: books.size,
-    observationsStored: nObs,
-    consensusStored: nCons,
+    bookmakersObserved: counts.bookmakersObserved,
+    observationsStored: counts.observationsStored,
+    consensusStored: counts.consensusStored,
     firstMarketObservationAt: state.firstMarketObservationAt,
     schemaVersion: "market-recorder-v0.1.0",
   };

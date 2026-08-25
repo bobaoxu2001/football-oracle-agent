@@ -11,6 +11,7 @@ const completed = new Map<string, { expiresAt: number; value: unknown }>();
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 12;
 const MAX_BUCKETS = 2_000;
+const DURABLE_GUARD_DEADLINE_MS = 1_500;
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -87,7 +88,15 @@ export async function takeDurablePublicAiRateLimit(
 
   try {
     const { getMongoDb } = await import("@/lib/db/mongodb");
-    const db = await getMongoDb();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const db = await Promise.race([
+      getMongoDb(),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), DURABLE_GUARD_DEADLINE_MS);
+      }),
+    ]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
     if (!db) return local;
 
     const windowStart = Math.floor(now / windowMs) * windowMs;
@@ -100,7 +109,9 @@ export async function takeDurablePublicAiRateLimit(
         $inc: { count: 1 },
         $setOnInsert: { expiresAt: new Date(windowStart + windowMs) },
       },
-      { upsert: true, returnDocument: "after" }
+      // Rate limiting must never become the slowest part of a deterministic
+      // public request. The local guard remains active if Atlas is degraded.
+      { upsert: true, returnDocument: "after", timeoutMS: 2_000 }
     );
     const count = row?.count ?? 1;
     const allowed = count <= limit;

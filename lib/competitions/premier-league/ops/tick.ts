@@ -30,6 +30,8 @@ export interface TickOptions {
   skipNetwork?: boolean;
   /** Skip the challenger freeze (baseline-isolation tests). */
   skipShadow?: boolean;
+  /** Keep slow observational consumers outside the forecast function budget. */
+  skipObservers?: boolean;
 }
 
 export interface TickResult {
@@ -48,6 +50,32 @@ export interface TickResult {
   shadowFrozen: number;
   errors: string[];
   state: LiveOpsTickState;
+}
+
+export interface LiveOpsObserverResult {
+  now: string;
+  market: {
+    attempted: boolean;
+    pollJobId: string | null;
+    status: string | null;
+    error: string | null;
+  };
+  matchLedger: {
+    attempted: boolean;
+    ran: boolean;
+    totalCompleted: number | null;
+    errors: string[];
+    error: string | null;
+  };
+}
+
+export function liveOpsObserversDegraded(result: LiveOpsObserverResult): boolean {
+  return Boolean(
+    result.market.error ||
+      result.market.status === "FAILED" ||
+      result.matchLedger.error ||
+      result.matchLedger.errors.length
+  );
 }
 
 function loadTickState(): LiveOpsTickState {
@@ -226,10 +254,93 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
   };
 }
 
+/**
+ * Non-forecast observers share the hosted cadence but not the forecast
+ * function budget or lease. Their failures remain isolated and explicit.
+ */
+export async function runLiveOpsObservers(
+  options: Pick<TickOptions, "now"> = {}
+): Promise<LiveOpsObserverResult> {
+  const now = options.now ?? new Date().toISOString();
+  const [market, matchLedger] = await Promise.all([
+    (async (): Promise<LiveOpsObserverResult["market"]> => {
+      if (process.env.MARKET_RECORDER_DISABLED === "1") {
+        return { attempted: false, pollJobId: null, status: null, error: null };
+      }
+      try {
+        const { maybeRunMarketRecorder } = await import("../market/recorder");
+        const result = await maybeRunMarketRecorder({ now });
+        const status = result?.status ?? null;
+        return {
+          attempted: true,
+          pollJobId: result?.pollJobId ?? null,
+          status,
+          // SKIPPED/not-due is a healthy cadence decision, not an observer
+          // failure. FAILED is persisted by the recorder and must surface.
+          error: status === "FAILED" ? result?.error ?? "market poll failed" : null,
+        };
+      } catch (err) {
+        const error = (err as Error).message;
+        console.warn("[market] recorder failed in isolation:", error);
+        return { attempted: true, pollJobId: null, status: null, error };
+      }
+    })(),
+    (async (): Promise<LiveOpsObserverResult["matchLedger"]> => {
+      if (process.env.MATCH_LEDGER_DISABLED === "1") {
+        return {
+          attempted: false,
+          ran: false,
+          totalCompleted: null,
+          errors: [],
+          error: null,
+        };
+      }
+      try {
+        const { runLedgerTick } = await import("@/lib/match-ledger/tick");
+        const result = await runLedgerTick({
+          now,
+          // Five competitions retain deliberate spacing, but a hosted
+          // observer never sleeps through Retry-After inside a 60s function.
+          // A 429 is persisted as an explicit failure and retried later.
+          providerTimeoutMs: 5_000,
+          providerMaxRetries: 0,
+          interRequestDelayMs: 4_000,
+        });
+        if (result.ran && result.errors.length) {
+          console.warn("[ledger] ingest reported errors:", result.errors.join("; "));
+        }
+        return {
+          attempted: true,
+          ran: result.ran,
+          totalCompleted: result.totalCompleted,
+          errors: result.errors,
+          error: null,
+        };
+      } catch (err) {
+        const error = (err as Error).message;
+        console.warn("[ledger] pass failed in isolation:", error);
+        return {
+          attempted: true,
+          ran: false,
+          totalCompleted: null,
+          errors: [],
+          error,
+        };
+      }
+    })(),
+  ]);
+  return { now, market, matchLedger };
+}
+
 export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<TickResult & { skipped?: boolean; skipReason?: string }> {
-  await hydrateDurableOps();
+  // Serialize before hydration. Otherwise a delayed instance can hydrate
+  // version N, wait for another writer to commit N+1, then acquire the lease
+  // and overwrite N+1 from its stale serverless work directory.
   const lock = await acquireTickLock("ops-tick");
   if (!lock.ok) {
+    if (lock.reason !== "tick already running") {
+      throw new Error(lock.reason ?? "tick lock unavailable");
+    }
     const state = loadTickState();
     return {
       now: options.now ?? new Date().toISOString(),
@@ -250,34 +361,21 @@ export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<
     };
   }
   try {
+    // A writer must never continue from an empty or stale serverless work dir.
+    // If Mongo cannot provide the latest bundle, fail this attempt and let the
+    // hosted scheduler retry without overwriting durable production history.
+    await hydrateDurableOps({ force: true, strict: true, timeoutMs: 20_000 });
     const result = await runLiveOpsTick(options);
     await flushDurableOps();
     return result;
   } finally {
     await releaseTickLock(lock.leaseId);
-    // Market recording is after the forecast lease. Outages must not block ticks.
-    // skipNetwork ticks are forecast-isolation tests and must not call the odds API.
-    if (!options.skipNetwork && process.env.MARKET_RECORDER_DISABLED !== "1") {
-      try {
-        const { maybeRunMarketRecorder } = await import("../market/recorder");
-        await maybeRunMarketRecorder({ now: options.now });
-      } catch (err) {
-        console.warn("[market] recorder failed in isolation:", (err as Error).message);
-      }
-    }
-    // Big Five match ledger, same isolation contract as the market recorder:
-    // after the forecast lease, never able to fail a forecast tick, and rate
-    // limited by its own cadence gate rather than a second scheduler.
-    if (!options.skipNetwork && process.env.MATCH_LEDGER_DISABLED !== "1") {
-      try {
-        const { runLedgerTick } = await import("@/lib/match-ledger/tick");
-        const led = await runLedgerTick({ now: options.now });
-        if (led.ran && led.errors.length) {
-          console.warn("[ledger] ingest reported errors:", led.errors.join("; "));
-        }
-      } catch (err) {
-        console.warn("[ledger] pass failed in isolation:", (err as Error).message);
-      }
+    // Local/manual callers keep the legacy one-call behavior. The production
+    // scheduler uses core=1 and invokes /api/ops/observers separately so these
+    // slower observational consumers cannot turn a successful forecast tick
+    // into a Vercel runtime timeout.
+    if (!options.skipNetwork && !options.skipObservers) {
+      await runLiveOpsObservers({ now: options.now });
     }
   }
 }

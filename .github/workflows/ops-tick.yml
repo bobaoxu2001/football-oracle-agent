@@ -3,7 +3,7 @@
 # Recurrence is GitHub-managed; overlap is serialized by the Mongo 90s lease.
 #
 # Two complementary triggers:
-#   1. */5 cron — one-shot pinger (preferred once GitHub honors it)
+#   1. */5 cron — one-shot backup pinger plus isolated observers
 #   2. hourly loop — supervised worker that ticks every 5 minutes for ~55 minutes
 #      and is restarted by GitHub each hour if the previous run ended.
 name: ops-tick
@@ -29,7 +29,7 @@ permissions:
 # tick is idempotent and serialized by the 90s Mongo lease (409 = already
 # running), which is what makes running both simultaneously the intended shape.
 concurrency:
-  group: football-oracle-ops-tick-${{ github.event.schedule == '2 * * * *' && 'loop' || 'once' }}
+  group: football-oracle-ops-tick-${{ (github.event.schedule == '2 * * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'loop')) && 'loop' || 'once' }}
   cancel-in-progress: false
 
 jobs:
@@ -42,6 +42,7 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           OPS_TICK_URL: ${{ vars.OPS_TICK_URL }}
+          OPS_OBSERVER_URL: ${{ vars.OPS_OBSERVER_URL }}
           MODE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode || (github.event.schedule == '2 * * * *' && 'loop' || 'once') }}
         run: |
           set -euo pipefail
@@ -49,8 +50,17 @@ jobs:
             echo "missing CRON_SECRET"
             exit 1
           fi
-          URL="${OPS_TICK_URL:-https://football-oracle-agent.vercel.app/api/ops/tick}"
           MODE="${MODE:-once}"
+          URL="${OPS_TICK_URL:-https://football-oracle-agent.vercel.app/api/ops/tick}"
+          if [[ "$URL" == *\?* ]]; then
+            CORE_URL="${URL}&core=1"
+          else
+            CORE_URL="${URL}?core=1"
+          fi
+          if [ "$MODE" = "once" ]; then
+            CORE_URL="${CORE_URL}&backup=1"
+          fi
+          OBSERVER_URL="${OPS_OBSERVER_URL:-https://football-oracle-agent.vercel.app/api/ops/observers}"
           ROUNDS=1
           if [ "$MODE" = "loop" ]; then
             ROUNDS=11
@@ -58,12 +68,13 @@ jobs:
           echo "mode=${MODE} rounds=${ROUNDS}"
           fail=0
           for i in $(seq 1 "$ROUNDS"); do
+            ROUND_STARTED_AT="$(date +%s)"
             AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             CODE="$(curl -sS -o /tmp/tick-body -w "%{http_code}" \
               --max-time 90 \
               -H "Authorization: Bearer ${CRON_SECRET}" \
               -H "User-Agent: football-oracle-ops-scheduler" \
-              "$URL" || true)"
+              "$CORE_URL" || true)"
             echo "round=${i} at=${AT} status=${CODE}"
             python3 - <<'PY'
           from pathlib import Path
@@ -77,9 +88,35 @@ jobs:
               echo "failure_state=none"
             fi
             if [ "$i" -lt "$ROUNDS" ]; then
-              sleep 300
+              ELAPSED="$(( $(date +%s) - ROUND_STARTED_AT ))"
+              DELAY="$(( 300 - ELAPSED ))"
+              if [ "$DELAY" -gt 0 ]; then
+                sleep "$DELAY"
+              fi
             fi
           done
+          # The */5 one-shot is the dedicated observer trigger. Its own
+          # concurrency group prevents duplicate market polls, while recorder
+          # and ledger cadence gates decide whether external work is due.
+          if [ "$MODE" = "once" ]; then
+            OBSERVER_CODE="$(curl -sS -o /tmp/observer-body -w "%{http_code}" \
+              --max-time 58 \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              -H "User-Agent: football-oracle-ops-scheduler" \
+              "$OBSERVER_URL" || true)"
+            echo "observers_at=$(date -u +%Y-%m-%dT%H:%M:%SZ) status=${OBSERVER_CODE}"
+            python3 - <<'PY'
+          from pathlib import Path
+          text = Path("/tmp/observer-body").read_text(errors="replace")
+          print(text[:800])
+          PY
+            if [ "$OBSERVER_CODE" != "200" ]; then
+              echo "observer_state=http_${OBSERVER_CODE}"
+              fail=1
+            else
+              echo "observer_state=none"
+            fi
+          fi
           if [ "$fail" -ne 0 ]; then
             exit 1
           fi

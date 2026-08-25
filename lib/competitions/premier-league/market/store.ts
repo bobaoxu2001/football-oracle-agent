@@ -226,7 +226,10 @@ export async function loadMarketState(): Promise<MarketRecorderState> {
   if (marketStoreBackend() === "mongo") {
     const db = await getMongoDb();
     if (!db) return emptyState();
-    const doc = await db.collection(COL_STATE).findOne({ _id: "current" as never });
+    const doc = await db.collection(COL_STATE).findOne(
+      { _id: "current" as never },
+      { timeoutMS: 4_000 }
+    );
     if (!doc) return emptyState();
     const { _id: _ignored, ...rest } = doc as unknown as MarketRecorderState & { _id?: unknown };
     return { ...emptyState(), ...rest };
@@ -291,6 +294,57 @@ export async function countConsensus(): Promise<number> {
   }
   loadFileIfNeeded();
   return mem().consensus.size;
+}
+
+export interface MarketHealthCounts {
+  observationsStored: number;
+  consensusStored: number;
+  fixturesMatched: number;
+  bookmakersObserved: number;
+}
+
+/**
+ * Small server-side aggregates for operational health. Never download the
+ * complete market time series just to count rows or distinct dimensions.
+ */
+export async function marketHealthCounts(): Promise<MarketHealthCounts> {
+  if (marketStoreBackend() === "mongo") {
+    const db = await getMongoDb();
+    if (!db) {
+      return {
+        observationsStored: 0,
+        consensusStored: 0,
+        fixturesMatched: 0,
+        bookmakersObserved: 0,
+      };
+    }
+    const observations = db.collection(COL_OBS);
+    const consensus = db.collection(COL_CONSENSUS);
+    const [observationsStored, consensusStored, fixtureIds, bookmakerKeys] =
+      await Promise.all([
+        observations.countDocuments({}, { timeoutMS: 4_000 }),
+        consensus.countDocuments({}, { timeoutMS: 4_000 }),
+        observations.distinct("canonicalFixtureId", {}, { timeoutMS: 4_000 }),
+        observations.distinct("bookmakerKey", {}, { timeoutMS: 4_000 }),
+      ]);
+    return {
+      observationsStored,
+      consensusStored,
+      fixturesMatched: fixtureIds.length,
+      bookmakersObserved: bookmakerKeys.length,
+    };
+  }
+  loadFileIfNeeded();
+  return {
+    observationsStored: mem().obs.size,
+    consensusStored: mem().consensus.size,
+    fixturesMatched: new Set(
+      [...mem().obs.values()].map((row) => row.canonicalFixtureId)
+    ).size,
+    bookmakersObserved: new Set(
+      [...mem().obs.values()].map((row) => row.bookmakerKey)
+    ).size,
+  };
 }
 
 export { emptyState as emptyMarketState };

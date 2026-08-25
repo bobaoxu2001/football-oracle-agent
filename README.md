@@ -164,9 +164,11 @@ The committed Premier League LIVE_OOS tape is append-protected and hash-gated by
 
 ## Deployment and operations
 
-The app is deployed on Vercel. The scheduled operations endpoint is authenticated and persists its state through the configured durable backend in production.
+The app is deployed on Vercel. The scheduled operations endpoints are authenticated and persist state through the configured durable backend in production.
 
-`vercel.json` contains the hosted cron entry points. The external operations worker may also call `/api/ops/tick` at the configured cadence. Health is exposed at `/health` and `/api/health`.
+The external hosted worker calls `/api/ops/tick?core=1` for the forecast-critical five-minute path. A one-shot backup first reads only the durable tick timestamp and runs the core path only when the primary loop is stale. The same isolated five-minute trigger calls `/api/ops/observers`; each observer keeps its own cadence gate, outside the forecast function budget and lease.
+
+Selected read-only ledger pages coalesce durable hydration per function instance, verify the durable bundle version before reloading it, and use a short Vercel CDN stale-on-error window. Operational health, market health, and match intelligence are explicitly `no-store`. A cold reader fails visibly when durable state cannot be verified; a production writer always fails closed rather than flushing stale serverless state. Health is exposed at `/health` and `/api/health`.
 
 Never place secrets in committed files. Use `.env.local` for local development and Vercel environment variables for deployments.
 

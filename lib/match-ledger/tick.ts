@@ -40,6 +40,10 @@ export interface LedgerTickOptions {
   competitions?: readonly BigFiveCompetitionId[];
   /** Skip settlement (pure-ingest backfills). */
   skipSettlement?: boolean;
+  /** Bounds for serverless observer execution; defaults preserve CLI behavior. */
+  providerTimeoutMs?: number;
+  providerMaxRetries?: number;
+  interRequestDelayMs?: number;
 }
 
 export async function runLedgerTick(
@@ -81,7 +85,14 @@ export async function runLedgerTick(
 
   let ingest: LedgerIngestReport | null = null;
   try {
-    ingest = await ingestBigFive({ season, observedAt: now, competitions });
+    ingest = await ingestBigFive({
+      season,
+      observedAt: now,
+      competitions,
+      providerTimeoutMs: options.providerTimeoutMs,
+      providerMaxRetries: options.providerMaxRetries,
+      interRequestDelayMs: options.interRequestDelayMs,
+    });
     for (const c of ingest.competitions) {
       if (c.error) errors.push(`${c.competition}: ${c.error}`);
     }

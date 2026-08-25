@@ -49,6 +49,7 @@ export default async function Home() {
           {first ? (
             <Link
               href={`/match/${first.match.id}`}
+              prefetch={false}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-neon px-5 py-3 text-sm font-bold text-primary-foreground transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon"
             >
               Open next Match Room <ArrowRight className="h-4 w-4" />
@@ -78,7 +79,7 @@ export default async function Home() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neon">Forecasts</p>
             <h2 id="upcoming-heading" className="mt-1 text-2xl font-black tracking-tight">Upcoming matches</h2>
           </div>
-          <Link href="/live" className="text-xs font-semibold text-muted-foreground hover:text-foreground">View production ledger →</Link>
+          <Link href="/live" prefetch={false} className="text-xs font-semibold text-muted-foreground hover:text-foreground">View production ledger →</Link>
         </div>
         {matches.length ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -102,7 +103,7 @@ export default async function Home() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5 md:col-span-2">
             <p className="text-sm font-bold">La Liga · Bundesliga · Serie A · Ligue 1</p>
             <p className="mt-2 text-sm text-muted-foreground">Completed-match history is supported. No forecasts are served for these leagues.</p>
-            <Link href="/matches" className="mt-3 inline-flex text-xs font-semibold text-neon hover:underline">Browse historical ledgers →</Link>
+            <Link href="/matches" prefetch={false} className="mt-3 inline-flex text-xs font-semibold text-neon hover:underline">Browse historical ledgers →</Link>
           </div>
         </div>
       </section>
@@ -148,7 +149,7 @@ function ForecastCard({ item }: { item: UpcomingMatchForecast }) {
         <MiniStat label="Over 2.5" value={pct(forecast.totals.over25)} />
         <MiniStat label="Top score" value={`${top.homeGoals}–${top.awayGoals}`} />
       </dl>
-      <Link href={`/match/${match.id}`} className="mt-5 inline-flex min-h-11 items-center justify-between rounded-xl border border-neon/25 bg-neon/[0.06] px-4 py-2.5 text-sm font-bold text-neon transition hover:bg-neon/[0.1]">
+      <Link href={`/match/${match.id}`} prefetch={false} className="mt-5 inline-flex min-h-11 items-center justify-between rounded-xl border border-neon/25 bg-neon/[0.06] px-4 py-2.5 text-sm font-bold text-neon transition hover:bg-neon/[0.1]">
         Enter Match Room <ArrowRight className="h-4 w-4" />
       </Link>
     </article>
@@ -161,7 +162,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 
 function LedgerStat({ label, value }: { label: string; value: number }) {
   return (
-    <Link href="/live" className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition hover:border-neon/25 hover:bg-white/[0.04]">
+    <Link href="/live" prefetch={false} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition hover:border-neon/25 hover:bg-white/[0.04]">
       <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
       <span className="mt-1 block text-2xl font-black tabular-nums">{value}</span>
     </Link>
@@ -170,7 +171,7 @@ function LedgerStat({ label, value }: { label: string; value: number }) {
 
 function ResearchLink({ href, icon, title, copy }: { href: string; icon: React.ReactNode; title: string; copy: string }) {
   return (
-    <Link href={href} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition hover:border-neon/25 hover:bg-white/[0.04]">
+    <Link href={href} prefetch={false} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition hover:border-neon/25 hover:bg-white/[0.04]">
       <span className="flex items-center gap-2 text-sm font-bold">{icon}{title}</span>
       <span className="mt-2 block text-xs leading-relaxed text-muted-foreground">{copy}</span>
     </Link>
