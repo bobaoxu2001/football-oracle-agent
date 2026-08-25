@@ -21,8 +21,89 @@ import {
   archiveOperationalLiveOos,
   findScheduledSnapshot,
 } from "./operational-archive";
+import { freezeMatchContext, getFrozenMatchContext } from "./context-snapshots";
+import { getSnapshotByKey } from "@/lib/snapshots/store";
+import {
+  canonicalizePredictionStage,
+  snapshotUniqueKey,
+  type PredictionSnapshot,
+} from "@/lib/snapshots/types";
 
 export const MAX_JOB_RETRIES = 3;
+
+function assertExactScheduledContextBinding(input: {
+  snapshot: PredictionSnapshot;
+  fixture: Fixture;
+  stage: TimedStage;
+  plannedAsOf: string;
+  modelVersion: string;
+}): void {
+  const { snapshot, fixture, stage, plannedAsOf, modelVersion } = input;
+  const kickoff = fixture.kickoffUtc ?? fixture.kickoff ?? null;
+  const season = fixture.season ?? PREMIER_LEAGUE_CURRENT_SEASON;
+  const forecastSnapshotKey = snapshotUniqueKey({
+    competition: "premier-league",
+    season,
+    fixtureId: fixture.id,
+    modelVersion,
+    predictionStage: stage,
+    asOf: plannedAsOf,
+  });
+  const contextId = snapshot.sourceState.contextSnapshotId;
+  const context = typeof contextId === "string" ? getFrozenMatchContext(contextId) : null;
+  const expectedLineupAvailableAt = context
+    ? [context.lineup.home.availableAt, context.lineup.away.availableAt]
+        .filter((value): value is string => Boolean(value))
+        .sort()
+        .at(-1) ?? null
+    : null;
+  const championClaimsContextUsage =
+    modelVersion === PRODUCTION_MODEL_VERSION &&
+    Boolean(
+      context &&
+      (context.usedInForecastEvidenceIds.length !== 0 ||
+        snapshot.sourceState.contextModelUsedEvidenceCount !== 0 ||
+        !Array.isArray(snapshot.sourceState.contextUsedInForecastEvidenceIds) ||
+        snapshot.sourceState.contextUsedInForecastEvidenceIds.length !== 0)
+    );
+  if (
+    !kickoff ||
+    snapshot.provenance.uniqueKey !== forecastSnapshotKey ||
+    snapshot.fixtureId !== fixture.id ||
+    snapshot.season !== season ||
+    snapshot.modelVersion !== modelVersion ||
+    canonicalizePredictionStage(snapshot.predictionStage) !== stage ||
+    snapshot.asOf !== plannedAsOf ||
+    snapshot.dataCutoff !== plannedAsOf ||
+    snapshot.kickoff !== kickoff ||
+    snapshot.homeSlug !== fixture.homeSlug ||
+    snapshot.awaySlug !== fixture.awaySlug ||
+    snapshot.evaluationClass !== "LIVE_OOS" ||
+    !context ||
+    context.forecastSnapshotKey !== forecastSnapshotKey ||
+    context.fixtureId !== fixture.id ||
+    context.season !== season ||
+    context.homeSlug !== fixture.homeSlug ||
+    context.awaySlug !== fixture.awaySlug ||
+    context.kickoffAt !== kickoff ||
+    context.cutoffAt !== plannedAsOf ||
+    snapshot.sourceState.contextSchemaVersion !== context.schemaVersion ||
+    snapshot.sourceState.contextSnapshotCutoffAt !== context.cutoffAt ||
+    snapshot.sourceState.contextSnapshotGeneratedAt !== context.generatedAt ||
+    snapshot.sourceState.contextTemporalRule !== context.temporalRule ||
+    snapshot.sourceState.contextEvidenceCount !== context.evidence.length ||
+    snapshot.sourceState.contextModelUsedEvidenceCount !== context.usedInForecastEvidenceIds.length ||
+    snapshot.sourceState.contextInformationalEvidenceCount !== context.evidence.length - context.usedInForecastEvidenceIds.length ||
+    JSON.stringify(snapshot.sourceState.contextUsedInForecastEvidenceIds) !== JSON.stringify(context.usedInForecastEvidenceIds) ||
+    snapshot.sourceState.contextLineupStatus !== context.lineup.overall ||
+    snapshot.sourceState.contextLineupAvailableAt !== expectedLineupAvailableAt ||
+    championClaimsContextUsage
+  ) {
+    throw new Error(
+      `Refusing ${stage}: existing first-write forecast is not bound to an exact, available context snapshot`
+    );
+  }
+}
 
 export interface CutoffFixtureEvidence {
   fixtureRetrievedAt: string;
@@ -173,6 +254,33 @@ export function planPredictionJobs(input: {
         plannedAsOf: job.plannedAsOf,
       });
       if (existingSnapshot) {
+        try {
+          assertExactScheduledContextBinding({
+            snapshot: existingSnapshot,
+            fixture,
+            stage,
+            plannedAsOf: job.plannedAsOf,
+            modelVersion: job.modelVersion,
+          });
+        } catch (error) {
+          const failureReason = error instanceof Error ? error.message : String(error);
+          if (prev) {
+            updateJob(prev.jobId, {
+              status: "FAILED",
+              failureReason,
+              failureClass: "permanent-validation",
+              blockedReason: null,
+              updatedAt: nowIso,
+            });
+            continue;
+          }
+          job.status = "FAILED";
+          job.failureReason = failureReason;
+          job.failureClass = "permanent-validation";
+          job.blockedReason = null;
+          planned.push(job);
+          continue;
+        }
         if (prev) {
           updateJob(prev.jobId, {
             status: "SUCCEEDED",
@@ -342,13 +450,35 @@ export function executeEligibleJobs(input: {
       plannedAsOf: job.plannedAsOf,
     });
     if (existing) {
-      updateJob(job.jobId, {
-        status: "SUCCEEDED",
-        snapshotKey: existing.provenance.uniqueKey,
-        completedAt: existing.createdAt,
-        updatedAt: nowIso,
-      });
-      succeeded += 1;
+      attempted += 1;
+      try {
+        assertExactScheduledContextBinding({
+          snapshot: existing,
+          fixture,
+          stage: job.stage,
+          plannedAsOf: job.plannedAsOf,
+          modelVersion: job.modelVersion,
+        });
+        updateJob(job.jobId, {
+          status: "SUCCEEDED",
+          snapshotKey: existing.provenance.uniqueKey,
+          completedAt: existing.createdAt,
+          failureReason: null,
+          blockedReason: null,
+          updatedAt: nowIso,
+        });
+        succeeded += 1;
+      } catch (error) {
+        updateJob(job.jobId, {
+          status: "FAILED",
+          failureReason: error instanceof Error ? error.message : String(error),
+          failureClass: "permanent-validation",
+          retryCount: job.retryCount + 1,
+          attemptedAt: nowIso,
+          updatedAt: nowIso,
+        });
+        failed += 1;
+      }
       continue;
     }
 
@@ -433,11 +563,46 @@ export function freezeScheduledStage(
       `Refusing ${stage}: fixture evidence ${evidence.fixtureRetrievedAt} is after cutoff ${plannedAsOf}`
     );
   }
+  const season = fixture.season ?? PREMIER_LEAGUE_CURRENT_SEASON;
+  const snapshotKey = {
+    competition: "premier-league",
+    season,
+    fixtureId: fixture.id,
+    modelVersion: PRODUCTION_MODEL_VERSION,
+    predictionStage: stage,
+    asOf: plannedAsOf,
+  } as const;
+  const forecastSnapshotKey = snapshotUniqueKey(snapshotKey);
+  const existing = getSnapshotByKey(snapshotKey);
+  if (existing) {
+    assertExactScheduledContextBinding({
+      snapshot: existing,
+      fixture,
+      stage,
+      plannedAsOf,
+      modelVersion: PRODUCTION_MODEL_VERSION,
+    });
+    archiveOperationalLiveOos([existing]);
+    return existing;
+  }
+  const context = freezeMatchContext({
+    season,
+    fixtureId: fixture.id,
+    homeSlug: fixture.homeSlug,
+    awaySlug: fixture.awaySlug,
+    kickoffAt: kickoff,
+    cutoffAt: plannedAsOf,
+    generatedAt: computedAt,
+    forecastSnapshotKey,
+    // No structured Premier League availability/lineup provider is currently
+    // configured. Empty is truthful; present-day news is never backfilled.
+    evidence: [],
+  }).snapshot;
   const snap = snapshotPremierLeagueMatch(fixture.homeSlug, fixture.awaySlug, {
     asOf: plannedAsOf,
     kickoff,
     fixtureId: fixture.id,
-    season: fixture.season ?? PREMIER_LEAGUE_CURRENT_SEASON,
+    season,
     predictionStage: stage,
     evaluationClass: "LIVE_OOS",
     origin: "scheduled",
@@ -445,6 +610,14 @@ export function freezeScheduledStage(
     fixtureDataVersion: evidence.fixtureDataVersion,
     kickoffCertaintyAtFreeze: evidence.kickoffCertainty,
     fixtureRetrievedAt: evidence.fixtureRetrievedAt,
+    contextSnapshot: context,
+  });
+  assertExactScheduledContextBinding({
+    snapshot: snap,
+    fixture,
+    stage,
+    plannedAsOf,
+    modelVersion: PRODUCTION_MODEL_VERSION,
   });
   archiveOperationalLiveOos([snap]);
   return snap;

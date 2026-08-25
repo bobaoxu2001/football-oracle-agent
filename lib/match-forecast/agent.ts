@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { polishNarrative, type ActiveProvider } from "@/lib/llm/provider";
+import type { ActiveProvider } from "@/lib/llm/provider";
 import type { MatchForecast, MatchIntelligence } from "./types";
-import { getMatchContext } from "./tools";
+import { getMatchContext, runSupportedScenario } from "./tools";
 
 export type MatchAgentToolName =
   | "get_match_context"
@@ -11,6 +11,9 @@ export type MatchAgentToolName =
   | "get_forecast_provenance"
   | "get_team_news"
   | "get_team_availability"
+  | "get_context_evidence"
+  | "compare_match_context"
+  | "get_forecast_timeline"
   | "get_probability_history"
   | "compare_forecast_snapshots"
   | "run_supported_scenario";
@@ -422,7 +425,7 @@ function historyAnswer(intelligence: MatchIntelligence) {
       numericEvidence: {},
       tools: [
         {
-          name: "get_probability_history" as const,
+          name: "get_forecast_timeline" as const,
           source: "deterministic" as const,
           forecastId: intelligence.audit.immutableForecastId,
           summary: "one production snapshot",
@@ -431,6 +434,12 @@ function historyAnswer(intelligence: MatchIntelligence) {
     };
   }
   const changes = comparison.probabilityChanges;
+  const contextEvidence =
+    comparison.contextComparisonStatus === "COMPARED"
+      ? `${comparison.contextChanges.length} deterministic context change(s) were recorded for the same snapshot pair.`
+      : comparison.contextComparisonStatus === "MISSING"
+        ? "An exact frozen context reference is missing, so no context change was inferred."
+        : "At least one forecast predates prospective context recording, so current context was not used to reconstruct history.";
   return {
     modelFact:
       `From ${comparison.fromCutoff} to ${comparison.toCutoff}:\n` +
@@ -439,12 +448,15 @@ function historyAnswer(intelligence: MatchIntelligence) {
       `${intelligence.match.away.name} win: ${pp(changes.awayWin)}\n` +
       `Over 2.5: ${pp(changes.over25)}.`,
     evidence:
-      `${comparison.inputChanges.length} auditable input field(s) changed between the two immutable production snapshots.`,
+      `Old immutable forecast: ${comparison.oldForecastId}.\n` +
+      `New immutable forecast: ${comparison.newForecastId}.\n` +
+      `Exact context pair: ${comparison.fromContextId ?? "NOT_RECORDED"} → ${comparison.toContextId ?? "NOT_RECORDED"}.\n` +
+      `${comparison.inputChanges.length} auditable input field(s) changed between the two immutable production snapshots. ${contextEvidence}`,
     interpretation: comparison.causalNote,
     numericEvidence: { ...changes },
     tools: [
       {
-        name: "get_probability_history" as const,
+        name: "get_forecast_timeline" as const,
         source: "deterministic" as const,
         forecastId: intelligence.audit.immutableForecastId,
         summary: `${intelligence.timeline.length} production snapshots`,
@@ -453,7 +465,13 @@ function historyAnswer(intelligence: MatchIntelligence) {
         name: "compare_forecast_snapshots" as const,
         source: "deterministic" as const,
         forecastId: intelligence.audit.immutableForecastId,
-        summary: `${comparison.fromCutoff} → ${comparison.toCutoff}`,
+        summary: `${comparison.oldForecastId} → ${comparison.newForecastId}`,
+      },
+      {
+        name: "compare_match_context" as const,
+        source: "deterministic" as const,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: `${comparison.contextComparisonStatus} / ${comparison.contextChanges.length} context change(s)`,
       },
     ],
   };
@@ -466,6 +484,8 @@ function auditAnswer(intelligence: MatchIntelligence) {
       `Production model: ${audit.modelVersion}\n` +
       `Forecast cutoff: ${audit.cutoffAt}\n` +
       `Immutable forecast: ${audit.immutableForecastId}\n` +
+      `Context snapshot: ${audit.contextSnapshotId ?? "not recorded"}\n` +
+      `Lineup state: ${audit.lineupStatus}\n` +
       `Score distribution: ${audit.scoreDistributionArtifact}`,
     evidence:
       `Inputs: ${audit.inputsUsed.join("; ")}. Training window: ${audit.trainingWindow ? `${audit.trainingWindow.from} to ${audit.trainingWindow.to}` : "not recorded"}.`,
@@ -478,6 +498,12 @@ function auditAnswer(intelligence: MatchIntelligence) {
         source: "deterministic" as const,
         forecastId: audit.immutableForecastId,
         summary: `${audit.modelVersion} / ${audit.scoreDistributionArtifact}`,
+      },
+      {
+        name: "get_context_evidence" as const,
+        source: "deterministic" as const,
+        forecastId: audit.immutableForecastId,
+        summary: `${audit.contextEvidenceCounts.usedInForecast} model-used / ${audit.contextEvidenceCounts.informationalOnly} informational`,
       },
     ],
   };
@@ -502,20 +528,357 @@ function whyAnswer(intelligence: MatchIntelligence) {
         summary: "approved production inputs",
       },
       {
-        name: "get_team_news" as const,
+        name: "get_context_evidence" as const,
         source: "deterministic" as const,
-        summary: `${intelligence.context.news.length} pre-cutoff contextual item(s), none used in forecast`,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: `${intelligence.context.atForecast.evidenceCounts.total} frozen context item(s), ${intelligence.context.atForecast.evidenceCounts.usedInForecast} used in forecast`,
       },
     ],
   };
 }
 
-function scenarioAnswer(intelligence: MatchIntelligence) {
+type ContextEvidenceItem = MatchIntelligence["context"]["atForecast"]["evidence"][number];
+
+function normalizedIdentity(value: string): string {
+  return value.normalize("NFKD").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
+function cleanPlayerSubject(value: string): string | null {
+  const clean = value
+    .trim()
+    .replace(/^(?:that|the|a|an)\s+/i, "")
+    .replace(/[’']s$/i, "")
+    .replace(/[?.,;:!]+$/g, "")
+    .trim();
+  const generic = new Set([
+    "", "he", "she", "they", "him", "her", "them", "it", "this", "that",
+    "player", "a player", "key player", "a key player", "the player", "expected lineup",
+  ]);
+  return generic.has(clean.toLowerCase()) ? null : clean;
+}
+
+function playerSubject(question: string): string | null {
+  const patterns = [
+    /\b(?:what\s+if|suppose|assume|assuming)\s+(?:that\s+)?(.+?)(?=\s+(?:doesn[’']?t|does\s+not|didn[’']?t|did\s+not|isn[’']?t|is\s+not|won[’']?t|will\s+not|cannot|can[’']?t|is|was|were|becomes?|misses?)\b|[?.,;:]|$)/i,
+    /\bwithout\s+(.+?)(?=\s+(?:how|would|will|what|does|do|in)\b|[?.,;:]|$)/i,
+    /\bis\s+(.+?)\s+(?:expected|likely|going)\s+to\s+(?:play|start)\b/i,
+    /\bis\s+(.+?)\s+(?:available|unavailable|out|doubtful|suspended)\b/i,
+    /\bwill\s+(.+?)\s+(?:play|start)\b/i,
+    /\bwas\s+(.+?)\s+(?:availability|lineup\s+status)\s+(?:known|available)\b/i,
+    /\bdid\s+(?:the\s+)?model\s+(?:actually\s+)?use\s+(.+?)\s+(?:availability|lineup\s+status|status|information)\b/i,
+    /\b(.+?)[’']s\s+(?:availability|lineup\s+status)\b/i,
+  ];
+  for (const pattern of patterns) {
+    const match = question.match(pattern);
+    if (match?.[1]) {
+      const subject = cleanPlayerSubject(match[1]);
+      if (subject) return subject;
+    }
+  }
+  return null;
+}
+
+function subjectAliases(subject: string): Set<string> {
+  const words = subject.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  return new Set(
+    [subject, words.at(-1) ?? ""]
+      .map(normalizedIdentity)
+      .filter((value) => value.length >= 2)
+  );
+}
+
+function entityAliases(entityId: string): Set<string> {
+  const parts = entityId.split(/[:/|._-]+/).filter(Boolean);
+  return new Set(
+    [entityId, ...parts, parts.at(-1) ?? ""]
+      .map(normalizedIdentity)
+      .filter((value) => value.length >= 2)
+  );
+}
+
+function relevantPlayerEvidence(item: ContextEvidenceItem): boolean {
+  return item.kind === "SQUAD_AVAILABILITY" || item.kind === "LINEUP";
+}
+
+function matchingEntities(
+  intelligence: MatchIntelligence,
+  subject: string
+): { entityIds: string[]; atForecast: ContextEvidenceItem[]; latest: ContextEvidenceItem[] } {
+  const wanted = subjectAliases(subject);
+  const atForecast = intelligence.context.atForecast.evidence.filter(relevantPlayerEvidence);
+  const latest = intelligence.context.latest.evidence.filter(relevantPlayerEvidence);
+  const all = [...atForecast, ...latest];
+  const entityIds = [...new Set(
+    all
+      .filter((item) => [...entityAliases(item.entityId)].some((alias) => wanted.has(alias)))
+      .map((item) => item.entityId)
+  )].sort();
+  if (entityIds.length !== 1) return { entityIds, atForecast: [], latest: [] };
+  const entityId = entityIds[0];
   return {
-    modelFact: "The current Premier League production model does not support player-level or arbitrary lineup counterfactual probabilities.",
+    entityIds,
+    atForecast: atForecast.filter((item) => item.entityId === entityId),
+    latest: latest.filter((item) => item.entityId === entityId),
+  };
+}
+
+function newestEvidence(items: ContextEvidenceItem[]): ContextEvidenceItem | null {
+  return [...items].sort(
+    (a, b) => a.availableAt.localeCompare(b.availableAt) || a.evidenceId.localeCompare(b.evidenceId)
+  ).at(-1) ?? null;
+}
+
+function ambiguousPlayerAnswer(intelligence: MatchIntelligence, subject: string, entityIds: string[]) {
+  return {
+    modelFact: entityIds.length
+      ? `“${subject}” is ambiguous across the recorded structured evidence.`
+      : `Oracle has no verified structured availability or lineup evidence for ${subject}.`,
     evidence:
-      `Baseline production forecast remains ${intelligence.audit.immutableForecastId}; it has not been manually adjusted.`,
-    interpretation: "No scenario probability is returned because there is no legitimate deterministic player-impact mechanism in this model version.",
+      `Selected forecast context: ${intelligence.context.atForecast.status}. ` +
+      `Latest prospective context: ${intelligence.context.latest.status}. No mutable current news was substituted.`,
+    interpretation: entityIds.length
+      ? "Name the exact player identity before Oracle can answer; it will not pick an arbitrary matching record."
+      : `The system cannot truthfully label ${subject} AVAILABLE, DOUBTFUL, OUT, SUSPENDED, expected to start, or confirmed to start.`,
+    numericEvidence: {},
+    tools: [
+      {
+        name: "get_context_evidence" as const,
+        source: "deterministic" as const,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: entityIds.length ? "ambiguous player identity" : `no verified structured evidence for ${subject}`,
+      },
+    ],
+  };
+}
+
+function availabilityAnswer(intelligence: MatchIntelligence, question: string) {
+  const subject = playerSubject(question);
+  if (!subject) {
+    return {
+      modelFact: "No exact player identity was provided.",
+      evidence:
+        `Selected forecast context: ${intelligence.context.atForecast.status}. ` +
+        `Latest prospective context: ${intelligence.context.latest.status}.`,
+      interpretation: "Name a player explicitly; Oracle will not select an arbitrary availability record.",
+      numericEvidence: {},
+      tools: [
+        {
+          name: "get_context_evidence" as const,
+          source: "deterministic" as const,
+          forecastId: intelligence.audit.immutableForecastId,
+          summary: "player identity required",
+        },
+      ],
+    };
+  }
+  const matches = matchingEntities(intelligence, subject);
+  if (matches.entityIds.length !== 1) {
+    return ambiguousPlayerAnswer(intelligence, subject, matches.entityIds);
+  }
+  const selectedItem = newestEvidence(matches.atForecast);
+  const latestItem = newestEvidence(matches.latest) ?? selectedItem;
+  if (!latestItem) return ambiguousPlayerAnswer(intelligence, subject, []);
+  const selectedUsage = selectedItem?.usedInForecast ?? false;
+  return {
+    modelFact:
+      `${subject}: ${latestItem.availabilityStatus ?? latestItem.lineupStatus ?? "UNKNOWN"}.\n` +
+      `Latest prospective evidence available at ${latestItem.availableAt}.`,
+    evidence: selectedItem
+      ? `The selected forecast's frozen context contains evidence for ${subject}, available at ${selectedItem.availableAt}.`
+      : `The latest evidence was not present in the selected forecast's frozen context. It is not backfilled into that forecast.`,
+    interpretation: selectedUsage
+      ? "The matching evidence in the selected frozen context is explicitly marked as used by the deterministic model."
+      : "The selected production forecast did not numerically use this player evidence.",
+    numericEvidence: {},
+    tools: [
+      {
+        name: "get_context_evidence" as const,
+        source: "deterministic" as const,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: `${latestItem.evidenceId} / selectedUsage=${selectedUsage}`,
+      },
+    ],
+  };
+}
+
+function lineupAnswer(intelligence: MatchIntelligence) {
+  const selected = intelligence.context.atForecast;
+  const latest = intelligence.context.latest;
+  const selectedLineup = selected.lineup;
+  const latestLineup = latest.lineup;
+  if (!selectedLineup && !latestLineup) {
+    return {
+      modelFact: "Oracle has no verified structured lineup snapshot for this match.",
+      evidence: `Selected forecast context: ${selected.status}. Latest prospective context: ${latest.status}.`,
+      interpretation: "No current mutable team sheet was substituted, and no player was selected arbitrarily.",
+      numericEvidence: {},
+      tools: [{
+        name: "get_context_evidence" as const,
+        source: "deterministic" as const,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: "no verified structured lineup",
+      }],
+    };
+  }
+  const view = latestLineup ?? selectedLineup!;
+  const selectedUsed = Boolean(
+    selectedLineup?.home.usedInForecast || selectedLineup?.away.usedInForecast
+  );
+  return {
+    modelFact:
+      `Latest prospective lineup state: ${view.overall}.\n` +
+      `${intelligence.match.home.name}: ${view.home.status}.\n` +
+      `${intelligence.match.away.name}: ${view.away.status}.`,
+    evidence: selectedLineup
+      ? `Selected forecast lineup state: ${selectedLineup.overall}; the exact frozen context is ${selected.status}.`
+      : "The lineup state is later than the selected cutoff and was not part of the selected forecast.",
+    interpretation: selectedUsed
+      ? "A selected-cutoff lineup record is explicitly marked as model-used."
+      : "The selected production forecast did not numerically use lineup evidence.",
+    numericEvidence: {},
+    tools: [{
+      name: "get_context_evidence" as const,
+      source: "deterministic" as const,
+      forecastId: intelligence.audit.immutableForecastId,
+      summary: `selected=${selectedLineup?.overall ?? "NOT_RECORDED"}; latest=${view.overall}`,
+    }],
+  };
+}
+
+function knownAtForecastAnswer(intelligence: MatchIntelligence, question: string) {
+  const context = intelligence.context.atForecast;
+  if (context.status !== "RECORDED") {
+    return {
+      modelFact:
+        context.status === "NOT_RECORDED"
+          ? "This forecast has no frozen context snapshot, so whether that information was known at the time cannot be established."
+          : "The referenced frozen context is unavailable or inconsistent, so known-at-cutoff status cannot be established.",
+      evidence: context.note,
+      interpretation: "Not recorded is not the same as not known. Current information is never backfilled into the old forecast.",
+      numericEvidence: {},
+      tools: [
+        {
+          name: "get_context_evidence" as const,
+          source: "deterministic" as const,
+          forecastId: intelligence.audit.immutableForecastId,
+          summary: context.status,
+        },
+      ],
+    };
+  }
+  const subject = playerSubject(question);
+  if (subject) {
+    const matches = matchingEntities(intelligence, subject);
+    if (matches.entityIds.length !== 1) {
+      return ambiguousPlayerAnswer(intelligence, subject, matches.entityIds);
+    }
+    const selectedItem = newestEvidence(matches.atForecast);
+    return {
+      modelFact: selectedItem
+        ? `${subject}'s recorded evidence was known to Oracle by this forecast cutoff.`
+        : `${subject}'s latest recorded evidence was not in this forecast's frozen context.`,
+      evidence: selectedItem
+        ? `${selectedItem.evidenceId} has availableAt ${selectedItem.availableAt}, no later than ${context.cutoffAt}.`
+        : `Only evidence IDs in context ${context.contextId} qualify; later context is never backfilled.`,
+      interpretation: selectedItem
+        ? "Known at cutoff does not imply that the probability model used the evidence."
+        : "Not present in this exact snapshot is not rewritten as historically unknown outside Oracle.",
+      numericEvidence: {},
+      tools: [{
+        name: "get_context_evidence" as const,
+        source: "deterministic" as const,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: selectedItem ? `${selectedItem.evidenceId} known at cutoff` : "not present at cutoff",
+      }],
+    };
+  }
+  if (/expected\s+lineup|team\s*sheet|lineup\s+(?:known|available|confirmed)/i.test(question)) {
+    return lineupAnswer(intelligence);
+  }
+  if (/\b(?:that|this)\s+(?:information|evidence|status)\b/i.test(question)) {
+    return {
+      modelFact: "This stateless request does not identify which evidence item “that information” refers to.",
+      evidence: `Frozen context ${context.contextId} contains ${context.evidenceCounts.total} cutoff-safe item(s).`,
+      interpretation: "Name the player or lineup explicitly so Oracle can test the exact evidence ID without guessing.",
+      numericEvidence: {},
+      tools: [{
+        name: "get_context_evidence" as const,
+        source: "deterministic" as const,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: "explicit evidence identity required",
+      }],
+    };
+  }
+  return {
+    modelFact: `The frozen context contains ${context.evidenceCounts.total} evidence item(s), each with availableAt no later than ${context.cutoffAt}.`,
+    evidence: `Context snapshot ${context.contextId}; temporal rule ${intelligence.context.temporalRule}.`,
+    interpretation: "Only an evidence ID present in this exact snapshot can be called known to Oracle at this cutoff.",
+    numericEvidence: {},
+    tools: [
+      {
+        name: "get_context_evidence" as const,
+        source: "deterministic" as const,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: `${context.evidenceCounts.total} cutoff-safe item(s)`,
+      },
+    ],
+  };
+}
+
+function usageAnswer(intelligence: MatchIntelligence, question: string) {
+  const counts = intelligence.audit.contextEvidenceCounts;
+  const subject = playerSubject(question);
+  const matches = subject ? matchingEntities(intelligence, subject) : null;
+  const subjectItem = matches?.entityIds.length === 1
+    ? newestEvidence(matches.atForecast)
+    : null;
+  const subjectUsed = subjectItem?.usedInForecast ?? false;
+  return {
+    modelFact:
+      `Context evidence used in this forecast: ${counts.usedInForecast}.\n` +
+      `Informational-only context evidence: ${counts.informationalOnly}.`,
+    evidence:
+      `Production model ${intelligence.audit.modelVersion} uses walk-forward ratings, home advantage, Dixon-Coles rho and the frozen goal mapping. It has no player-impact or lineup transformation.`,
+    interpretation: subject
+      ? matches?.entityIds.length === 1
+        ? `${subject}'s selected-cutoff evidence was${subjectUsed ? "" : " not"} marked as used. Knowing or displaying an item is a separate fact.`
+        : `Oracle could not resolve ${subject} to one exact frozen entity, so it did not guess item-level usage.`
+      : "This is the exact aggregate for the selected forecast. Name an evidence subject for an item-level audit.",
+    numericEvidence: {},
+    tools: [
+      {
+        name: "get_context_evidence" as const,
+        source: "deterministic" as const,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: `${counts.usedInForecast} used / ${counts.informationalOnly} informational`,
+      },
+      {
+        name: "get_forecast_provenance" as const,
+        source: "deterministic" as const,
+        forecastId: intelligence.audit.immutableForecastId,
+        summary: "approved production inputs",
+      },
+    ],
+  };
+}
+
+function scenarioAnswer(intelligence: MatchIntelligence, question: string) {
+  const subject = playerSubject(question);
+  const resolved = subject ? matchingEntities(intelligence, subject) : null;
+  const resolvedPlayerId = resolved?.entityIds.length === 1 && /^[A-Za-z0-9._:-]{1,120}$/.test(resolved.entityIds[0])
+    ? resolved.entityIds[0]
+    : null;
+  const result = runSupportedScenario(
+    { intelligence },
+    { type: "PLAYER_NOT_STARTING", ...(resolvedPlayerId ? { playerId: resolvedPlayerId } : {}) }
+  );
+  return {
+    modelFact:
+      `${result.status}: the current production model does not support player-level counterfactual probabilities. ` +
+      "No counterfactual probability was created.",
+    evidence:
+      `Baseline production forecast remains ${result.baselineForecastId}; persisted=${result.persisted}.`,
+    interpretation: result.reason,
     numericEvidence: {},
     tools: [
       {
@@ -528,12 +891,44 @@ function scenarioAnswer(intelligence: MatchIntelligence) {
   };
 }
 
+function isScenarioQuestion(question: string): boolean {
+  const lower = question.toLowerCase();
+  return (
+    /\bwhat\s+if\b|\bscenario\b|\bcounterfactual\b|\bsuppose\b|\bassum(?:e|ing)\b|\bwithout\b|\babsence\s+of\b|如果|假设|缺席/.test(lower) ||
+    /\bhow\s+(?:would|will)\b.*\bchange\b.*\bif\b/.test(lower) ||
+    /\bif\b.*\b(?:doesn[’']?t\s+start|does\s+not\s+start|not\s+starting|unavailable|absent|ruled\s+out|injured|suspended)\b/.test(lower) ||
+    /\b(?:doesn[’']?t\s+start|does\s+not\s+start|not\s+starting|unavailable|absent|ruled\s+out|injured|suspended)\b.*\b(?:probability|probabilities|forecast|chance|change|impact|effect)\b/.test(lower) ||
+    /\b(?:probability|probabilities|forecast|chance)\b.*\b(?:change|impact|effect)\b.*\b(?:with|when)\b.*\b(?:unavailable|absent|out|not\s+starting)\b/.test(lower)
+  );
+}
+
+function isHistoryQuestion(question: string): boolean {
+  const lower = question.toLowerCase();
+  return (
+    /what changed|since yesterday|moved from|history|timeline|since (?:the )?previous (?:forecast|snapshot)|变化|昨天|历史/.test(lower) ||
+    /\b(?:probability|probabilities|forecast|chance)\b.*\b(?:move|moved|change|changed)\b/.test(lower) ||
+    /\b(?:move|moved|change|changed)\b.*\b(?:probability|probabilities|forecast|chance)\b/.test(lower)
+  );
+}
+
 function chooseAnswer(intelligence: MatchIntelligence, question: string) {
   const lower = question.toLowerCase();
-  if (/what if|scenario|unavailable|ruled out|rotat|lineup|如果|缺阵|轮换|首发/.test(lower)) {
-    return scenarioAnswer(intelligence);
+  if (isScenarioQuestion(question)) {
+    return scenarioAnswer(intelligence, question);
   }
-  if (/what changed|since yesterday|moved from|history|timeline|变化|昨天|历史/.test(lower)) {
+  if (/was .*?(?:known|available)|known.*(?:cutoff|forecast)|当时.*知道|截止.*知道/.test(lower)) {
+    return knownAtForecastAnswer(intelligence, question);
+  }
+  if (/did.*model.*use|used in (?:the )?forecast|actually use|模型.*使用|真的.*用/.test(lower)) {
+    return usageAnswer(intelligence, question);
+  }
+  if (/expected\s+lineup|team\s*sheet|lineups?\s+(?:available|confirmed|known|recorded)/.test(lower)) {
+    return lineupAnswer(intelligence);
+  }
+  if (/expected to play|likely to play|will .*\bplay|is .*\bplaying|\bis .+\b(?:available|unavailable|out|doubtful|suspended)\b|availability|ruled out|suspend|injur|lineup|出场|缺阵|伤停|首发/.test(lower)) {
+    return availabilityAnswer(intelligence, question);
+  }
+  if (isHistoryQuestion(question)) {
     return historyAnswer(intelligence);
   }
   if (/audit|provenance|where.*come from|trace|审计|来源|追溯/.test(lower)) {
@@ -555,67 +950,39 @@ function chooseAnswer(intelligence: MatchIntelligence, question: string) {
   return resultAnswer(intelligence);
 }
 
-const TOKEN_NAMES = [
-  "ALPHA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT", "GOLF", "HOTEL",
-  "INDIA", "JULIET", "KILO", "LIMA", "MIKE", "NOVEMBER", "OSCAR", "PAPA",
-  "QUEBEC", "ROMEO", "SIERRA", "TANGO", "UNIFORM", "VICTOR", "WHISKEY", "XRAY",
-  "YANKEE", "ZULU",
-];
-
-function maskNumericLines(text: string): { masked: string; facts: Map<string, string> } | null {
-  const facts = new Map<string, string>();
-  let index = 0;
-  const lines = text.split("\n").map((line) => {
-    if (!/\d/.test(line)) return line;
-    const name = TOKEN_NAMES[index];
-    if (!name) return line;
-    const token = `⟦FACT_${name}⟧`;
-    facts.set(token, line);
-    index += 1;
-    return token;
-  });
-  if (lines.some((line) => /\d/.test(line))) return null;
-  return { masked: lines.join("\n"), facts };
-}
-
 async function groundedNarration(
   deterministic: string,
-  question: string
+  _question: string
 ): Promise<{ text: string; provider: ActiveProvider | null }> {
-  if (process.env.MATCH_AGENT_LLM_ENABLED === "0") {
-    return { text: deterministic, provider: null };
-  }
-  if (!/why|explain|what changed|compare|为什么|解释|变化|比较/i.test(question)) {
-    return { text: deterministic, provider: null };
-  }
-  const masked = maskNumericLines(deterministic);
-  if (!masked || masked.facts.size === 0) return { text: deterministic, provider: null };
-  const polished = await polishNarrative(
-    masked.masked,
-    "Football match analysis. Preserve every opaque FACT token exactly once. Do not add numeric claims.",
-    { query: question, intent: "match-intelligence" }
-  );
-  if (!polished.provider || polished.text.length > 4_000) {
-    return { text: deterministic, provider: null };
-  }
-  let residue = polished.text;
-  for (const token of masked.facts.keys()) {
-    const count = residue.split(token).length - 1;
-    if (count !== 1) return { text: deterministic, provider: null };
-    residue = residue.replace(token, "");
-  }
-  const numberWords = /\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|half|double|twice|hundred)\b|[零一二三四五六七八九十百千万半两]/i;
-  if (/\d/.test(residue) || numberWords.test(residue)) {
-    return { text: deterministic, provider: null };
-  }
-  let text = polished.text;
-  for (const [token, fact] of masked.facts) text = text.replace(token, fact);
-  return { text, provider: polished.provider };
+  // Production answers are rendered from audited deterministic tools only.
+  // A lexical number filter cannot prove an LLM avoided inventing spelled-out
+  // quantities or causal football claims, so there is no generative narration
+  // path in the champion Match Room.
+  return { text: deterministic, provider: null };
 }
 
-function cacheKey(matchId: string, question: string, forecastId: string): string {
+/**
+ * Context timing, evidence use, and unsupported scenarios stay on audited
+ * templates. Numeric-token checks cannot prove that an LLM avoided adding a
+ * causal football claim, so these intents never enter the narration layer.
+ */
+export function contextNarrationMustRemainDeterministic(question: string): boolean {
+  const lower = question.toLowerCase();
+  return (
+    isScenarioQuestion(question) ||
+    isHistoryQuestion(question) ||
+    /context|known.*(?:cutoff|forecast)|was .*known|availability|expected to play|likely to play|lineups?|\bis .+\b(?:available|unavailable|out|doubtful|suspended)\b|injur|suspend|ruled out|did.*model.*use|used in (?:the )?forecast|caus|变化|历史|当时.*知道|截止.*知道|伤停|缺阵|首发/.test(lower)
+  );
+}
+
+function cacheKey(
+  matchId: string,
+  question: string,
+  forecastId: string,
+  latestContextIdentity: string
+): string {
   return createHash("sha256")
-    .update(`${matchId}\n${forecastId}\n${question.trim().toLowerCase()}`)
+    .update(`${matchId}\n${forecastId}\n${latestContextIdentity}\n${question.trim().toLowerCase()}`)
     .digest("hex");
 }
 
@@ -623,7 +990,12 @@ export async function runMatchAgent(matchId: string, question: string): Promise<
   // Resolve the match and establish one immutable tool context before intent
   // handling. Every subsequent numeric answer reads this same context.
   const { intelligence } = await getMatchContext(matchId);
-  const key = cacheKey(matchId, question, intelligence.audit.immutableForecastId);
+  const key = cacheKey(
+    matchId,
+    question,
+    intelligence.audit.immutableForecastId,
+    intelligence.context.latest.contextId ?? intelligence.context.latest.status
+  );
   const cached = answerCache.get(key);
   if (cached && cached.expiresAt > Date.now()) return structuredClone(cached.response);
 

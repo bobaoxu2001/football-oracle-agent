@@ -8,6 +8,7 @@
 
 import { getMatchIntelligence } from "./service";
 import type { ForecastComparison, MatchForecast, MatchIntelligence } from "./types";
+import { runMatchScenario, type MatchScenarioOverride } from "./scenario";
 
 export interface MatchAgentToolContext {
   intelligence: MatchIntelligence;
@@ -59,11 +60,26 @@ export function getTeamNews(context: MatchAgentToolContext) {
 }
 
 export function getTeamAvailability(context: MatchAgentToolContext) {
-  return context.intelligence.context.availability;
+  return context.intelligence.context.atForecast.availability;
 }
 
 export function getProbabilityHistory(context: MatchAgentToolContext) {
   return context.intelligence.timeline;
+}
+
+export function getForecastTimeline(context: MatchAgentToolContext) {
+  return context.intelligence.timeline;
+}
+
+export function getContextEvidence(context: MatchAgentToolContext) {
+  return {
+    atForecast: context.intelligence.context.atForecast,
+    latest: context.intelligence.context.latest,
+  };
+}
+
+export function compareMatchContext(context: MatchAgentToolContext) {
+  return context.intelligence.contextComparison;
 }
 
 export function compareLatestForecastSnapshots(
@@ -74,18 +90,12 @@ export function compareLatestForecastSnapshots(
 
 export function runSupportedScenario(
   context: MatchAgentToolContext,
-  scenario: { type: string; [key: string]: unknown }
-): {
-  supported: false;
-  baselineForecastId: string;
-  scenario: { type: string; [key: string]: unknown };
-  reason: string;
-} {
-  return {
-    supported: false,
-    baselineForecastId: context.intelligence.audit.immutableForecastId,
-    scenario,
-    reason:
-      "The current Premier League production model has no audited deterministic scenario mechanism for this input. The baseline forecast is unchanged.",
-  };
+  scenario: MatchScenarioOverride
+) {
+  return runMatchScenario({
+    baseline: context.intelligence.forecast,
+    matchId: context.intelligence.match.id,
+    forecastId: context.intelligence.audit.immutableForecastId,
+    override: scenario,
+  });
 }

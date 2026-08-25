@@ -9,15 +9,22 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { AnyBulkWriteOperation, Db } from "mongodb";
 import { getMongoDb } from "@/lib/db/mongodb";
 import { isCanonicalLiveTapePath, resetSnapshotCache } from "@/lib/snapshots/store";
+import {
+  assertMatchContextIntegrity,
+  type MatchContextSnapshot,
+} from "../context";
 import { resetSeasonBundleCache } from "../fixture-store";
 import { compactPersistedSourceObservations } from "./fixture-sync";
 import { resetJobCache } from "./job-ledger";
 import { compactPersistedResultObservations } from "./result-feed";
 import { resetRatingEventCache } from "./rating-events";
+import { resetContextSnapshotStoreCache } from "./context-snapshots";
 import {
   clubSeasonsPath,
+  contextSnapshotPath,
   liveFixturesPath,
   operationalLiveOosPath,
   opsDir,
@@ -36,6 +43,8 @@ import {
 export type OpsBackendKind = "file" | "mongo" | "bundle";
 
 const COMMITTED_ROOT = path.resolve(process.cwd(), "data/processed/premier-league");
+const OPS_BUNDLE_COLLECTION = "pl_ops_bundle";
+const CONTEXT_SNAPSHOT_COLLECTION = "pl_match_context_snapshots";
 const BUNDLE_KEYS = [
   "jobs",
   "sourceObservations",
@@ -49,10 +58,15 @@ const BUNDLE_KEYS = [
   "operationalLiveOos",
   "settlements",
   "workingSnapshots",
+  "contextSnapshots",
   "fixturesOverlay",
 ] as const;
 
-export type DurableBundle = Record<(typeof BUNDLE_KEYS)[number], string>;
+type DurableBundleKey = (typeof BUNDLE_KEYS)[number];
+/** contextSnapshots is optional when reading pre-Phase-4B bundles. */
+export type DurableBundle = Omit<Record<DurableBundleKey, string>, "contextSnapshots"> & {
+  contextSnapshots?: string;
+};
 
 export function opsBackend(): OpsBackendKind {
   const forced = process.env.PL_OPS_BACKEND;
@@ -79,6 +93,7 @@ function emptyBundle(): DurableBundle {
     operationalLiveOos: "",
     settlements: "",
     workingSnapshots: "",
+    contextSnapshots: "",
     fixturesOverlay: "",
   };
 }
@@ -92,6 +107,129 @@ function writeIf(file: string, text: string): void {
   if (!text) return;
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, text, "utf8");
+}
+
+interface ParsedContextSnapshotRow {
+  snapshot: MatchContextSnapshot;
+  json: string;
+}
+
+export interface MongoContextSnapshotDocument {
+  _id: string;
+  snapshot: MatchContextSnapshot;
+  insertedAt: string;
+}
+
+function parseContextSnapshotJsonl(text: string, sourceLabel: string): ParsedContextSnapshotRow[] {
+  const rows: ParsedContextSnapshotRow[] = [];
+  for (const [index, rawLine] of text.split("\n").entries()) {
+    const json = rawLine.trim();
+    if (!json) continue;
+    let snapshot: MatchContextSnapshot;
+    try {
+      snapshot = JSON.parse(json) as MatchContextSnapshot;
+    } catch {
+      throw new Error(`${sourceLabel} contains invalid match context JSON at line ${index + 1}`);
+    }
+    try {
+      assertMatchContextIntegrity(snapshot);
+    } catch (error) {
+      throw new Error(
+        `${sourceLabel} contains invalid match context at line ${index + 1}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+    rows.push({ snapshot, json });
+  }
+  return rows;
+}
+
+function firstWriteContextRows(
+  sources: readonly { text: string; label: string }[]
+): ParsedContextSnapshotRow[] {
+  const byId = new Map<string, ParsedContextSnapshotRow>();
+  for (const source of sources) {
+    for (const row of parseContextSnapshotJsonl(source.text, source.label)) {
+      if (!byId.has(row.snapshot.contextId)) byId.set(row.snapshot.contextId, row);
+    }
+  }
+  return [...byId.values()];
+}
+
+function serializeContextRows(rows: readonly ParsedContextSnapshotRow[]): string {
+  return rows.length ? `${rows.map((row) => row.json).join("\n")}\n` : "";
+}
+
+/**
+ * Merge immutable context JSONL sources in priority order. The first valid row
+ * for a content address wins, input order is retained, and every row is
+ * integrity-checked before any caller persists it.
+ */
+export function mergeContextSnapshotJsonl(...sources: readonly string[]): string {
+  return serializeContextRows(
+    firstWriteContextRows(
+      sources.map((text, index) => ({ text, label: `match context source ${index + 1}` }))
+    )
+  );
+}
+
+function contextSnapshotAppendPayload(existing: string, incoming: string): string {
+  const existingRows = firstWriteContextRows([
+    { text: existing, label: "existing local match context store" },
+  ]);
+  const mergedRows = firstWriteContextRows([
+    { text: existing, label: "existing local match context store" },
+    { text: incoming, label: "hydrated durable match context store" },
+  ]);
+  const appendedRows = mergedRows.slice(existingRows.length);
+  if (!appendedRows.length) return "";
+  const separator = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
+  return `${separator}${serializeContextRows(appendedRows)}`;
+}
+
+/** Build insert-only Mongo operations after validating and de-duplicating JSONL. */
+export function buildImmutableContextMongoUpserts(
+  text: string,
+  insertedAt = new Date().toISOString()
+): AnyBulkWriteOperation<MongoContextSnapshotDocument>[] {
+  const rows = firstWriteContextRows([
+    { text, label: "captured match context store" },
+  ]).sort((a, b) => a.snapshot.contextId.localeCompare(b.snapshot.contextId));
+  return rows.map((row) => ({
+    updateOne: {
+      filter: { _id: row.snapshot.contextId },
+      update: {
+        $setOnInsert: {
+          snapshot: row.snapshot,
+          insertedAt,
+        },
+      },
+      upsert: true,
+    },
+  }));
+}
+
+/**
+ * Convert separately stored Mongo contexts back to JSONL, preferring those
+ * immutable documents over matching rows left in a legacy bundle.
+ */
+export function mergeMongoContextDocumentsWithLegacy(
+  documents: readonly Pick<MongoContextSnapshotDocument, "_id" | "snapshot">[],
+  legacyJsonl: string
+): string {
+  const collectionJsonl = documents
+    .slice()
+    .sort((a, b) => String(a._id).localeCompare(String(b._id)))
+    .map((document, index) => {
+      if (typeof document._id !== "string" || document._id !== document.snapshot?.contextId) {
+        throw new Error(`Mongo match context document ${index + 1} has a mismatched _id`);
+      }
+      assertMatchContextIntegrity(document.snapshot);
+      return JSON.stringify(document.snapshot);
+    })
+    .join("\n");
+  return mergeContextSnapshotJsonl(collectionJsonl, legacyJsonl);
 }
 
 function copyCommitted(srcName: string, dest: string): void {
@@ -128,6 +266,7 @@ export function captureBundleFromDisk(): DurableBundle {
     operationalLiveOos: readIf(operationalLiveOosPath()),
     settlements: readIf(process.env.SETTLEMENT_STORE_PATH || path.join(opsDir(), "settlements.jsonl")),
     workingSnapshots: readIf(process.env.SNAPSHOT_STORE_PATH || path.join(opsDir(), "working-snapshots.jsonl")),
+    contextSnapshots: readIf(contextSnapshotPath()),
     fixturesOverlay: readIf(liveFixturesPath()),
   };
 }
@@ -142,6 +281,7 @@ export function routeDurablePaths(work = durableWorkDir()): void {
   process.env.SNAPSHOT_STORE_PATH = path.join(ops, "working-snapshots.jsonl");
   process.env.SETTLEMENT_STORE_PATH = path.join(ops, "settlements.jsonl");
   process.env.LIVE_OOS_ARCHIVE_PATH = path.join(ops, "live-oos-operational.jsonl");
+  process.env.PL_CONTEXT_SNAPSHOT_PATH = path.join(ops, "match-context-snapshots.jsonl");
   assertNotTape(process.env.SNAPSHOT_STORE_PATH);
   assertNotTape(process.env.LIVE_OOS_ARCHIVE_PATH);
   copyCommitted("season-2026-27.json", process.env.PL_SEASON_MANIFEST_PATH);
@@ -153,6 +293,11 @@ export function routeDurablePaths(work = durableWorkDir()): void {
 
 export function applyBundleToDisk(bundle: DurableBundle): void {
   routeDurablePaths();
+  const contextFile = contextSnapshotPath();
+  const contextAppend = contextSnapshotAppendPayload(
+    readIf(contextFile),
+    bundle.contextSnapshots ?? ""
+  );
   writeIf(predictionJobPath(), bundle.jobs);
   writeIf(sourceObservationPath(), bundle.sourceObservations);
   writeIf(scheduleRevisionPath(), bundle.scheduleRevisions);
@@ -165,11 +310,16 @@ export function applyBundleToDisk(bundle: DurableBundle): void {
   writeIf(operationalLiveOosPath(), bundle.operationalLiveOos);
   writeIf(process.env.SETTLEMENT_STORE_PATH!, bundle.settlements);
   writeIf(process.env.SNAPSHOT_STORE_PATH!, bundle.workingSnapshots);
+  if (contextAppend) {
+    fs.mkdirSync(path.dirname(contextFile), { recursive: true });
+    fs.appendFileSync(contextFile, contextAppend, "utf8");
+  }
   if (bundle.fixturesOverlay.trim()) writeIf(liveFixturesPath(), bundle.fixturesOverlay);
   resetJobCache();
   resetRatingEventCache();
   resetSeasonBundleCache();
   resetSnapshotCache();
+  resetContextSnapshotStoreCache();
 }
 
 function bundlePath(): string {
@@ -179,17 +329,50 @@ function bundlePath(): string {
 async function loadMongoBundle(): Promise<DurableBundle> {
   const db = await getMongoDb();
   if (!db) throw new Error("MongoDB unavailable for durable ops store");
-  const doc = await db.collection("pl_ops_bundle").findOne({ _id: "current" as never });
-  if (!doc?.bundle) return emptyBundle();
-  return { ...emptyBundle(), ...(doc.bundle as DurableBundle) };
+  // Read in save order: writers insert contexts before removing legacy rows
+  // from the bundle. This ordering avoids a hydrate racing between those two
+  // writes and temporarily observing neither copy.
+  const doc = await db.collection(OPS_BUNDLE_COLLECTION).findOne({ _id: "current" as never });
+  const contextDocuments = await db
+    .collection<MongoContextSnapshotDocument>(CONTEXT_SNAPSHOT_COLLECTION)
+    .find({}, { projection: { snapshot: 1 } })
+    .sort({ _id: 1 })
+    .toArray();
+  const legacyBundle = doc?.bundle && typeof doc.bundle === "object"
+    ? doc.bundle as DurableBundle
+    : emptyBundle();
+  const legacyContexts = legacyBundle.contextSnapshots;
+  if (legacyContexts !== undefined && typeof legacyContexts !== "string") {
+    throw new Error("legacy ops bundle contextSnapshots must be a string");
+  }
+  return {
+    ...emptyBundle(),
+    ...legacyBundle,
+    contextSnapshots: mergeMongoContextDocumentsWithLegacy(
+      contextDocuments,
+      legacyContexts ?? ""
+    ),
+  };
+}
+
+async function saveMongoContexts(db: Db, text: string): Promise<void> {
+  const operations = buildImmutableContextMongoUpserts(text);
+  if (!operations.length) return;
+  const collection = db.collection<MongoContextSnapshotDocument>(CONTEXT_SNAPSHOT_COLLECTION);
+  // Keep each command bounded while retaining one-document-per-context storage.
+  for (let index = 0; index < operations.length; index += 100) {
+    await collection.bulkWrite(operations.slice(index, index + 100), { ordered: false });
+  }
 }
 
 async function saveMongoBundle(bundle: DurableBundle): Promise<void> {
   const db = await getMongoDb();
   if (!db) throw new Error("MongoDB unavailable for durable ops store");
-  await db.collection("pl_ops_bundle").updateOne(
+  await saveMongoContexts(db, bundle.contextSnapshots ?? "");
+  const { contextSnapshots: _contextSnapshots, ...bundleWithoutContexts } = bundle;
+  await db.collection(OPS_BUNDLE_COLLECTION).updateOne(
     { _id: "current" as never },
-    { $set: { bundle, updatedAt: new Date().toISOString() } },
+    { $set: { bundle: bundleWithoutContexts, updatedAt: new Date().toISOString() } },
     { upsert: true }
   );
 }

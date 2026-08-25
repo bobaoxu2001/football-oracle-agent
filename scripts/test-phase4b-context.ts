@@ -145,6 +145,27 @@ const awayExpectedAvailable: MatchContextEvidenceInput = {
   availabilityStatus: "EXPECTED_AVAILABLE",
 };
 
+const suspensionPublishedAfterKickoff: MatchContextEvidenceInput = {
+  fixtureId: FIXTURE,
+  kind: "SQUAD_AVAILABILITY",
+  teamSlug: AWAY,
+  ...evidenceMeta("player-c", "2026-09-12T20:30:00.000Z", "3", 1),
+  source: { name: "availability-provider", recordId: "player-c-post-kickoff" },
+  payload: { detail: "Published after the match began" },
+  usedInForecast: false,
+  availabilityStatus: "SUSPENDED",
+};
+
+const tacticalProfileAfterMatch: MatchContextEvidenceInput = {
+  fixtureId: FIXTURE,
+  kind: "TACTICAL_CONTEXT",
+  teamSlug: HOME,
+  ...evidenceMeta(HOME, "2026-09-12T22:30:00.000Z", "4", 0.75),
+  source: { name: "profile-store", recordId: "arsenal-post-match-profile" },
+  payload: { profileVersion: "post-match-only" },
+  usedInForecast: false,
+};
+
 function main(): void {
   const candidates = [
     awayConfirmedAfterCutoff,
@@ -156,13 +177,15 @@ function main(): void {
     homeDoubtful,
     homeOutLater,
     awayExpectedAvailable,
+    suspensionPublishedAfterKickoff,
+    tacticalProfileAfterMatch,
   ];
   const early = assembleMatchContext(buildInput(candidates));
 
   // Inclusive cutoff admission, strict exclusion after cutoff, and no future-id leakage.
-  assert.equal(early.diagnostics.candidateEvidenceCount, 9);
+  assert.equal(early.diagnostics.candidateEvidenceCount, 11);
   assert.equal(early.diagnostics.admittedEvidenceCount, 5);
-  assert.equal(early.diagnostics.excludedAfterCutoffEvidenceIds.length, 3);
+  assert.equal(early.diagnostics.excludedAfterCutoffEvidenceIds.length, 5);
   assert.equal(early.diagnostics.duplicateEvidenceIds.length, 1);
   assert.equal(early.snapshot.evidence.some((item) => item.availableAt === CUTOFF), true);
   assert.equal(
@@ -172,6 +195,14 @@ function main(): void {
   for (const futureId of early.diagnostics.excludedAfterCutoffEvidenceIds) {
     assert.equal(JSON.stringify(early.snapshot).includes(futureId), false);
   }
+  assert.equal(
+    early.snapshot.evidence.some((item) => item.source.recordId === "player-c-post-kickoff"),
+    false
+  );
+  assert.equal(
+    early.snapshot.evidence.some((item) => item.source.recordId === "arsenal-post-match-profile"),
+    false
+  );
   assert.deepEqual(early.snapshot.usedInForecastEvidenceIds, []);
   assert.equal(early.snapshot.evidence.every((item) => item.usedInForecast === false), true);
   assert.equal(early.snapshot.lineup.home.status, "EXPECTED");

@@ -26,6 +26,9 @@ import { SEASON_INIT_VERSION } from "@/lib/competitions/premier-league/model-tra
 import { liveCompetitionSeason } from "@/lib/competitions/premier-league/fixture-store";
 import type { SnapshotOrigin } from "@/lib/competitions/premier-league/ops/types";
 import type { KickoffCertainty } from "@/lib/identity/types";
+import type { MatchContextSnapshot } from "@/lib/competitions/premier-league/context/types";
+import { assertMatchContextIntegrity } from "@/lib/competitions/premier-league/context/snapshot";
+import { snapshotUniqueKey } from "@/lib/snapshots/types";
 
 export interface LeaguePredictOptions {
   asOf?: string;
@@ -39,6 +42,12 @@ export interface LeaguePredictOptions {
   fixtureDataVersion?: string | null;
   kickoffCertaintyAtFreeze?: KickoffCertainty | null;
   fixtureRetrievedAt?: string | null;
+  /**
+   * Immutable audit-only context reference. The current champion does not
+   * consume contextual evidence in its probability math; any claim that it
+   * did therefore fails closed below.
+   */
+  contextSnapshot?: MatchContextSnapshot;
   /** Test/back-compat: skip live rating events and use date-strict historical ratings. */
   ratingsMode?: "live" | "historical";
 }
@@ -189,10 +198,39 @@ export function snapshotPremierLeagueMatch(
     .map((event) => event.appliedAt)
     .sort()
     .at(-1) ?? null;
+  const season = options.season ?? PREMIER_LEAGUE_CURRENT_SEASON;
+  const context = options.contextSnapshot;
+  if (context) {
+    assertMatchContextIntegrity(context);
+    const expectedForecastKey = snapshotUniqueKey({
+      competition: "premier-league",
+      season,
+      fixtureId: pred.matchId,
+      modelVersion: params.modelVersion,
+      predictionStage: stage,
+      asOf,
+    });
+    if (
+      context.fixtureId !== pred.matchId ||
+      context.season !== season ||
+      context.homeSlug !== homeSlug ||
+      context.awaySlug !== awaySlug ||
+      context.cutoffAt !== asOf ||
+      context.kickoffAt !== kickoff ||
+      context.forecastSnapshotKey !== expectedForecastKey
+    ) {
+      throw new Error("Match context does not reference this exact forecast snapshot.");
+    }
+    if (context.usedInForecastEvidenceIds.length > 0) {
+      throw new Error(
+        `${params.modelVersion} cannot claim contextual evidence was used in forecast math.`
+      );
+    }
+  }
   return createSnapshot({
     fixtureId: pred.matchId,
     competition: "premier-league",
-    season: options.season ?? PREMIER_LEAGUE_CURRENT_SEASON,
+    season,
     asOf,
     kickoff,
     modelVersion: params.modelVersion,
@@ -243,6 +281,22 @@ export function snapshotPremierLeagueMatch(
       kickoffCertaintyAtFreeze: options.kickoffCertaintyAtFreeze ?? null,
       fixtureRetrievedAt: options.fixtureRetrievedAt ?? null,
       seasonInitVersion: SEASON_INIT_VERSION,
+      contextSnapshotId: context?.contextId ?? null,
+      contextSchemaVersion: context?.schemaVersion ?? null,
+      contextSnapshotCutoffAt: context?.cutoffAt ?? null,
+      contextSnapshotGeneratedAt: context?.generatedAt ?? null,
+      contextTemporalRule: context?.temporalRule ?? null,
+      contextLineupStatus: context?.lineup.overall ?? "NONE",
+      contextLineupAvailableAt:
+        [context?.lineup.home.availableAt, context?.lineup.away.availableAt]
+          .filter((value): value is string => Boolean(value))
+          .sort()
+          .at(-1) ?? null,
+      contextEvidenceCount: context?.evidence.length ?? 0,
+      contextModelUsedEvidenceCount: context?.usedInForecastEvidenceIds.length ?? 0,
+      contextInformationalEvidenceCount:
+        context ? context.evidence.length - context.usedInForecastEvidenceIds.length : 0,
+      contextUsedInForecastEvidenceIds: context?.usedInForecastEvidenceIds ?? [],
     },
     provenanceNotes:
       options.origin === "scheduled"

@@ -32,6 +32,7 @@ Other material is deliberately separated:
 ```text
 cutoff-safe football inputs
 → walk-forward Elo state
+→ immutable cutoff-safe match-context reference (audit-only in the current champion)
 → frozen home/away goal expectations + Dixon-Coles rho
 → normalized score matrix
 → 1X2 / totals / BTTS / DNB / team totals / exact scores
@@ -40,6 +41,18 @@ cutoff-safe football inputs
 ```
 
 Every displayed numerical market is derived from the same score distribution. React components do not recompute forecasting math.
+
+## Time-safe match context (Phase 4B)
+
+Every newly scheduled production stage also freezes a content-addressed match-context snapshot for the same fixture, kickoff, cutoff, and forecast identity. Evidence is admissible only when `availableAt <= cutoffAt`; each item separately records whether it was numerically used.
+
+The current champion, `pl-live-v0.2.0`, has no validated player-impact or lineup transformation. It therefore forces all context evidence to `usedInForecast: false`, leaves probabilities unchanged, and fails closed if a context claims otherwise. Historical forecasts are never reconstructed from current news: older rows show `NOT_RECORDED`, while a broken reference shows `MISSING`.
+
+The Match Room distinguishes the selected frozen context from the latest prospectively recorded context, compares only the exact legal snapshot pair, and avoids causal attribution. Player or tactical what-if requests return `UNSUPPORTED_SCENARIO` without a probability and never enter the LIVE_OOS ledger.
+
+Public context responses expose hashed source-record references but omit raw provider URLs, whose paths may contain credentials or internal identifiers. Match Room answers are rendered from deterministic audited tools only; the champion has no generative narration path.
+
+No structured Premier League injury or lineup provider is currently configured. Provider constraints and the proposed prospective-only adapter boundary are documented in `docs/PHASE4B_CONTEXT_SOURCE_AUDIT.md`.
 
 ## Immutable production stages
 
@@ -105,6 +118,7 @@ Relevant JSON APIs:
 - `GET /api/matches/upcoming`
 - `GET /api/matches/:matchId/intelligence`
 - `POST /api/matches/:matchId/agent`
+- `POST /api/matches/:matchId/scenario` (deterministic fail-closed boundary)
 
 ## Local development
 
@@ -141,6 +155,9 @@ The regression suites cover:
 - settlement replay behavior;
 - canonical snapshot-versus-fixture ledger metrics;
 - Match Room selection of the latest valid production snapshot;
+- content-addressed context snapshots, future-evidence exclusion, and retry idempotency;
+- exact forecast/context pairing and model-used versus informational-only evidence;
+- fail-closed, non-persisted scenario responses;
 - privacy, request bounds, and production hardening.
 
 The committed Premier League LIVE_OOS tape is append-protected and hash-gated by the test suite.

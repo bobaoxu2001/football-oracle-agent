@@ -63,9 +63,13 @@
     "test:phase4a-ledger": "tsx scripts/test-phase4a-ledger-metrics.ts",
     "test:phase4a-rolling": "tsx scripts/test-phase4a-rolling.ts",
     "test:phase4a-public": "tsx scripts/test-phase4a-public-consistency.ts",
+    "test:phase4b-context": "tsx scripts/test-phase4b-context.ts",
+    "test:phase4b-durable-context": "tsx scripts/test-phase4b-durable-context.ts",
+    "test:phase4b-scenario": "tsx scripts/test-phase4b-scenario-boundary.ts",
+    "test:phase4b-integration": "tsx scripts/test-phase4b-integration.ts",
     "ledger:backfill": "tsx scripts/backfill-big-five.ts",
     "ledger:dry-run": "tsx scripts/backfill-big-five.ts --dry-run",
-    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts && tsx scripts/test-phase2a-1.ts && tsx scripts/test-phase2a-2.ts && tsx scripts/test-phase2a-3.ts && tsx scripts/test-phase2a-4.ts && tsx scripts/test-phase2b0.ts && tsx scripts/test-hardening.ts && tsx scripts/test-match-ledger.ts && tsx scripts/test-shadow-model.ts && tsx scripts/test-match-forecast.ts && tsx scripts/test-phase3-hardening.ts && tsx scripts/test-phase4a-ledger-metrics.ts && tsx scripts/test-phase4a-rolling.ts && tsx scripts/test-phase4a-public-consistency.ts"
+    "test": "tsx scripts/test-phase1-core.ts && tsx scripts/test-phase1-1.ts && tsx scripts/test-phase2a.ts && tsx scripts/test-phase2a-1.ts && tsx scripts/test-phase2a-2.ts && tsx scripts/test-phase2a-3.ts && tsx scripts/test-phase2a-4.ts && tsx scripts/test-phase2b0.ts && tsx scripts/test-hardening.ts && tsx scripts/test-match-ledger.ts && tsx scripts/test-shadow-model.ts && tsx scripts/test-match-forecast.ts && tsx scripts/test-phase3-hardening.ts && tsx scripts/test-phase4a-ledger-metrics.ts && tsx scripts/test-phase4a-rolling.ts && tsx scripts/test-phase4a-public-consistency.ts && tsx scripts/test-phase4b-context.ts && tsx scripts/test-phase4b-durable-context.ts && tsx scripts/test-phase4b-scenario-boundary.ts && tsx scripts/test-phase4b-integration.ts"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.1",

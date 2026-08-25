@@ -5,6 +5,7 @@ import { Bot, LoaderCircle, Send, ShieldCheck } from "lucide-react";
 import type { MatchAgentResponse } from "@/lib/match-forecast/agent";
 
 export function MatchRoomAgent({ matchId, home, away }: { matchId: string; home: string; away: string }) {
+  const arsenalMatch = /arsenal/i.test(`${home} ${away}`);
   const suggestions = [
     `Who is the model favorite in ${home} vs ${away}?`,
     "What is the probability of over 2.5 goals?",
@@ -12,6 +13,10 @@ export function MatchRoomAgent({ matchId, home, away }: { matchId: string; home:
     "What are the five most likely exact scores?",
     "Why does the production model lean this way?",
     "What changed since the previous forecast?",
+    arsenalMatch ? "Is Saka expected to play?" : "Is the expected lineup available?",
+    arsenalMatch ? "Was Saka's availability known at this forecast cutoff?" : "Was the expected lineup known at this forecast cutoff?",
+    arsenalMatch ? "Did the model use Saka's availability?" : "Did the model use the expected lineup?",
+    arsenalMatch ? "What if Saka doesn't start?" : "What if a key player doesn't start?",
   ];
   const [question, setQuestion] = useState(suggestions[0]);
   const [response, setResponse] = useState<MatchAgentResponse | null>(null);
@@ -49,14 +54,14 @@ export function MatchRoomAgent({ matchId, home, away }: { matchId: string; home:
           <p className="mt-2 text-sm text-muted-foreground">The agent can explain or retrieve frozen model facts. It cannot edit the forecast.</p>
         </div>
       </div>
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-2" aria-label="Suggested questions">
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:flex lg:overflow-x-auto lg:pb-2" aria-label="Suggested questions">
         {suggestions.map((item) => (
-          <button key={item} type="button" onClick={() => setQuestion(item)} className="min-h-10 shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs text-muted-foreground transition hover:border-neon/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon">{item}</button>
+          <button key={item} type="button" onClick={() => setQuestion(item)} className="min-h-11 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-[11px] leading-snug text-muted-foreground transition hover:border-neon/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon lg:shrink-0 lg:rounded-full lg:text-center lg:text-xs">{item}</button>
         ))}
       </div>
       <form className="mt-2 flex flex-col gap-2 sm:flex-row" onSubmit={ask}>
         <label className="sr-only" htmlFor="match-question">Question about this match</label>
-        <textarea id="match-question" value={question} onChange={(event) => setQuestion(event.target.value.slice(0, 500))} rows={2} maxLength={500} className="min-h-12 flex-1 resize-none rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-neon/50 focus:ring-2 focus:ring-neon/20" placeholder="Ask about 1X2, totals, BTTS, scorelines, history or audit…" />
+        <textarea id="match-question" value={question} onChange={(event) => setQuestion(event.target.value.slice(0, 500))} rows={2} maxLength={500} className="min-h-12 flex-1 resize-none rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-neon/50 focus:ring-2 focus:ring-neon/20" placeholder="Ask about the forecast, context, known-at-cutoff evidence or a supported scenario…" />
         <button type="submit" disabled={busy || !question.trim()} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-neon px-5 text-sm font-black text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon">
           {busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{busy ? "Checking…" : "Ask"}
         </button>

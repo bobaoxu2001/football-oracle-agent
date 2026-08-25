@@ -114,6 +114,19 @@ function cloneSnapshot(
     dataCutoff: input.asOf,
     sourceState: {
       ...source.sourceState,
+      // These are synthetic pre-Phase-4B selection rows. Never carry a
+      // context reference across fixture/cutoff identity changes.
+      contextSnapshotId: null,
+      contextSchemaVersion: null,
+      contextSnapshotCutoffAt: null,
+      contextSnapshotGeneratedAt: null,
+      contextTemporalRule: null,
+      contextLineupStatus: "NONE",
+      contextLineupAvailableAt: null,
+      contextEvidenceCount: 0,
+      contextModelUsedEvidenceCount: 0,
+      contextInformationalEvidenceCount: 0,
+      contextUsedInForecastEvidenceIds: [],
       ...(input.sourceState ?? {}),
     },
     provenance: { store: "memory", uniqueKey: key, notes: "Phase 4A selection fixture" },

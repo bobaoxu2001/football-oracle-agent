@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, BarChart3, Clock3, Database, ShieldCheck, Target } from "lucide-react";
+import { cache } from "react";
+import { AlertTriangle, ArrowLeft, BarChart3, Clock3, Database, Eye, ShieldCheck, Target, Users } from "lucide-react";
 import { MatchRoomAgent } from "@/components/match-room/match-agent";
 import { getMatchIntelligence, MatchForecastError } from "@/lib/match-forecast/service";
 import type { MatchIntelligence } from "@/lib/match-forecast/types";
@@ -9,11 +10,12 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ matchId: string }> };
 const pct = (value: number, digits = 1) => `${(value * 100).toFixed(digits)}%`;
+const getCachedMatchIntelligence = cache(getMatchIntelligence);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { matchId } = await params;
   try {
-    const data = await getMatchIntelligence(matchId);
+    const data = await getCachedMatchIntelligence(matchId);
     return { title: `${data.match.home.name} vs ${data.match.away.name} · Match Room`, description: `Auditable production forecast for ${data.match.home.name} vs ${data.match.away.name}.` };
   } catch {
     return { title: "Match Room · Football Oracle" };
@@ -24,7 +26,7 @@ export default async function MatchRoomPage({ params }: Props) {
   const { matchId } = await params;
   let data: MatchIntelligence;
   try {
-    data = await getMatchIntelligence(matchId);
+    data = await getCachedMatchIntelligence(matchId);
   } catch (error) {
     return <UnavailableMatch matchId={matchId} error={error} />;
   }
@@ -99,6 +101,57 @@ export default async function MatchRoomPage({ params }: Props) {
           </div>
         </section>
 
+        <section className="mt-5 glass p-5 sm:p-6" aria-labelledby="oracle-knows-heading">
+          <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neon"><Eye className="h-4 w-4" /> What Oracle knows</p>
+          <h2 id="oracle-knows-heading" className="mt-1 text-xl font-black">Selected forecast: known at cutoff</h2>
+          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">Context is frozen separately from the probability model. “Known” means the evidence was recorded with <span className="font-mono text-[12px] text-foreground">availableAt ≤ cutoffAt</span>; it does not mean the model used it.</p>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <ContextStat
+              label="Availability"
+              value={contextAvailabilityLabel(data)}
+              note={data.context.atForecast.availability ? "Cutoff-safe structured evidence" : "No structured player evidence"}
+            />
+            <ContextStat
+              label="Lineups"
+              value={formatStatus(data.audit.lineupStatus)}
+              note={data.audit.lineupAvailableAt ? `Available ${formatTimestamp(data.audit.lineupAvailableAt)}` : "No lineup timestamp recorded"}
+            />
+            <ContextStat
+              label="Feature usage"
+              value={`${data.audit.contextEvidenceCounts.usedInForecast} model-used`}
+              note={`${data.audit.contextEvidenceCounts.informationalOnly} informational-only`}
+            />
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <p className="flex items-center gap-2 text-xs font-semibold"><ShieldCheck className="h-4 w-4 text-neon" /> Selected forecast context</p>
+              <p className="mt-2 text-sm font-bold">{formatStatus(data.context.atForecast.status)}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{data.context.atForecast.note}</p>
+              {data.context.atForecast.contextId ? <p className="mt-2 break-all font-mono text-[10px] text-muted-foreground">{data.context.atForecast.contextId}</p> : null}
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <p className="flex items-center gap-2 text-xs font-semibold"><Users className="h-4 w-4 text-neon" /> Latest prospective context</p>
+              <p className="mt-2 text-sm font-bold">{formatStatus(data.context.latest.status)}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{data.context.latest.note}</p>
+              {data.context.latest.cutoffAt ? <p className="mt-2 text-[11px] text-muted-foreground">Context cutoff: {formatTimestamp(data.context.latest.cutoffAt)}</p> : null}
+              {data.context.latest.latestEvidenceAt ? <p className="mt-2 text-[11px] text-muted-foreground">Latest evidence: {formatTimestamp(data.context.latest.latestEvidenceAt)}</p> : null}
+              <p className="mt-2 text-[11px] font-medium text-amber-100/90">{data.context.latest.contextId && data.context.latest.contextId === data.context.atForecast.contextId ? "This is the same immutable context as the selected forecast." : "This context is not an input to the selected forecast."}</p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+            <p className="text-xs font-semibold">What changed with the selected forecast</p>
+            {data.contextComparison?.status === "COMPARED" ? (
+              data.contextComparison.changes.length ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                  {data.contextComparison.changes.slice(0, 8).map((change, index) => <li key={`${change.type}-${change.evidenceId ?? change.entityId ?? index}`}>{contextChangeLabel(change)}</li>)}
+                  {data.contextComparison.changes.length > 8 ? <li className="font-semibold text-foreground">{data.contextComparison.changes.length - 8} additional change(s) omitted here; the complete machine-readable set remains in the match intelligence API.</li> : null}
+                </ul>
+              ) : <p className="mt-2 text-xs text-muted-foreground">The exact context pair is available; no context change was detected.</p>
+            ) : <p className="mt-2 text-xs text-muted-foreground">{data.contextComparison?.causalNote ?? "Only one legal production snapshot is available, so there is no exact context pair to compare."}</p>}
+            <p className="mt-2 text-[11px] text-muted-foreground">Context timing and probability movement are shown together without claiming that one caused the other.</p>
+          </div>
+        </section>
+
         <div className="mt-5"><MatchRoomAgent matchId={match.id} home={match.home.name} away={match.away.name} /></div>
 
         <section className="mt-5 glass p-5 sm:p-6" aria-labelledby="timeline-heading">
@@ -119,13 +172,18 @@ export default async function MatchRoomPage({ params }: Props) {
             <AuditLine label="Generated" value={data.audit.generatedAt} />
             <AuditLine label="Data freshness" value={`${freshness.status} · ${freshness.ageHours.toFixed(1)} hours at page render`} />
             <AuditLine label="Latest input" value={data.audit.dataFreshness.latestInputAt} />
+            <AuditLine label="Rating state cutoff" value={data.audit.dataFreshness.ratingStateAsOf} />
             <AuditLine label="Model" value={`${data.audit.modelVersion} · production`} />
             <AuditLine label="Score artifact" value={data.audit.scoreDistributionArtifact} />
             <AuditLine label="Evaluation class" value={data.audit.evaluationClass} />
             <AuditLine label="Training window" value={data.audit.trainingWindow ? `${data.audit.trainingWindow.from} → ${data.audit.trainingWindow.to}` : "not recorded"} />
+            <AuditLine label="Context snapshot" value={data.audit.contextSnapshotId ?? "not recorded for this historical snapshot"} mono={Boolean(data.audit.contextSnapshotId)} />
+            <AuditLine label="Context status" value={formatStatus(data.context.atForecast.status)} />
+            <AuditLine label="Lineup state" value={`${formatStatus(data.audit.lineupStatus)}${data.audit.lineupAvailableAt ? ` · ${data.audit.lineupAvailableAt}` : ""}`} />
+            <AuditLine label="Context feature usage" value={`${data.audit.contextEvidenceCounts.usedInForecast} model-used · ${data.audit.contextEvidenceCounts.informationalOnly} informational-only`} />
           </div>
           <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4 text-xs text-muted-foreground"><p className="font-semibold text-foreground">Production inputs</p><ul className="mt-2 list-disc space-y-1 pl-5">{data.audit.inputsUsed.map((input) => <li key={input}>{input}</li>)}</ul>{data.audit.reconstructionNote ? <p className="mt-3 text-amber-100/90">{data.audit.reconstructionNote}</p> : null}</div>
-          <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-neon" /> Current news, market prices, tactical profiles and shadow-model outputs are not production inputs. Context is displayed only when it existed by the cutoff.</p>
+          <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-neon" /> Current news, market prices, tactical profiles and shadow-model outputs are not production inputs. Only the selected forecast context is constrained to its cutoff; separately labelled latest context is prospective and never backfilled.</p>
         </details>
       </div>
     </div>
@@ -137,6 +195,20 @@ function formatTimestamp(value: string) { return new Intl.DateTimeFormat("en-GB"
 function BigStat({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] leading-tight text-muted-foreground">{label}</p><p className="mt-2 text-3xl font-black tabular-nums">{value}</p></div>; }
 function MarketStat({ label, value }: { label: string; value: number }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-black tabular-nums">{pct(value)}</p></div>; }
 function ProbabilityPair({ label, leftLabel, left, rightLabel, right }: { label: string; leftLabel: string; left: number; rightLabel: string; right: number }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-xs font-semibold">{label}</p><div className="mt-3 grid grid-cols-2 gap-2"><div><p className="text-[10px] text-muted-foreground">{leftLabel}</p><p className="text-2xl font-black tabular-nums">{pct(left)}</p></div><div><p className="text-[10px] text-muted-foreground">{rightLabel}</p><p className="text-2xl font-black tabular-nums">{pct(right)}</p></div></div></div>; }
-function TimelineRow({ point, home, away }: { point: MatchIntelligence["timeline"][number]; home: string; away: string }) { return <div className="mt-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="flex flex-wrap items-center gap-2 font-semibold text-foreground"><span>{point.predictionStage} · {formatTimestamp(point.cutoffAt)}</span>{point.validForCurrentKickoff ? null : <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-200">Obsolete kickoff</span>}</p><p className="mt-1 text-muted-foreground">{point.forecastId}</p>{point.validForCurrentKickoff || !point.kickoffAtFreeze ? null : <p className="mt-1 text-amber-200/80">Frozen for {formatTimestamp(point.kickoffAtFreeze)}; retained for audit history and excluded from the current forecast.</p>}</div><p className="tabular-nums text-muted-foreground">{home} {pct(point.result.homeWin)} · Draw {pct(point.result.draw)} · {away} {pct(point.result.awayWin)}</p></div>; }
+function TimelineRow({ point, home, away }: { point: MatchIntelligence["timeline"][number]; home: string; away: string }) { return <div className="mt-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="flex flex-wrap items-center gap-2 font-semibold text-foreground"><span>{point.predictionStage} · {formatTimestamp(point.cutoffAt)}</span>{point.validForCurrentKickoff ? null : <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-200">Obsolete kickoff</span>}</p><p className="mt-1 break-all text-muted-foreground">{point.forecastId}</p><p className="mt-1 text-[10px] text-muted-foreground">Context: {point.contextSnapshotId ?? "not recorded"}</p>{point.validForCurrentKickoff || !point.kickoffAtFreeze ? null : <p className="mt-1 text-amber-200/80">Frozen for {formatTimestamp(point.kickoffAtFreeze)}; retained for audit history and excluded from the current forecast.</p>}</div><p className="tabular-nums text-muted-foreground">{home} {pct(point.result.homeWin)} · Draw {pct(point.result.draw)} · {away} {pct(point.result.awayWin)}</p></div>; }
+function ContextStat({ label, value, note }: { label: string; value: string; note: string }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p><p className="mt-2 text-lg font-black">{value}</p><p className="mt-1 text-[11px] text-muted-foreground">{note}</p></div>; }
+function contextAvailabilityLabel(data: MatchIntelligence) { const availability = data.context.atForecast.availability; if (!availability) return "NOT RECORDED"; const total = availability.home.entities.length + availability.away.entities.length; return total ? `${total} player record${total === 1 ? "" : "s"}` : "NO EVIDENCE"; }
+function contextChangeValue(value: unknown): string {
+  if (value === null || value === undefined) return "none";
+  if (typeof value !== "object") return String(value);
+  if (Array.isArray(value)) return value.map(contextChangeValue).join(", ") || "empty";
+  const record = value as Record<string, unknown>;
+  const fields = ["kind", "status", "lineupStatus", "availabilityStatus", "availableAt", "usedInForecast"]
+    .filter((key) => record[key] !== null && record[key] !== undefined)
+    .map((key) => `${key}=${String(record[key])}`);
+  return fields.join(", ") || "structured record";
+}
+function contextChangeLabel(change: MatchIntelligence["contextComparison"] extends infer T ? NonNullable<T> extends { changes: Array<infer C> } ? C : never : never) { const subject = change.entityId ?? change.teamSlug ?? "match"; return `${change.type.replaceAll("_", " ")} · ${subject}${change.before !== null || change.after !== null ? ` · ${contextChangeValue(change.before)} → ${contextChangeValue(change.after)}` : ""}`; }
+function formatStatus(value: string) { return value.replaceAll("_", " "); }
 function AuditLine({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) { return <div><p className="text-[10px] uppercase tracking-[0.14em]">{label}</p><p className={`mt-1 break-words text-foreground ${mono ? "font-mono text-[11px]" : ""}`}>{value}</p></div>; }
 function UnavailableMatch({ matchId, error }: { matchId: string; error: unknown }) { const known = error instanceof MatchForecastError; return <div className="container py-16"><section className="mx-auto max-w-xl rounded-2xl border border-amber-300/20 bg-amber-300/[0.05] p-6"><AlertTriangle className="h-6 w-6 text-amber-300" /><h1 className="mt-4 text-2xl font-black">No auditable Match Room is available</h1><p className="mt-3 text-sm text-muted-foreground">{known ? error.message : "Match intelligence is temporarily unavailable."}</p><p className="mt-2 text-xs text-muted-foreground">Requested match: {matchId}. No probability is reconstructed in the browser.</p><Link href="/" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-neon px-4 text-sm font-bold text-primary-foreground">Back to forecasts</Link></section></div>; }

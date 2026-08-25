@@ -47,6 +47,10 @@ export function operationalLiveOosPath(): string {
   return env("PL_OPERATIONAL_LIVE_OOS_PATH", path.join(opsDir(), "live-oos-operational.jsonl"));
 }
 
+export function contextSnapshotPath(): string {
+  return env("PL_CONTEXT_SNAPSHOT_PATH", path.join(opsDir(), "match-context-snapshots.jsonl"));
+}
+
 export function tickStatePath(): string {
   return env("PL_TICK_STATE_PATH", path.join(opsDir(), "tick-state.json"));
 }

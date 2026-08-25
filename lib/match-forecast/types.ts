@@ -1,4 +1,72 @@
 import type { PredictionStage } from "@/lib/snapshots/types";
+import type {
+  MatchAvailabilityContext,
+  MatchLineupContext,
+  OverallLineupStatus,
+} from "@/lib/competitions/premier-league/context";
+
+export type ContextSnapshotStatus = "RECORDED" | "NOT_RECORDED" | "MISSING";
+
+export interface ContextEvidenceView {
+  evidenceId: string;
+  kind: string;
+  entityId: string;
+  teamSlug: string | null;
+  observedAt: string;
+  fetchedAt: string;
+  availableAt: string;
+  confidence: number;
+  rawEvidenceHash: string;
+  source: { name: string; recordId: string; url: string | null };
+  usedInForecast: boolean;
+  lineupStatus: string | null;
+  availabilityStatus: string | null;
+}
+
+export interface MatchContextView {
+  status: ContextSnapshotStatus;
+  contextId: string | null;
+  schemaVersion: string | null;
+  cutoffAt: string | null;
+  generatedAt: string | null;
+  forecastSnapshotKey: string | null;
+  lineup: MatchLineupContext | null;
+  availability: MatchAvailabilityContext | null;
+  evidence: ContextEvidenceView[];
+  evidenceCounts: {
+    total: number;
+    usedInForecast: number;
+    informationalOnly: number;
+  };
+  latestEvidenceAt: string | null;
+  note: string;
+}
+
+export interface ContextChangeSummary {
+  type:
+    | "EVIDENCE_ADDED"
+    | "EVIDENCE_REMOVED"
+    | "FORECAST_USAGE_CHANGED"
+    | "LINEUP_CHANGED"
+    | "AVAILABILITY_CHANGED"
+    | "KICKOFF_CHANGED";
+  teamSlug: string | null;
+  entityId: string | null;
+  evidenceId: string | null;
+  before: unknown;
+  after: unknown;
+  availableAt: string | null;
+  usedInForecast: boolean | null;
+}
+
+export interface MatchContextComparison {
+  status: "COMPARED" | "NOT_RECORDED" | "MISSING";
+  fromContextId: string | null;
+  toContextId: string | null;
+  changes: ContextChangeSummary[];
+  causalAttribution: "not-established";
+  causalNote: string;
+}
 
 export interface ProbabilityPair {
   over: number;
@@ -42,6 +110,19 @@ export interface ForecastProvenance {
     | "frozen-full-matrix"
     | "reconstructed-from-frozen-lambdas-and-rho";
   reconstructionNote: string | null;
+  contextSnapshotId: string | null;
+  contextSnapshotSchemaVersion: string | null;
+  contextSnapshotCutoffAt: string | null;
+  contextSnapshotGeneratedAt: string | null;
+  contextTemporalRule: string | null;
+  lineupStatus: OverallLineupStatus | "NOT_RECORDED";
+  lineupAvailableAt: string | null;
+  contextEvidenceCounts: {
+    total: number;
+    usedInForecast: number;
+    informationalOnly: number;
+  };
+  contextUsedInForecastEvidenceIds: string[];
 }
 
 export interface MatchForecast {
@@ -111,6 +192,7 @@ export interface ForecastTimelinePoint {
   over25: number;
   bttsYes: number;
   expectedGoalsTotal: number;
+  contextSnapshotId: string | null;
 }
 
 export interface ForecastComparison {
@@ -131,6 +213,12 @@ export interface ForecastComparison {
     total: number;
   };
   inputChanges: Array<{ key: string; before: unknown; after: unknown }>;
+  contextChanges: ContextChangeSummary[];
+  contextComparisonStatus: MatchContextComparison["status"];
+  fromContextId: string | null;
+  toContextId: string | null;
+  modelVersionChanged: boolean;
+  cutoffChanged: boolean;
   causalAttribution: "not-established";
   causalNote: string;
 }
@@ -149,7 +237,10 @@ export interface MatchIntelligence {
   freshness: ForecastFreshness;
   timeline: ForecastTimelinePoint[];
   comparison: ForecastComparison | null;
+  contextComparison: MatchContextComparison | null;
   context: {
+    atForecast: MatchContextView;
+    latest: MatchContextView;
     news: Array<{
       team: string;
       title: string;
@@ -170,7 +261,7 @@ export interface MatchIntelligence {
       items: [];
       note: string;
     };
-    temporalRule: "availableAt <= forecast.cutoffAt";
+    temporalRule: "availableAt <= cutoffAt";
   };
   audit: ForecastProvenance;
 }

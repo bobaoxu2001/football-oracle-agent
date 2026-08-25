@@ -1,17 +1,29 @@
+import { createHash } from "node:crypto";
 import type { Fixture } from "@/lib/identity/types";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
 import { listLiveSnapshots } from "@/lib/competitions/premier-league/ops/live-snapshot-reader";
 import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
+import {
+  getFrozenMatchContext,
+  listFrozenMatchContexts,
+} from "@/lib/competitions/premier-league/ops/context-snapshots";
 import { productionModelVersion } from "@/lib/competitions/premier-league/shadow/track";
-import { getTeamNews } from "@/lib/news/teamNewsStore";
-import type { TeamNewsItem } from "@/lib/news/types";
+import {
+  diffMatchContexts,
+  MATCH_CONTEXT_SCHEMA_VERSION,
+  MATCH_CONTEXT_TEMPORAL_RULE,
+  type MatchContextSnapshot,
+} from "@/lib/competitions/premier-league/context";
 import type { PredictionSnapshot } from "@/lib/snapshots/types";
 import { assertForecastInvariants, deriveForecastMath, scoreMatrixFromSnapshot } from "./derive";
 import type {
   ForecastComparison,
+  ContextChangeSummary,
   ForecastTimelinePoint,
   MatchForecast,
+  MatchContextComparison,
+  MatchContextView,
   MatchIntelligence,
   ForecastFreshness,
   UpcomingMatchForecast,
@@ -138,6 +150,17 @@ function sourceStateForApi(snapshot: PredictionSnapshot): Record<string, unknown
     "evidenceMatchIdsHome",
     "evidenceMatchIdsAway",
     "latestEvidenceKickoff",
+    "contextSnapshotId",
+    "contextSchemaVersion",
+    "contextSnapshotCutoffAt",
+    "contextSnapshotGeneratedAt",
+    "contextTemporalRule",
+    "contextLineupStatus",
+    "contextLineupAvailableAt",
+    "contextEvidenceCount",
+    "contextModelUsedEvidenceCount",
+    "contextInformationalEvidenceCount",
+    "contextUsedInForecastEvidenceIds",
   ];
   return Object.fromEntries(
     allow
@@ -160,6 +183,18 @@ export function buildMatchForecast(
   if (snapshot.fixtureId !== fixture.id) {
     throw new MatchForecastError(
       `Forecast ${snapshot.provenance.uniqueKey} belongs to another match.`,
+      "FORECAST_INTEGRITY",
+      409
+    );
+  }
+  if (
+    snapshot.season !== fixture.season ||
+    snapshot.homeSlug !== fixture.homeSlug ||
+    snapshot.awaySlug !== fixture.awaySlug ||
+    snapshot.dataCutoff !== snapshot.asOf
+  ) {
+    throw new MatchForecastError(
+      `Forecast ${snapshot.provenance.uniqueKey} does not match the fixture identity or cutoff.`,
       "FORECAST_INTEGRITY",
       409
     );
@@ -199,6 +234,83 @@ export function buildMatchForecast(
     typeof safeSourceState.ratingStateAsOf === "string"
       ? safeSourceState.ratingStateAsOf
       : snapshot.asOf;
+  const contextSnapshotId =
+    typeof safeSourceState.contextSnapshotId === "string" &&
+    safeSourceState.contextSnapshotId.trim()
+      ? safeSourceState.contextSnapshotId
+      : null;
+  const contextUsedInForecastEvidenceIds = Array.isArray(
+    safeSourceState.contextUsedInForecastEvidenceIds
+  )
+    ? safeSourceState.contextUsedInForecastEvidenceIds.filter(
+        (value): value is string => typeof value === "string"
+      )
+    : [];
+  const contextEvidenceCounts = {
+    total:
+      typeof safeSourceState.contextEvidenceCount === "number"
+        ? safeSourceState.contextEvidenceCount
+        : 0,
+    usedInForecast:
+      typeof safeSourceState.contextModelUsedEvidenceCount === "number"
+        ? safeSourceState.contextModelUsedEvidenceCount
+        : 0,
+    informationalOnly:
+      typeof safeSourceState.contextInformationalEvidenceCount === "number"
+        ? safeSourceState.contextInformationalEvidenceCount
+        : 0,
+  };
+  const contextCountsValid =
+    Object.values(contextEvidenceCounts).every(Number.isSafeInteger) &&
+    Object.values(contextEvidenceCounts).every((value) => value >= 0) &&
+    contextEvidenceCounts.total ===
+      contextEvidenceCounts.usedInForecast + contextEvidenceCounts.informationalOnly &&
+    contextEvidenceCounts.usedInForecast === contextUsedInForecastEvidenceIds.length &&
+    new Set(contextUsedInForecastEvidenceIds).size === contextUsedInForecastEvidenceIds.length;
+  const contextGeneratedAt = safeSourceState.contextSnapshotGeneratedAt;
+  const contextLineupAvailableAt = safeSourceState.contextLineupAvailableAt;
+  const contextLineupStatus = safeSourceState.contextLineupStatus;
+  const contextMetadataIsEmpty =
+    safeSourceState.contextSchemaVersion == null &&
+    safeSourceState.contextSnapshotCutoffAt == null &&
+    contextGeneratedAt == null &&
+    safeSourceState.contextTemporalRule == null &&
+    (contextLineupStatus == null || contextLineupStatus === "NONE") &&
+    contextLineupAvailableAt == null;
+  const noContextValid =
+    !contextSnapshotId &&
+    contextCountsValid &&
+    contextEvidenceCounts.total === 0 &&
+    contextEvidenceCounts.usedInForecast === 0 &&
+    contextEvidenceCounts.informationalOnly === 0 &&
+    contextUsedInForecastEvidenceIds.length === 0 &&
+    contextMetadataIsEmpty;
+  const contextGeneratedAtMs = typeof contextGeneratedAt === "string"
+    ? Date.parse(contextGeneratedAt)
+    : Number.NaN;
+  const contextLineupAvailableAtMs = typeof contextLineupAvailableAt === "string"
+    ? Date.parse(contextLineupAvailableAt)
+    : null;
+  const withContextValid =
+    Boolean(contextSnapshotId) &&
+    contextCountsValid &&
+    contextEvidenceCounts.usedInForecast === 0 &&
+    safeSourceState.contextSchemaVersion === MATCH_CONTEXT_SCHEMA_VERSION &&
+    safeSourceState.contextSnapshotCutoffAt === snapshot.asOf &&
+    Number.isFinite(contextGeneratedAtMs) &&
+    contextGeneratedAtMs >= Date.parse(snapshot.asOf) &&
+    contextGeneratedAtMs < kickoffMs &&
+    safeSourceState.contextTemporalRule === MATCH_CONTEXT_TEMPORAL_RULE &&
+    ["NONE", "EXPECTED", "CONFIRMED", "PARTIAL"].includes(String(contextLineupStatus)) &&
+    (contextLineupAvailableAtMs === null ||
+      (Number.isFinite(contextLineupAvailableAtMs) && contextLineupAvailableAtMs <= Date.parse(snapshot.asOf)));
+  if (!noContextValid && !withContextValid) {
+    throw new MatchForecastError(
+      `Forecast ${snapshot.provenance.uniqueKey} carries invalid champion context provenance.`,
+      "FORECAST_INTEGRITY",
+      409
+    );
+  }
   const forecast: MatchForecast = {
     matchId: fixture.id,
     competition: "premier-league",
@@ -250,6 +362,36 @@ export function buildMatchForecast(
         artifact === "reconstructed-from-frozen-lambdas-and-rho"
           ? "Legacy immutable snapshots stored only the top scorelines. The complete normalized 9x9 matrix is deterministically reconstructed from the snapshot's frozen home/away goal expectations and frozen Dixon-Coles rho; the historical snapshot is not modified."
           : null,
+      contextSnapshotId,
+      contextSnapshotSchemaVersion:
+        typeof safeSourceState.contextSchemaVersion === "string"
+          ? safeSourceState.contextSchemaVersion
+          : null,
+      contextSnapshotCutoffAt:
+        typeof safeSourceState.contextSnapshotCutoffAt === "string"
+          ? safeSourceState.contextSnapshotCutoffAt
+          : null,
+      contextSnapshotGeneratedAt:
+        typeof safeSourceState.contextSnapshotGeneratedAt === "string"
+          ? safeSourceState.contextSnapshotGeneratedAt
+          : null,
+      contextTemporalRule:
+        typeof safeSourceState.contextTemporalRule === "string"
+          ? safeSourceState.contextTemporalRule
+          : null,
+      lineupStatus:
+        typeof safeSourceState.contextSnapshotId === "string" &&
+        ["NONE", "EXPECTED", "CONFIRMED", "PARTIAL"].includes(
+          String(safeSourceState.contextLineupStatus)
+        )
+          ? safeSourceState.contextLineupStatus as MatchForecast["provenance"]["lineupStatus"]
+          : "NOT_RECORDED",
+      lineupAvailableAt:
+        typeof safeSourceState.contextLineupAvailableAt === "string"
+          ? safeSourceState.contextLineupAvailableAt
+          : null,
+      contextEvidenceCounts,
+      contextUsedInForecastEvidenceIds,
     },
   };
   assertForecastInvariants(forecast);
@@ -329,6 +471,7 @@ export function forecastTimeline(
         over25: forecast.totals.over25,
         bttsYes: forecast.btts.yes,
         expectedGoalsTotal: forecast.expectedGoals.total,
+        contextSnapshotId: forecast.provenance.contextSnapshotId,
       };
     });
 }
@@ -407,6 +550,12 @@ export function compareForecastSnapshots(
       oldForecast.provenance.inputSnapshots,
       newForecast.provenance.inputSnapshots
     ),
+    contextChanges: [],
+    contextComparisonStatus: "NOT_RECORDED",
+    fromContextId: oldForecast.provenance.contextSnapshotId,
+    toContextId: newForecast.provenance.contextSnapshotId,
+    modelVersionChanged: oldForecast.modelVersion !== newForecast.modelVersion,
+    cutoffChanged: oldForecast.cutoffAt !== newForecast.cutoffAt,
     causalAttribution: "not-established",
     causalNote:
       "The changed inputs preceded the newer frozen forecast. This comparison does not establish that any one input caused the full probability move.",
@@ -419,33 +568,335 @@ export function isAvailableAtCutoff(value: Date | string, cutoffAt: string): boo
   return Number.isFinite(availableMs) && Number.isFinite(cutoffMs) && availableMs <= cutoffMs;
 }
 
-function approvedNewsAtCutoff(items: TeamNewsItem[], cutoffAt: string): TeamNewsItem[] {
-  return items.filter(
-    (item) => !item.demo && isAvailableAtCutoff(item.publishedAt, cutoffAt)
+function unavailableContextView(
+  status: "NOT_RECORDED" | "MISSING",
+  contextId: string | null,
+  note: string
+): MatchContextView {
+  return {
+    status,
+    contextId,
+    schemaVersion: null,
+    cutoffAt: null,
+    generatedAt: null,
+    forecastSnapshotKey: null,
+    lineup: null,
+    availability: null,
+    evidence: [],
+    evidenceCounts: { total: 0, usedInForecast: 0, informationalOnly: 0 },
+    latestEvidenceAt: null,
+    note,
+  };
+}
+
+function publicContextSource(source: MatchContextSnapshot["evidence"][number]["source"]): {
+  name: string;
+  recordId: string;
+  url: string | null;
+} {
+  // Raw provider URLs remain inside the immutable evidence envelope. Paths can
+  // contain API keys, internal record identities, or private network targets,
+  // so the public Match Room/API never republishes them without an explicit
+  // provider-specific canonical-link allowlist.
+  return {
+    name: source.name,
+    recordId: `ref:sha256:${createHash("sha256").update(source.recordId).digest("hex").slice(0, 24)}`,
+    url: null,
+  };
+}
+
+function contextView(snapshot: MatchContextSnapshot, note: string): MatchContextView {
+  const evidence = snapshot.evidence.map((item) => ({
+    evidenceId: item.evidenceId,
+    kind: item.kind,
+    entityId: item.entityId,
+    teamSlug: item.teamSlug,
+    observedAt: item.observedAt,
+    fetchedAt: item.fetchedAt,
+    availableAt: item.availableAt,
+    confidence: item.confidence,
+    rawEvidenceHash: item.rawEvidenceHash,
+    source: publicContextSource(item.source),
+    usedInForecast: item.usedInForecast,
+    lineupStatus: item.lineupStatus,
+    availabilityStatus: item.availabilityStatus,
+  }));
+  const usedInForecast = evidence.filter((item) => item.usedInForecast).length;
+  return {
+    status: "RECORDED",
+    contextId: snapshot.contextId,
+    schemaVersion: snapshot.schemaVersion,
+    cutoffAt: snapshot.cutoffAt,
+    generatedAt: snapshot.generatedAt,
+    forecastSnapshotKey: snapshot.forecastSnapshotKey,
+    lineup: snapshot.lineup,
+    availability: snapshot.availability,
+    evidence,
+    evidenceCounts: {
+      total: evidence.length,
+      usedInForecast,
+      informationalOnly: evidence.length - usedInForecast,
+    },
+    latestEvidenceAt: evidence.map((item) => item.availableAt).sort().at(-1) ?? null,
+    note,
+  };
+}
+
+function frozenContextForForecast(forecast: MatchForecast): {
+  view: MatchContextView;
+  snapshot: MatchContextSnapshot | null;
+} {
+  const id = forecast.provenance.contextSnapshotId;
+  if (!id) {
+    return {
+      view: unavailableContextView(
+        "NOT_RECORDED",
+        null,
+        "This production forecast predates Phase 4B context recording. Current context was not backfilled into history."
+      ),
+      snapshot: null,
+    };
+  }
+  let snapshot: MatchContextSnapshot | null = null;
+  try {
+    snapshot = getFrozenMatchContext(id);
+  } catch {
+    snapshot = null;
+  }
+  const actualLineupAvailableAt = snapshot
+    ? [snapshot.lineup.home.availableAt, snapshot.lineup.away.availableAt]
+        .filter((value): value is string => Boolean(value))
+        .sort()
+        .at(-1) ?? null
+    : null;
+  const exactReference = Boolean(
+    snapshot &&
+      snapshot.fixtureId === forecast.matchId &&
+      snapshot.season === forecast.season &&
+      snapshot.homeSlug === forecast.home.slug &&
+      snapshot.awaySlug === forecast.away.slug &&
+      snapshot.kickoffAt === forecast.kickoffUtc &&
+      snapshot.cutoffAt === forecast.cutoffAt &&
+      snapshot.forecastSnapshotKey === forecast.provenance.immutableForecastId &&
+      snapshot.contextId === id &&
+      snapshot.schemaVersion === forecast.provenance.contextSnapshotSchemaVersion &&
+      snapshot.cutoffAt === forecast.provenance.contextSnapshotCutoffAt &&
+      snapshot.generatedAt === forecast.provenance.contextSnapshotGeneratedAt &&
+      snapshot.temporalRule === forecast.provenance.contextTemporalRule &&
+      snapshot.lineup.overall === forecast.provenance.lineupStatus &&
+      actualLineupAvailableAt === forecast.provenance.lineupAvailableAt &&
+      snapshot.evidence.length === forecast.provenance.contextEvidenceCounts.total &&
+      snapshot.usedInForecastEvidenceIds.length ===
+        forecast.provenance.contextEvidenceCounts.usedInForecast &&
+      snapshot.evidence.length - snapshot.usedInForecastEvidenceIds.length ===
+        forecast.provenance.contextEvidenceCounts.informationalOnly &&
+      JSON.stringify(snapshot.usedInForecastEvidenceIds) ===
+        JSON.stringify(forecast.provenance.contextUsedInForecastEvidenceIds)
+  );
+  if (!snapshot || !exactReference) {
+    return {
+      view: unavailableContextView(
+        "MISSING",
+        id,
+        "The forecast carries a context reference, but the exact immutable context is missing or fails identity checks. No current context was substituted."
+      ),
+      snapshot: null,
+    };
+  }
+  return {
+    view: contextView(
+      snapshot,
+      snapshot.evidence.length
+        ? "Only evidence available by this exact forecast cutoff is shown."
+        : "A cutoff-safe context was frozen, but no structured Premier League availability or lineup evidence was available."
+    ),
+    snapshot,
+  };
+}
+
+function contextIsProductionVisible(
+  context: MatchContextSnapshot,
+  productionSnapshots: readonly PredictionSnapshot[]
+): boolean {
+  if (context.forecastSnapshotKey === null) {
+    return context.usedInForecastEvidenceIds.length === 0;
+  }
+  const linked = productionSnapshots.find(
+    (snapshot) =>
+      snapshot.provenance.uniqueKey === context.forecastSnapshotKey &&
+      snapshot.sourceState.contextSnapshotId === context.contextId
+  );
+  return Boolean(
+    linked &&
+      linked.fixtureId === context.fixtureId &&
+      linked.season === context.season &&
+      linked.homeSlug === context.homeSlug &&
+      linked.awaySlug === context.awaySlug &&
+      linked.kickoff === context.kickoffAt &&
+      linked.asOf === context.cutoffAt &&
+      linked.dataCutoff === context.cutoffAt
   );
 }
 
-async function contextNews(
+function latestContextForFixture(
   fixture: Fixture,
-  cutoffAt: string
-): Promise<MatchIntelligence["context"]["news"]> {
-  const [home, away] = await Promise.all([
-    getTeamNews(fixture.homeSlug, 12),
-    getTeamNews(fixture.awaySlug, 12),
-  ]);
-  return approvedNewsAtCutoff([...home.items, ...away.items], cutoffAt)
-    .sort((a, b) => Date.parse(String(b.publishedAt)) - Date.parse(String(a.publishedAt)))
-    .slice(0, 12)
-    .map((item) => ({
-      team: item.team,
-      title: item.title,
-      summary: item.summary,
-      category: item.category,
-      sourceName: item.sourceName,
-      sourceUrl: item.sourceUrl,
-      availableAt: new Date(item.publishedAt).toISOString(),
-      usedInForecast: false as const,
-    }));
+  now: Date,
+  productionSnapshots: readonly PredictionSnapshot[]
+): MatchContextView {
+  const nowMs = now.getTime();
+  const kickoff = fixture.kickoffUtc ?? fixture.kickoff ?? null;
+  let candidates: MatchContextSnapshot[] = [];
+  try {
+    candidates = listFrozenMatchContexts(fixture.id).filter(
+      (snapshot) =>
+        snapshot.kickoffAt === kickoff &&
+        contextIsProductionVisible(snapshot, productionSnapshots) &&
+        Date.parse(snapshot.generatedAt) <= nowMs &&
+        Date.parse(snapshot.cutoffAt) <= nowMs
+    );
+  } catch {
+    return unavailableContextView(
+      "MISSING",
+      null,
+      "The current context store could not be verified. No mutable fallback was used."
+    );
+  }
+  const latest = candidates
+    .sort(
+      (a, b) =>
+        a.cutoffAt.localeCompare(b.cutoffAt) ||
+        a.generatedAt.localeCompare(b.generatedAt) ||
+        a.contextId.localeCompare(b.contextId)
+    )
+    .at(-1);
+  return latest
+    ? contextView(
+        latest,
+        latest.evidence.length
+          ? "Latest prospectively recorded context for the current kickoff."
+          : "Latest recorded context is empty because no structured Premier League availability or lineup provider is configured."
+      )
+    : unavailableContextView(
+        "NOT_RECORDED",
+        null,
+        "No prospective Phase 4B context exists yet for this kickoff, and no structured Premier League availability or lineup provider is configured."
+      );
+}
+
+function contextChangeSummaries(
+  from: MatchContextSnapshot,
+  to: MatchContextSnapshot
+): ContextChangeSummary[] {
+  const diff = diffMatchContexts(from, to);
+  const changes: ContextChangeSummary[] = [];
+  for (const item of diff.addedEvidence) {
+    changes.push({
+      type: "EVIDENCE_ADDED",
+      teamSlug: item.teamSlug,
+      entityId: item.entityId,
+      evidenceId: item.evidenceId,
+      before: null,
+      after: { kind: item.kind, lineupStatus: item.lineupStatus, availabilityStatus: item.availabilityStatus },
+      availableAt: item.availableAt,
+      usedInForecast: item.usedInForecast,
+    });
+  }
+  for (const item of diff.removedEvidence) {
+    changes.push({
+      type: "EVIDENCE_REMOVED",
+      teamSlug: item.teamSlug,
+      entityId: item.entityId,
+      evidenceId: item.evidenceId,
+      before: { kind: item.kind, lineupStatus: item.lineupStatus, availabilityStatus: item.availabilityStatus },
+      after: null,
+      availableAt: item.availableAt,
+      usedInForecast: item.usedInForecast,
+    });
+  }
+  for (const item of diff.forecastUsageChanges) {
+    changes.push({
+      type: "FORECAST_USAGE_CHANGED",
+      teamSlug: null,
+      entityId: null,
+      evidenceId: item.evidenceId,
+      before: item.before,
+      after: item.after,
+      availableAt: null,
+      usedInForecast: item.after,
+    });
+  }
+  for (const item of diff.lineupChanges) {
+    changes.push({
+      type: "LINEUP_CHANGED",
+      teamSlug: item.teamSlug,
+      entityId: null,
+      evidenceId: item.after.evidenceId ?? item.before.evidenceId,
+      before: item.before.status,
+      after: item.after.status,
+      availableAt: item.after.availableAt ?? item.before.availableAt,
+      usedInForecast: item.after.usedInForecast,
+    });
+  }
+  for (const item of diff.availabilityChanges) {
+    changes.push({
+      type: "AVAILABILITY_CHANGED",
+      teamSlug: item.teamSlug,
+      entityId: item.entityId,
+      evidenceId: item.after?.evidenceId ?? item.before?.evidenceId ?? null,
+      before: item.before?.status ?? null,
+      after: item.after?.status ?? null,
+      availableAt: item.after?.availableAt ?? item.before?.availableAt ?? null,
+      usedInForecast: item.after?.usedInForecast ?? item.before?.usedInForecast ?? null,
+    });
+  }
+  if (diff.kickoffChanged) {
+    changes.push({
+      type: "KICKOFF_CHANGED",
+      teamSlug: null,
+      entityId: null,
+      evidenceId: null,
+      before: diff.kickoffChanged.before,
+      after: diff.kickoffChanged.after,
+      availableAt: null,
+      usedInForecast: null,
+    });
+  }
+  return changes;
+}
+
+function compareMatchContexts(
+  from: ReturnType<typeof frozenContextForForecast>,
+  to: ReturnType<typeof frozenContextForForecast>
+): MatchContextComparison {
+  if (from.view.status === "MISSING" || to.view.status === "MISSING") {
+    return {
+      status: "MISSING",
+      fromContextId: from.view.contextId,
+      toContextId: to.view.contextId,
+      changes: [],
+      causalAttribution: "not-established",
+      causalNote: "An exact context reference is unavailable, so no context change is inferred.",
+    };
+  }
+  if (!from.snapshot || !to.snapshot) {
+    return {
+      status: "NOT_RECORDED",
+      fromContextId: from.view.contextId,
+      toContextId: to.view.contextId,
+      changes: [],
+      causalAttribution: "not-established",
+      causalNote: "At least one forecast predates prospective context recording; current state is not used to reconstruct it.",
+    };
+  }
+  return {
+    status: "COMPARED",
+    fromContextId: from.snapshot.contextId,
+    toContextId: to.snapshot.contextId,
+    changes: contextChangeSummaries(from.snapshot, to.snapshot),
+    causalAttribution: "not-established",
+    causalNote:
+      "Context changes were observed between the exact cutoffs. Their timing does not establish that any item caused the probability change.",
+  };
 }
 
 export async function getMatchIntelligence(matchId: string, now = new Date()): Promise<MatchIntelligence> {
@@ -468,7 +919,18 @@ export async function getMatchIntelligence(matchId: string, now = new Date()): P
   const previous = previousRow
     ? buildMatchForecast(previousRow.fixtureAtFreeze, previousRow.snapshot)
     : null;
-  const news = await contextNews(fixture, forecast.cutoffAt);
+  const selectedContext = frozenContextForForecast(forecast);
+  const previousContext = previous ? frozenContextForForecast(previous) : null;
+  const contextComparison = previousContext
+    ? compareMatchContexts(previousContext, selectedContext)
+    : null;
+  const comparison = previous ? compareForecastSnapshots(previous, forecast) : null;
+  if (comparison && contextComparison) {
+    comparison.contextChanges = contextComparison.changes;
+    comparison.contextComparisonStatus = contextComparison.status;
+    comparison.fromContextId = contextComparison.fromContextId;
+    comparison.toContextId = contextComparison.toContextId;
+  }
   return {
     match: {
       id: fixture.id,
@@ -482,9 +944,18 @@ export async function getMatchIntelligence(matchId: string, now = new Date()): P
     forecast,
     freshness: forecastFreshness(forecast.cutoffAt, now),
     timeline,
-    comparison: previous ? compareForecastSnapshots(previous, forecast) : null,
+    comparison,
+    contextComparison,
     context: {
-      news,
+      atForecast: selectedContext.view,
+      latest: latestContextForFixture(
+        fixture,
+        now,
+        productionSnapshotsForMatch(fixture.id, snapshots)
+      ),
+      // The previous mutable news batch is intentionally not presented as
+      // historical evidence: publishedAt alone does not prove first-known time.
+      news: [],
       availability: {
         supported: false,
         items: [],
@@ -497,7 +968,7 @@ export async function getMatchIntelligence(matchId: string, now = new Date()): P
         note:
           "The Premier League production model does not read the current tactical-profile store. Historical tactical context without an auditable availability timestamp is excluded.",
       },
-      temporalRule: "availableAt <= forecast.cutoffAt",
+      temporalRule: "availableAt <= cutoffAt",
     },
     audit: forecast.provenance,
   };
