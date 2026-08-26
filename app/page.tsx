@@ -58,18 +58,22 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mx-auto mb-10 grid max-w-5xl gap-3 sm:grid-cols-3" aria-label="Production ledger summary">
+      <section className="mx-auto mb-10 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Production ledger summary">
         <LedgerStat
           label="Production forecast snapshots"
           value={ledgerMetrics.production.totalForecastSnapshots}
         />
         <LedgerStat
-          label="Settled forecast snapshots"
+          label="Settled production forecast snapshots"
           value={ledgerMetrics.production.settledForecastSnapshots}
         />
         <LedgerStat
-          label="Unique settled fixtures"
+          label="Unique fixtures with linked settlements"
           value={ledgerMetrics.production.uniqueFixturesSettled}
+        />
+        <LedgerStat
+          label={`Evaluation maturity · valid N=${ledgerMetrics.evaluationMaturity.production.uniqueFixtureCount}`}
+          value={ledgerMetrics.evaluationMaturity.production.status}
         />
       </section>
 
@@ -133,7 +137,9 @@ function ForecastCard({ item }: { item: UpcomingMatchForecast }) {
     <article className="glass glass-hover flex h-full flex-col p-5">
       <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
         <span>{kickoffLabel(match.kickoffUtc)}</span>
-        <span className={freshness.status === "stale" ? "text-amber-300" : "text-neon"}>{freshness.status}</span>
+        <span className={freshness.meetsStagePolicy ? "text-neon" : "text-amber-300"}>
+          Forecast stage · {freshness.status.replaceAll("_", " ").toLowerCase()}
+        </span>
       </div>
       <h3 className="mt-4 text-lg font-black tracking-tight">{match.home.name} <span className="font-medium text-muted-foreground">vs</span> {match.away.name}</h3>
       <div className="mt-4 grid grid-cols-3 gap-2 text-center">
@@ -160,7 +166,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   return <div><dt className="text-[10px] text-muted-foreground">{label}</dt><dd className="mt-0.5 font-bold tabular-nums">{value}</dd></div>;
 }
 
-function LedgerStat({ label, value }: { label: string; value: number }) {
+function LedgerStat({ label, value }: { label: string; value: number | string }) {
   return (
     <Link href="/live" prefetch={false} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition hover:border-neon/25 hover:bg-white/[0.04]">
       <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>

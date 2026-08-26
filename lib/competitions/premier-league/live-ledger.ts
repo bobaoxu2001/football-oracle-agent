@@ -10,14 +10,36 @@ import {
   type PredictionSnapshot,
 } from "@/lib/snapshots/store";
 import type { CanonicalPredictionStage, EvaluationClass } from "@/lib/snapshots/types";
-import { canonicalizePredictionStage } from "@/lib/snapshots/types";
+import {
+  canonicalizePredictionStage,
+  effectiveSnapshotGeneratedAt,
+  effectiveSnapshotLatestIncludedInputAt,
+  parseSnapshotUniqueKey,
+} from "@/lib/snapshots/types";
 import { calculateBacktestMetrics } from "@/lib/evaluation/metrics";
+import { validateSettlementSnapshotConsistency } from "@/lib/evaluation/settlement-integrity";
 import type { BacktestResult, Outcome } from "@/lib/evaluation/types";
+import {
+  assessEvaluationMaturity,
+  fixtureClusterBootstrap,
+  publishFixtureClusterBootstrap,
+  selectLatestValidPreKickByFixture,
+  selectLatestValidPreKickByFixtureStage,
+  type EvaluationMaturityAssessment,
+  type FixtureClusterBootstrapResult,
+  type PublishedFixtureClusterBootstrapResult,
+  type PreKickEvidenceObservation,
+} from "@/lib/evaluation/evidence-integrity";
 import { loadSettlements, type SettlementRecord } from "./settlement";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "./config";
 import { listLiveSnapshots, liveSnapshotUniverse } from "./ops/live-snapshot-reader";
 import { productionModelVersion } from "./shadow/track";
 import { canonicalLedgerMetrics } from "./ledger-metrics";
+import { liveFixtures } from "./fixture-store";
+import {
+  validateProductionForecastSnapshot,
+  type ForecastFreshnessSnapshotInput,
+} from "./ops/production-freshness";
 
 function productionOnly(snapshots: PredictionSnapshot[]): PredictionSnapshot[] {
   const version = productionModelVersion();
@@ -150,8 +172,8 @@ function settlementsToBacktest(rows: SettlementRecord[]): BacktestResult[] {
         expectedGoalsAway: 0,
         mostLikelyScore: { home: 0, away: 0 },
       },
-      asOf: r.settledAt,
-      dataCutoff: r.settledAt,
+      asOf: parseSnapshotUniqueKey(r.snapshotUniqueKey)?.asOf ?? r.settledAt,
+      dataCutoff: parseSnapshotUniqueKey(r.snapshotUniqueKey)?.asOf ?? r.settledAt,
       modelVersion: r.modelVersion,
       actual,
       predicted,
@@ -164,10 +186,92 @@ function settlementsToBacktest(rows: SettlementRecord[]): BacktestResult[] {
   });
 }
 
+interface SettlementEvidence extends PreKickEvidenceObservation {
+  settlement: SettlementRecord;
+}
+
+function evaluationSnapshotInput(
+  snapshot: PredictionSnapshot
+): ForecastFreshnessSnapshotInput {
+  return {
+    snapshotId: snapshot.provenance.uniqueKey,
+    fixtureId: snapshot.fixtureId,
+    modelRole: "production",
+    modelVersion: snapshot.modelVersion,
+    evaluationClass: snapshot.evaluationClass ?? null,
+    predictionStage: String(snapshot.predictionStage),
+    kickoffUtc: snapshot.kickoff,
+    cutoffAt: snapshot.asOf,
+    generatedAt: effectiveSnapshotGeneratedAt(snapshot),
+    latestIncludedInputAt: effectiveSnapshotLatestIncludedInputAt(snapshot),
+  };
+}
+
+function settlementEvidence(
+  rows: SettlementRecord[],
+  snapshots: PredictionSnapshot[]
+): SettlementEvidence[] {
+  const snapshotByKey = new Map(
+    snapshots.map((snapshot) => [snapshot.provenance.uniqueKey, snapshot])
+  );
+  const currentKickoffByFixture = new Map(
+    liveFixtures().map((fixture) => [
+      fixture.id,
+      fixture.kickoffUtc ?? fixture.kickoff ?? null,
+    ])
+  );
+  const out: SettlementEvidence[] = [];
+  for (const settlement of rows) {
+    const snapshot = snapshotByKey.get(settlement.snapshotUniqueKey);
+    if (!snapshot) continue;
+    if (!validateSettlementSnapshotConsistency(settlement, snapshot).consistent) continue;
+    const kickoffAt = currentKickoffByFixture.get(settlement.fixtureId) ?? snapshot.kickoff;
+    if (!kickoffAt) continue;
+    const generatedAt = effectiveSnapshotGeneratedAt(snapshot);
+    const validation = validateProductionForecastSnapshot({
+      snapshot: evaluationSnapshotInput(snapshot),
+      expectedKickoffUtc: kickoffAt,
+      evaluatedAt: settlement.settledAt,
+    });
+    if (!validation.valid) continue;
+    out.push({
+      settlement,
+      fixtureId: settlement.fixtureId,
+      predictionStage: canonicalizePredictionStage(settlement.predictionStage),
+      snapshotUniqueKey: settlement.snapshotUniqueKey,
+      cutoffAt: snapshot.asOf,
+      generatedAt,
+      kickoffAt,
+      kickoffAtFreeze: snapshot.kickoff,
+    });
+  }
+  return out;
+}
+
+function scoreUncertainty(rows: SettlementRecord[]): FixtureClusterBootstrapResult {
+  return fixtureClusterBootstrap(
+    rows.map((row) => ({
+      fixtureId: row.fixtureId,
+      observationId: row.snapshotUniqueKey,
+      values: {
+        brier: row.brier,
+        rps: row.rps,
+        logLoss: row.logLoss,
+      },
+    })),
+    { metricKeys: ["brier", "rps", "logLoss"] }
+  );
+}
+
 export interface StagePerformanceRow {
   stage: CanonicalPredictionStage;
   totalForecastSnapshots: number;
   settledForecastSnapshots: number;
+  uniqueSettledFixtures: number;
+  effectiveN: number;
+  aggregationUnit: "latest_valid_snapshot_per_fixture_stage";
+  selectionRule: "LATEST_VALID_PREKICK_WITHIN_FIXTURE_STAGE";
+  uncertainty: FixtureClusterBootstrapResult;
   /** @deprecated Use totalForecastSnapshots. */
   n: number;
   /** @deprecated Use settledForecastSnapshots. */
@@ -181,11 +285,15 @@ export interface StagePerformanceRow {
 export interface LivePerformanceReport {
   season: string;
   evaluationClass: EvaluationClass;
-  aggregationUnit: "forecast_snapshot";
+  aggregationUnit: "latest_valid_pre_kickoff_snapshot_per_fixture";
+  headlineSelectionRule: "LATEST_VALID_PREKICK_PER_FIXTURE";
   totalForecastSnapshots: number;
   settledForecastSnapshots: number;
   uniqueFixturesForecast: number;
   uniqueFixturesSettled: number;
+  independentSampleSize: number;
+  evaluationMaturity: EvaluationMaturityAssessment;
+  uncertainty: PublishedFixtureClusterBootstrapResult;
   /** @deprecated Use totalForecastSnapshots. */
   nPredictions: number;
   /** @deprecated Use settledForecastSnapshots. */
@@ -215,13 +323,20 @@ export function livePerformanceReport(
       ? listLiveSnapshots({ season, evaluationClass: "LIVE_OOS" })
       : snapshotsOfClass(evaluationClass, season, { source: "index" });
   const snaps = evaluationClass === "LIVE_OOS" ? productionOnly(allSnapshots) : allSnapshots;
-  const snapshotKeys = new Set(snaps.map((snapshot) => snapshot.provenance.uniqueKey));
+  const snapshotByKey = new Map(
+    snaps.map((snapshot) => [snapshot.provenance.uniqueKey, snapshot])
+  );
   const settled = loadSettlements().filter(
-    (s) =>
-      s.evaluationClass === evaluationClass &&
-      s.season === season &&
-      (evaluationClass !== "LIVE_OOS" || s.modelVersion === productionModelVersion()) &&
-      snapshotKeys.has(s.snapshotUniqueKey)
+    (s) => {
+      const snapshot = snapshotByKey.get(s.snapshotUniqueKey);
+      return (
+        s.evaluationClass === evaluationClass &&
+        s.season === season &&
+        (evaluationClass !== "LIVE_OOS" || s.modelVersion === productionModelVersion()) &&
+        snapshot !== undefined &&
+        validateSettlementSnapshotConsistency(s, snapshot).consistent
+      );
+    }
   );
   const nPredictions = canonical?.production.totalForecastSnapshots ?? snaps.length;
   const nSettled = canonical?.production.settledForecastSnapshots ?? settled.length;
@@ -229,12 +344,24 @@ export function livePerformanceReport(
     canonical?.production.uniqueFixturesForecast ?? new Set(snaps.map((s) => s.fixtureId)).size;
   const uniqueFixturesSettled =
     canonical?.production.uniqueFixturesSettled ?? new Set(settled.map((s) => s.fixtureId)).size;
-  // Multiple stage snapshots settle against the same match outcome. Use unique
-  // fixtures for the sample-size gate so 38 snapshot rows from ten matches do
-  // not masquerade as 38 independent observations.
-  const tiny = uniqueFixturesSettled < 20;
-  const metrics = nSettled ? calculateBacktestMetrics(settlementsToBacktest(settled)) : null;
+  const evidence = settlementEvidence(settled, snaps);
+  // The production headline is one deterministic latest valid pre-kickoff
+  // forecast per realised fixture. Earlier stage rows remain immutable
+  // trajectory diagnostics and never gain independent-sample weight.
+  const headlineRows = selectLatestValidPreKickByFixture(evidence).map(
+    (row) => row.settlement
+  );
+  const independentSampleSize = headlineRows.length;
+  const evaluationMaturity = assessEvaluationMaturity(independentSampleSize);
+  const uncertainty = publishFixtureClusterBootstrap(
+    scoreUncertainty(headlineRows),
+    evaluationMaturity.provisionalReportingAllowed
+  );
+  const metrics = headlineRows.length
+    ? calculateBacktestMetrics(settlementsToBacktest(headlineRows))
+    : null;
   const stages = stageBreakdown(snaps);
+  const stageHeadlineEvidence = selectLatestValidPreKickByFixtureStage(evidence);
   const stageOrder: CanonicalPredictionStage[] = [
     "PRESEASON",
     "EARLY",
@@ -245,14 +372,26 @@ export function livePerformanceReport(
     "FINAL_PREKICK",
   ];
   const byStage: StagePerformanceRow[] = stageOrder.map((stage) => {
-    const rows = settled.filter((s) => canonicalizePredictionStage(s.predictionStage) === stage);
-    const m = rows.length ? calculateBacktestMetrics(settlementsToBacktest(rows)) : null;
+    const snapshotRows = settled.filter(
+      (s) => canonicalizePredictionStage(s.predictionStage) === stage
+    );
+    const rows = stageHeadlineEvidence
+      .filter((row) => canonicalizePredictionStage(row.predictionStage) === stage)
+      .map((row) => row.settlement);
+    const m = rows.length
+      ? calculateBacktestMetrics(settlementsToBacktest(rows))
+      : null;
     return {
       stage,
       totalForecastSnapshots: stages[stage],
-      settledForecastSnapshots: rows.length,
+      settledForecastSnapshots: snapshotRows.length,
+      uniqueSettledFixtures: rows.length,
+      effectiveN: rows.length,
+      aggregationUnit: "latest_valid_snapshot_per_fixture_stage",
+      selectionRule: "LATEST_VALID_PREKICK_WITHIN_FIXTURE_STAGE",
+      uncertainty: scoreUncertainty(rows),
       n: stages[stage],
-      nSettled: rows.length,
+      nSettled: snapshotRows.length,
       brier: rows.length ? m!.brierScore : null,
       rps: rows.length ? m!.rps : null,
       logLoss: rows.length ? m!.logLoss : null,
@@ -262,11 +401,15 @@ export function livePerformanceReport(
   return {
     season,
     evaluationClass,
-    aggregationUnit: "forecast_snapshot",
+    aggregationUnit: "latest_valid_pre_kickoff_snapshot_per_fixture",
+    headlineSelectionRule: "LATEST_VALID_PREKICK_PER_FIXTURE",
     totalForecastSnapshots: nPredictions,
     settledForecastSnapshots: nSettled,
     uniqueFixturesForecast,
     uniqueFixturesSettled,
+    independentSampleSize,
+    evaluationMaturity,
+    uncertainty,
     nPredictions,
     nSettled,
     nCommitted:
@@ -279,16 +422,30 @@ export function livePerformanceReport(
         : 0,
     stages,
     byStage,
-    sampleNote: tiny
-      ? `Sample size is ${nSettled} settled forecast snapshots across ${uniqueFixturesSettled} unique fixtures. Headline aggregate metrics remain withheld until 20 unique fixtures have settled.`
-      : `Settled sample ${nSettled} of ${nPredictions} ${evaluationClass} forecast snapshots across ${uniqueFixturesSettled} unique fixtures.`,
-    brier: nSettled === 0 || tiny ? null : metrics!.brierScore,
-    rps: nSettled === 0 || tiny ? null : metrics!.rps,
-    logLoss: nSettled === 0 || tiny ? null : metrics!.logLoss,
-    confidenceEce: metrics && uniqueFixturesSettled >= 20 ? metrics.confidenceEce : null,
+    sampleNote:
+      `${evaluationMaturity.status} — independent N=${independentSampleSize} unique settled ` +
+      `fixture${independentSampleSize === 1 ? "" : "s"}. The ledger retains ${nSettled} settled ` +
+      `forecast snapshot${nSettled === 1 ? "" : "s"} for trajectory diagnostics. ` +
+      (evaluationMaturity.provisionalReportingAllowed
+        ? "Headline scores use the latest valid pre-kickoff snapshot per fixture; fixture-bootstrap uncertainty is shown."
+        : `Headline aggregate scores and intervals remain withheld until ${evaluationMaturity.thresholds.provisionalMinUniqueFixtures} independent fixtures.`),
+    brier:
+      metrics && evaluationMaturity.provisionalReportingAllowed ? metrics.brierScore : null,
+    rps: metrics && evaluationMaturity.provisionalReportingAllowed ? metrics.rps : null,
+    logLoss:
+      metrics && evaluationMaturity.provisionalReportingAllowed ? metrics.logLoss : null,
+    confidenceEce:
+      metrics && evaluationMaturity.provisionalReportingAllowed
+        ? metrics.confidenceEce
+        : null,
     pooledReliabilityMae:
-      metrics && uniqueFixturesSettled >= 20 ? metrics.pooledReliabilityMae : null,
-    topPickAccuracy: nSettled === 0 || tiny ? null : metrics!.accuracy1x2,
+      metrics && evaluationMaturity.provisionalReportingAllowed
+        ? metrics.pooledReliabilityMae
+        : null,
+    topPickAccuracy:
+      metrics && evaluationMaturity.provisionalReportingAllowed
+        ? metrics.accuracy1x2
+        : null,
   };
 }
 
@@ -296,6 +453,11 @@ export interface PublicStagePerformanceRow {
   stage: CanonicalPredictionStage;
   totalForecastSnapshots: number;
   settledForecastSnapshots: number;
+  uniqueSettledFixtures: number;
+  effectiveN: number;
+  aggregationUnit: "latest_valid_snapshot_per_fixture_stage";
+  selectionRule: "LATEST_VALID_PREKICK_WITHIN_FIXTURE_STAGE";
+  uncertainty: FixtureClusterBootstrapResult;
   brier: number | null;
   rps: number | null;
   logLoss: number | null;
@@ -304,7 +466,12 @@ export interface PublicStagePerformanceRow {
 
 export type PublicLivePerformanceReport = Omit<
   LivePerformanceReport,
-  "nPredictions" | "nSettled" | "nCommitted" | "nOperational" | "byStage"
+  | "nPredictions"
+  | "nSettled"
+  | "nCommitted"
+  | "nOperational"
+  | "stages"
+  | "byStage"
 > & {
   committedForecastSnapshots: number;
   operationalForecastSnapshots: number;
@@ -320,6 +487,7 @@ export function publicLivePerformanceReport(
     nSettled: _nSettled,
     nCommitted,
     nOperational,
+    stages: _stages,
     byStage,
     ...explicit
   } = report;
@@ -333,19 +501,69 @@ export function publicLivePerformanceReport(
   };
 }
 
-export function fixtureLiveView(fixtureId: string, season = PREMIER_LEAGUE_CURRENT_SEASON) {
+export function fixtureLiveView(
+  fixtureId: string,
+  season = PREMIER_LEAGUE_CURRENT_SEASON,
+  now = new Date()
+) {
   const snaps = productionOnly(
     operationalLiveOosUnion(season).snapshots.filter((s) => s.fixtureId === fixtureId)
   ).sort(
     (a, b) =>
       a.asOf.localeCompare(b.asOf) ||
-      a.createdAt.localeCompare(b.createdAt) ||
+      effectiveSnapshotGeneratedAt(a).localeCompare(effectiveSnapshotGeneratedAt(b)) ||
       a.provenance.uniqueKey.localeCompare(b.provenance.uniqueKey)
   );
-  const settlements = loadSettlements().filter(
-    (s) => s.fixtureId === fixtureId && s.modelVersion === productionModelVersion()
+  const snapshotByKey = new Map(
+    snaps.map((snapshot) => [snapshot.provenance.uniqueKey, snapshot])
   );
-  const byStage: Record<string, { snapshot: PredictionSnapshot | null; settlement: SettlementRecord | null }> = {};
+  const settlements = loadSettlements().filter((settlement) => {
+    const snapshot = snapshotByKey.get(settlement.snapshotUniqueKey);
+    return (
+      settlement.fixtureId === fixtureId &&
+      settlement.modelVersion === productionModelVersion() &&
+      snapshot !== undefined &&
+      validateSettlementSnapshotConsistency(settlement, snapshot).consistent
+    );
+  });
+  const fixture = liveFixtures().find((row) => row.id === fixtureId);
+  const currentKickoff = fixture?.kickoffUtc ?? fixture?.kickoff ?? null;
+  const nowMs = now.getTime();
+  const visibleHistory = snaps.filter(
+    (snapshot) =>
+      Date.parse(snapshot.asOf) <= nowMs &&
+      Date.parse(effectiveSnapshotGeneratedAt(snapshot)) <= nowMs
+  );
+  const snapshotValidity = (snapshot: PredictionSnapshot) => {
+    const kickoffIdentityCurrent = Boolean(
+      currentKickoff &&
+      snapshot.kickoff &&
+      Date.parse(snapshot.kickoff) === Date.parse(currentKickoff)
+    );
+    const validation = validateProductionForecastSnapshot({
+      snapshot: evaluationSnapshotInput(snapshot),
+      expectedKickoffUtc: currentKickoff ?? "",
+      evaluatedAt: now.toISOString(),
+    });
+    const validForStagePolicy = Boolean(validation.valid);
+    return {
+      kickoffIdentityCurrent,
+      validForStagePolicy,
+      validForCurrentSelection: kickoffIdentityCurrent && validForStagePolicy,
+      validityIssues: validation.issues,
+    };
+  };
+  const byStage: Record<
+    string,
+    {
+      snapshot: PredictionSnapshot | null;
+      settlement: SettlementRecord | null;
+      kickoffIdentityCurrent: boolean;
+      validForStagePolicy: boolean;
+      validForCurrentSelection: boolean;
+      validityIssues: string[];
+    }
+  > = {};
   for (const stage of [
     "PRESEASON",
     "EARLY",
@@ -356,11 +574,32 @@ export function fixtureLiveView(fixtureId: string, season = PREMIER_LEAGUE_CURRE
     "FINAL_PREKICK",
   ] as const) {
     const snapshot =
-      snaps.filter((s) => canonicalizePredictionStage(s.predictionStage) === stage).at(-1) ?? null;
+      visibleHistory
+        .filter((s) => canonicalizePredictionStage(s.predictionStage) === stage)
+        .at(-1) ?? null;
     const settlement = snapshot
       ? settlements.find((x) => x.snapshotUniqueKey === snapshot.provenance.uniqueKey) ?? null
       : null;
-    byStage[stage] = { snapshot, settlement };
+    const validity = snapshot
+      ? snapshotValidity(snapshot)
+      : {
+          kickoffIdentityCurrent: false,
+          validForStagePolicy: false,
+          validForCurrentSelection: false,
+          validityIssues: [],
+        };
+    byStage[stage] = {
+      snapshot,
+      settlement,
+      ...validity,
+    };
   }
-  return { fixtureId, season, snapshots: snaps, settlements, byStage };
+  return {
+    fixtureId,
+    season,
+    snapshots: visibleHistory,
+    timeline: visibleHistory.map((snapshot) => ({ snapshot, ...snapshotValidity(snapshot) })),
+    settlements,
+    byStage,
+  };
 }

@@ -1,17 +1,19 @@
 # Hosted production scheduler. Cadence <= 5 minutes.
 # Invokes Vercel /api/ops/tick with CRON_SECRET. Does not invent results.
-# Recurrence is GitHub-managed; overlap is serialized by separate Mongo leases
-# (90 seconds for the forecast tick, 180 seconds for observers).
+# Overlap is serialized by separate Mongo leases (90 seconds for the forecast
+# tick, 180 seconds for observers).
 #
-# Two complementary triggers:
-#   1. offset 5-minute cron — one-shot backup pinger
-#   2. hourly loop — supervised worker that ticks every 5 minutes for ~5 hours.
-#      When an hourly event is delivered, GitHub keeps the latest run pending
-#      while one is active. A delayed or missing later delivery therefore does
-#      not create a freshness gap as soon as a 55-minute runner exits.
-# Both paths invoke the isolated observers. Their own Mongo lease makes an
-# overlapping backup a healthy no-op instead of a duplicate provider poll.
+# Three complementary recurrence paths:
+#   1. offset 5-minute cron — one-shot backup pinger;
+#   2. hourly cron — loop bootstrap/recovery safety net;
+#   3. a normally completed loop — exactly one deliberate workflow_dispatch
+#      successor, gated by OPS_HANDOFF_ENABLED.
+# The loop and one-shot paths have separate concurrency groups. A successor
+# waits behind the current loop; the current loop is never canceled. GitHub's
+# single pending slot also prevents multiple effective successor chains.
 name: ops-tick
+
+run-name: ${{ inputs.parent_run_id != '' && format('ops-tick handoff-from-{0}', inputs.parent_run_id) || format('ops-tick {0}', github.event_name) }}
 
 on:
   schedule:
@@ -22,30 +24,48 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "once or loop"
+        description: "Run one backup tick or a supervised loop"
+        type: choice
+        required: true
         default: "loop"
+        options:
+          - once
+          - loop
+      continue_chain:
+        description: "Allow a successful loop to create one successor"
+        type: boolean
+        required: true
+        default: false
+      rounds:
+        description: "Manual loop rounds (1-60); successors always use 60"
+        type: number
+        required: true
+        default: 60
+      parent_run_id:
+        description: "Auditable parent run id for a deliberate handoff"
+        type: string
+        required: false
+        default: ""
 
-# The job only calls an external URL — it never reads or writes the repo.
-permissions:
-  contents: read
+# Each job declares only the token permissions it needs.
+permissions: {}
 
 # Separate groups per trigger, on purpose. A single shared group let the long
-# supervised loop hold the queue, so the 5-minute one-shot pings — the backup for
-# exactly the case where the loop dies — were suppressed while it ran, and only
-# one stale queued run fired afterwards. Overlap between the two is safe: the
-# core tick and observers are independently idempotent and serialized by their
-# Mongo leases (409 = already running).
+# supervised loop suppress the short one-shot backup. Overlap between the two
+# groups is safe: the core tick and observers are independently idempotent and
+# serialized by their Mongo leases (409 = already running).
 concurrency:
-  group: football-oracle-ops-tick-${{ (github.event.schedule == '17 * * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'loop')) && 'loop' || 'once' }}
+  group: football-oracle-ops-tick-${{ (github.event.schedule == '17 * * * *' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'loop')) && 'loop' || 'once' }}
   cancel-in-progress: false
 
 jobs:
   tick:
     name: production-ops-tick
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     # GitHub-hosted jobs have a six-hour ceiling. Five hours of rounds plus a
-    # 30-minute cleanup/latency margin stays below it while bridging observed
-    # hour-scale schedule delivery gaps.
+    # 30-minute cleanup/latency margin stays below it.
     timeout-minutes: 330
     steps:
       - name: Authenticated production ticks
@@ -53,7 +73,9 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           OPS_TICK_URL: ${{ vars.OPS_TICK_URL }}
           OPS_OBSERVER_URL: ${{ vars.OPS_OBSERVER_URL }}
-          MODE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode || (github.event.schedule == '17 * * * *' && 'loop' || 'once') }}
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || (github.event.schedule == '17 * * * *' && 'loop' || 'once') }}
+          REQUESTED_ROUNDS: ${{ inputs.rounds }}
+          MAX_CONSECUTIVE_FAILURES: "3"
         run: |
           set -euo pipefail
           if [ -z "${CRON_SECRET:-}" ]; then
@@ -71,12 +93,25 @@ jobs:
             CORE_URL="${CORE_URL}&backup=1"
           fi
           OBSERVER_URL="${OPS_OBSERVER_URL:-https://football-oracle-agent.vercel.app/api/ops/observers}"
+          REQUESTED_ROUNDS="${REQUESTED_ROUNDS:-60}"
           ROUNDS=1
           if [ "$MODE" = "loop" ]; then
-            ROUNDS=60
+            if ! [[ "${REQUESTED_ROUNDS:-}" =~ ^[0-9]+$ ]]; then
+              echo "invalid rounds=${REQUESTED_ROUNDS:-missing}"
+              exit 1
+            fi
+            if [ "$REQUESTED_ROUNDS" -lt 1 ] || [ "$REQUESTED_ROUNDS" -gt 60 ]; then
+              echo "rounds must be between 1 and 60"
+              exit 1
+            fi
+            ROUNDS="$REQUESTED_ROUNDS"
           fi
-          echo "mode=${MODE} rounds=${ROUNDS}"
-          fail=0
+          echo "mode=${MODE} rounds=${ROUNDS} max_consecutive_failures=${MAX_CONSECUTIVE_FAILURES}"
+          core_consecutive_failures=0
+          observer_consecutive_failures=0
+          total_failures=0
+          fatal=0
+          completed_rounds=0
           for i in $(seq 1 "$ROUNDS"); do
             ROUND_STARTED_AT="$(date +%s)"
             AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -93,9 +128,14 @@ jobs:
           print(text[:800])
           PY
             if [ "$CODE" != "200" ] && [ "$CODE" != "409" ]; then
-              echo "failure_state=http_${CODE}"
-              fail=1
+              core_consecutive_failures="$(( core_consecutive_failures + 1 ))"
+              total_failures="$(( total_failures + 1 ))"
+              echo "failure_state=http_${CODE} consecutive=${core_consecutive_failures}"
             else
+              if [ "$core_consecutive_failures" -gt 0 ]; then
+                echo "failure_recovery=core previous_consecutive=${core_consecutive_failures}"
+              fi
+              core_consecutive_failures=0
               echo "failure_state=none"
             fi
             : > /tmp/observer-body
@@ -111,10 +151,21 @@ jobs:
           print(text[:800])
           PY
             if [ "$OBSERVER_CODE" != "200" ] && [ "$OBSERVER_CODE" != "409" ]; then
-              echo "observer_state=http_${OBSERVER_CODE}"
-              fail=1
+              observer_consecutive_failures="$(( observer_consecutive_failures + 1 ))"
+              total_failures="$(( total_failures + 1 ))"
+              echo "observer_state=http_${OBSERVER_CODE} consecutive=${observer_consecutive_failures}"
             else
+              if [ "$observer_consecutive_failures" -gt 0 ]; then
+                echo "failure_recovery=observer previous_consecutive=${observer_consecutive_failures}"
+              fi
+              observer_consecutive_failures=0
               echo "observer_state=none"
+            fi
+            completed_rounds="$i"
+            if [ "$core_consecutive_failures" -ge "$MAX_CONSECUTIVE_FAILURES" ]; then
+              fatal=1
+              echo "fatal_state=core_consecutive_failure_threshold"
+              break
             fi
             if [ "$i" -lt "$ROUNDS" ]; then
               ELAPSED="$(( $(date +%s) - ROUND_STARTED_AT ))"
@@ -124,6 +175,99 @@ jobs:
               fi
             fi
           done
-          if [ "$fail" -ne 0 ]; then
+          {
+            echo "### Production tick summary"
+            echo "- mode: ${MODE}"
+            echo "- rounds: ${completed_rounds}/${ROUNDS}"
+            echo "- request failures: ${total_failures}"
+            echo "- terminal core failures: ${core_consecutive_failures}"
+            echo "- terminal observer failures: ${observer_consecutive_failures}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$fatal" -ne 0 ] || [ "$completed_rounds" -ne "$ROUNDS" ] || \
+             [ "$core_consecutive_failures" -ne 0 ]; then
             exit 1
           fi
+          if [ "$observer_consecutive_failures" -ne 0 ]; then
+            echo "::warning::market/ledger observer remains degraded after ${observer_consecutive_failures} consecutive request failure(s); forecast-core recurrence will continue"
+          elif [ "$total_failures" -gt 0 ]; then
+            echo "::warning::${total_failures} transient request failure(s) recovered before normal completion"
+          fi
+
+  handoff:
+    name: deliberate-loop-handoff
+    needs: tick
+    if: >-
+      ${{
+        needs.tick.result == 'success' &&
+        github.run_attempt == 1 &&
+        vars.OPS_HANDOFF_ENABLED == 'true' &&
+        (
+          github.event.schedule == '17 * * * *' ||
+          (
+            github.event_name == 'workflow_dispatch' &&
+            inputs.mode == 'loop' &&
+            inputs.continue_chain
+          )
+        )
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: write
+    steps:
+      - name: Create one auditable successor
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          PARENT_RUN_ID: ${{ github.run_id }}
+          NEXT_TITLE: ops-tick handoff-from-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          WORKFLOW_ID="ops-tick.yml"
+          API_VERSION="X-GitHub-Api-Version: 2026-03-10"
+          gh api \
+            -H "$API_VERSION" \
+            "/repos/${REPOSITORY}/actions/workflows/${WORKFLOW_ID}/runs?event=workflow_dispatch&per_page=100" \
+            > /tmp/handoff-runs.json
+          EXISTING_RUN_ID="$(python3 -c 'import json, os; runs=json.load(open("/tmp/handoff-runs.json")).get("workflow_runs", []); print(next((str(run["id"]) for run in runs if run.get("display_title") == os.environ["NEXT_TITLE"]), ""))')"
+          if [ -n "$EXISTING_RUN_ID" ]; then
+            echo "handoff_state=already_exists successor_run_id=${EXISTING_RUN_ID}"
+            exit 0
+          fi
+          python3 - <<'PY' > /tmp/handoff-payload.json
+          import json
+          import os
+          import sys
+          json.dump(
+              {
+                  "ref": os.environ["DEFAULT_BRANCH"],
+                  "inputs": {
+                      "mode": "loop",
+                      "continue_chain": "true",
+                      "rounds": "60",
+                      "parent_run_id": os.environ["PARENT_RUN_ID"],
+                  },
+              },
+              sys.stdout,
+          )
+          PY
+          gh api \
+            --method POST \
+            -H "$API_VERSION" \
+            "/repos/${REPOSITORY}/actions/workflows/${WORKFLOW_ID}/dispatches" \
+            --input /tmp/handoff-payload.json \
+            > /tmp/handoff-response.json
+          SUCCESSOR_RUN_ID="$(python3 -c 'import json; print(json.load(open("/tmp/handoff-response.json")).get("workflow_run_id", ""))')"
+          SUCCESSOR_URL="$(python3 -c 'import json; print(json.load(open("/tmp/handoff-response.json")).get("html_url", ""))')"
+          if ! [[ "$SUCCESSOR_RUN_ID" =~ ^[0-9]+$ ]] || [ -z "$SUCCESSOR_URL" ]; then
+            echo "handoff_state=invalid_dispatch_response"
+            exit 1
+          fi
+          echo "handoff_state=created successor_run_id=${SUCCESSOR_RUN_ID} successor_url=${SUCCESSOR_URL}"
+          {
+            echo "### Loop handoff"
+            echo "- parent run: ${PARENT_RUN_ID}"
+            echo "- successor run: ${SUCCESSOR_RUN_ID}"
+            echo "- successor: ${SUCCESSOR_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"

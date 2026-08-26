@@ -23,15 +23,25 @@ import type { DataConflict, HealthState } from "./types";
 import { durableStatus } from "./durable-store";
 import { isProductionRuntime } from "./tick-auth";
 import { mongoConfigured } from "@/lib/db/mongodb";
+import {
+  PRODUCTION_FRESHNESS_POLICY_VERSION,
+  evaluateFixtureSyncFreshness,
+  evaluateSchedulerFreshness,
+  summarizeForecastCoverage,
+  type FixtureForecastFreshness,
+  type FixtureSyncFreshness,
+  type ForecastCoverageFreshness,
+  type OperationalFreshness,
+} from "./production-freshness";
+import { listLiveSnapshots } from "./live-snapshot-reader";
+import { forecastFreshness } from "@/lib/match-forecast/service";
 
 const HOUR = 3_600_000;
-const FIXTURE_SYNC_STALE_NEAR_MATCH_MS = 6 * HOUR;
-const FIXTURE_SYNC_STALE_DEFAULT_MS = 36 * HOUR;
-const TICK_STALE_MS = 15 * 60 * 1000;
 const RESULT_STALE_AFTER_KICKOFF_MS = 6 * HOUR;
 
 export interface HealthReport {
   overall: HealthState;
+  overallScope: "production_operations";
   reasons: string[];
   /** Canonical, explicitly scoped count contract shared with every public API. */
   ledgerMetrics: CanonicalLedgerMetrics;
@@ -46,6 +56,7 @@ export interface HealthReport {
     lastAttempt: string | null;
     lastSuccess: string | null;
     stale: boolean;
+    freshness: FixtureSyncFreshness;
     revisionCount: number;
     configuredLiveSources: string[];
   };
@@ -79,8 +90,17 @@ export interface HealthReport {
       status: string;
     } | null;
     lastTickAt: string | null;
+    lastSuccessAt: string | null;
     tickStale: boolean;
-    freshness: "fresh" | "stale" | "never";
+    freshness: OperationalFreshness<"scheduler">;
+  };
+  freshness: {
+    policyVersion: typeof PRODUCTION_FRESHNESS_POLICY_VERSION;
+    evaluatedAt: string;
+    operationsOverall: HealthState;
+    forecastCoverage: ForecastCoverageFreshness;
+    sampleUpcomingFixtureForecasts: FixtureForecastFreshness[];
+    note: string;
   };
   persistence: {
     backend: string;
@@ -118,8 +138,10 @@ export interface HealthReport {
     verified: number;
   };
   settlement: {
+    scope: "all-tracks";
     persistedSnapshotSettlementRecords: number;
     linkedForecastSnapshotRecords: number;
+    inconsistentLinkedSettlementRecords: number;
     orphanSettlementRecords: number;
     successfulSettlementEvents: null;
     eventCountStatus: "unavailable";
@@ -176,10 +198,47 @@ export function buildHealthReport(now = new Date()): HealthReport {
     const k = Date.parse(f.kickoffUtc ?? f.kickoff ?? "");
     return Number.isFinite(k) && k - nowMs < 48 * HOUR && k > nowMs - 3 * HOUR;
   });
-  const syncAge = tick.lastFixtureSyncOkAt ? nowMs - Date.parse(tick.lastFixtureSyncOkAt) : Infinity;
-  const syncStale = syncAge > (nearMatch ? FIXTURE_SYNC_STALE_NEAR_MATCH_MS : FIXTURE_SYNC_STALE_DEFAULT_MS);
-  const tickStale = !tick.lastTickAt || nowMs - Date.parse(tick.lastTickAt) > TICK_STALE_MS;
-  const tickFreshness: "fresh" | "stale" | "never" = !tick.lastTickAt ? "never" : tickStale ? "stale" : "fresh";
+  const schedulerFreshness = evaluateSchedulerFreshness({
+    evaluatedAt: nowIso,
+    lastAttemptAt: tick.lastTickAt,
+    lastSuccessAt: tick.lastSuccessAt,
+    cadenceMs: TICK_CADENCE_MS,
+    lastError: tick.lastError,
+  });
+  const fixtureSyncFreshness = evaluateFixtureSyncFreshness({
+    evaluatedAt: nowIso,
+    lastAttemptAt: tick.lastFixtureSyncAt,
+    lastSuccessAt: tick.lastFixtureSyncOkAt,
+    cadenceMs: TICK_CADENCE_MS,
+    nearMatch,
+  });
+  const syncStale = fixtureSyncFreshness.status !== "FRESH";
+  const tickStale = schedulerFreshness.status !== "FRESH";
+  const allLiveSnapshots = listLiveSnapshots({
+    season: PREMIER_LEAGUE_CURRENT_SEASON,
+    evaluationClass: "LIVE_OOS",
+  });
+  const upcomingForFreshness = fixtures.filter((fixture) => {
+    const kickoff = Date.parse(fixture.kickoffUtc ?? fixture.kickoff ?? "");
+    const status = canonicalizeFixtureStatus(fixture.status);
+    return (
+      Number.isFinite(kickoff) &&
+      kickoff > nowMs &&
+      status !== "FINISHED" &&
+      status !== "POSTPONED" &&
+      status !== "CANCELLED" &&
+      status !== "ABANDONED"
+    );
+  });
+  const upcomingFixtureForecasts = upcomingForFreshness.map((fixture) =>
+    forecastFreshness(
+      fixture,
+      allLiveSnapshots.filter((snapshot) => snapshot.fixtureId === fixture.id),
+      now,
+      jobs.filter((job) => job.fixtureId === fixture.id)
+    )
+  );
+  const forecastCoverage = summarizeForecastCoverage(upcomingFixtureForecasts);
   const persist = durableStatus();
 
   const configuredLiveSources = [
@@ -260,11 +319,14 @@ export function buildHealthReport(now = new Date()): HealthReport {
   }
 
   if (overall === "HEALTHY") {
-    reasons.push("data ready, live source configured, durable store and scheduler not blocked");
+    reasons.push(
+      "production operations are healthy: data gate, source, durable store and scheduler are not blocked; fixture forecast coverage is reported separately"
+    );
   }
 
   return {
     overall,
+    overallScope: "production_operations",
     reasons,
     ledgerMetrics,
     season: {
@@ -278,6 +340,7 @@ export function buildHealthReport(now = new Date()): HealthReport {
       lastAttempt: tick.lastFixtureSyncAt,
       lastSuccess: tick.lastFixtureSyncOkAt,
       stale: syncStale,
+      freshness: fixtureSyncFreshness,
       revisionCount: scheduleRevs.length,
       configuredLiveSources,
     },
@@ -315,8 +378,18 @@ export function buildHealthReport(now = new Date()): HealthReport {
           }
         : null,
       lastTickAt: tick.lastTickAt,
+      lastSuccessAt: tick.lastSuccessAt,
       tickStale,
-      freshness: tickFreshness,
+      freshness: schedulerFreshness,
+    },
+    freshness: {
+      policyVersion: PRODUCTION_FRESHNESS_POLICY_VERSION,
+      evaluatedAt: nowIso,
+      operationsOverall: overall,
+      forecastCoverage,
+      sampleUpcomingFixtureForecasts: upcomingFixtureForecasts.slice(0, 8),
+      note:
+        "Operations liveness, fixture forecast stage coverage, fixture metadata sync and observational market freshness are separate scopes. A fresh scheduler can truthfully coexist with a missed fixture stage.",
     },
     persistence: {
       backend: persist.backend,
@@ -356,9 +429,12 @@ export function buildHealthReport(now = new Date()): HealthReport {
       verified: verifs.filter((v) => v.status === "VERIFIED_FINAL").length,
     },
     settlement: {
+      scope: ledgerMetrics.settlements.scope,
       persistedSnapshotSettlementRecords:
         ledgerMetrics.settlements.persistedSnapshotSettlementRecords,
       linkedForecastSnapshotRecords: ledgerMetrics.settlements.linkedForecastSnapshotRecords,
+      inconsistentLinkedSettlementRecords:
+        ledgerMetrics.settlements.inconsistentLinkedSettlementRecords,
       orphanSettlementRecords: ledgerMetrics.settlements.orphanSettlementRecords,
       successfulSettlementEvents: ledgerMetrics.settlements.successfulSettlementEvents,
       eventCountStatus: ledgerMetrics.settlements.eventCountStatus,

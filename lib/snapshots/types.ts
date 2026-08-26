@@ -102,6 +102,53 @@ export interface PredictionSnapshot {
   awayExpectedGoals: number;
 }
 
+/**
+ * Canonical generation timestamp for an immutable snapshot.
+ *
+ * Scheduled snapshots prospectively record the actual computation time in
+ * `sourceState.computedAt`; other origins use the store creation timestamp.
+ * Treating an arbitrary `computedAt` as authoritative would let a manual or
+ * reconstructed row rewrite its apparent temporal provenance.
+ */
+export function effectiveSnapshotGeneratedAt(
+  snapshot: Pick<PredictionSnapshot, "createdAt" | "sourceState">
+): string {
+  const computedAt = snapshot.sourceState?.computedAt;
+  const origin = snapshot.sourceState?.origin;
+  return origin === "scheduled" && typeof computedAt === "string"
+    ? computedAt
+    : snapshot.createdAt;
+}
+
+export const SNAPSHOT_MODEL_INPUT_TIMESTAMP_FIELDS = [
+  "latestRatingEventAppliedAt",
+  "fixtureRetrievedAt",
+  "latestEvidenceObservedAt",
+] as const;
+
+/**
+ * Latest prospectively recorded model-input availability timestamp without
+ * sanitising bad evidence away. Policy cutoffs (`ratingStateAsOf`) and event
+ * times (`latestEvidenceKickoff`) are intentionally excluded: neither proves
+ * when the input became available. An invalid recorded value is returned
+ * verbatim so the shared temporal validator can fail closed instead of
+ * relabelling it unavailable.
+ */
+export function effectiveSnapshotLatestIncludedInputAt(
+  snapshot: Pick<PredictionSnapshot, "sourceState">
+): string | null {
+  let latest: { value: string; time: number } | null = null;
+  for (const field of SNAPSHOT_MODEL_INPUT_TIMESTAMP_FIELDS) {
+    const recorded = snapshot.sourceState?.[field];
+    if (recorded === null || recorded === undefined) continue;
+    if (typeof recorded !== "string") return `invalid:${field}`;
+    const time = Date.parse(recorded);
+    if (!Number.isFinite(time)) return recorded;
+    if (!latest || time > latest.time) latest = { value: recorded, time };
+  }
+  return latest?.value ?? null;
+}
+
 export interface CreateSnapshotInput {
   fixtureId: string;
   competition: CompetitionId;

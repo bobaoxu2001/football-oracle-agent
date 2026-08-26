@@ -33,10 +33,12 @@ export async function GET() {
       ledgerMetrics,
       production,
       shadow,
-      historicalReconstruction: { track, dc },
-      // Back-compatible reconstruction aliases. These are never production evidence.
-      track,
-      dc,
+      historicalReconstruction: {
+        scope: "historical-reconstruction",
+        evaluationClass: "RETROSPECTIVE",
+        track,
+        dc,
+      },
     },
     { headers: { "Cache-Control": "no-store" } }
   );

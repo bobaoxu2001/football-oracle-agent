@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 };
 
 function tone(state: string): string {
-  if (state === "HEALTHY" || state === "DATA_READY") return "text-emerald-300";
-  if (state === "DEGRADED") return "text-amber-200";
+  if (["HEALTHY", "DATA_READY", "FRESH", "CURRENT"].includes(state)) return "text-emerald-300";
+  if (["DEGRADED", "STALE", "EARLY_EVIDENCE", "PROVISIONAL"].includes(state)) return "text-amber-200";
   return "text-rose-300";
 }
 
@@ -36,11 +36,14 @@ async function MarketHealthSection() {
           <li>
             Market health: <span className={tone(m.overall)}>{m.overall}</span>
           </li>
+          <li>
+            Market observer freshness: <span className={tone(m.freshness.status)}>{m.freshness.status}</span> · does not affect production forecasts
+          </li>
           <li>Source configured: {m.source.configured ? "yes" : "no"} · {m.source.sport} · {m.source.region} · {m.source.market}</li>
           <li>Last success: {dash(m.lastSuccessAt)}</li>
           <li>Last failed: {dash(m.lastFailedAt)}</li>
           <li>Quota remaining: {dash(m.quotaRemaining)} · last cost {dash(m.lastRequestCost)}</li>
-          <li>Observations: {m.observationsStored} · consensus {m.consensusStored} · bookmakers {m.bookmakersObserved}</li>
+          <li>Observations: {dash(m.observationsStored)} · consensus {dash(m.consensusStored)} · bookmakers {dash(m.bookmakersObserved)}</li>
           <li>Next poll: {dash(m.nextScheduledPoll)}</li>
         </ul>
       ) : (
@@ -72,10 +75,21 @@ export default async function HealthPage() {
         </p>
       </section>
 
-      <section className="mx-auto mb-6 grid max-w-3xl gap-3 sm:grid-cols-3">
-        <Stat label="Overall" value={h.overall} className={tone(h.overall)} />
-        <Stat label="DATA_READY" value={h.season.dataReady} className={tone(h.season.dataReady)} />
-        <Stat label="Last tick" value={dash(h.scheduler.lastTickAt?.slice(0, 19) ?? null)} />
+      <section className="mx-auto mb-6 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Production operations" value={h.overall} className={tone(h.overall)} />
+        <Stat label="Structural data gate" value={h.season.dataReady} className={tone(h.season.dataReady)} />
+        <Stat label="Scheduler liveness" value={h.scheduler.freshness.status} className={tone(h.scheduler.freshness.status)} />
+        <Stat label="Forecast stage coverage" value={h.freshness.forecastCoverage.status} className={tone(h.freshness.forecastCoverage.status)} />
+      </section>
+
+      <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
+        <h2 className="mb-2 font-semibold">Scoped freshness truth</h2>
+        <p className="text-xs leading-relaxed text-muted-foreground">{h.freshness.note}</p>
+        <ul className="mt-3 space-y-1 text-muted-foreground">
+          <li>Scheduler liveness: <span className={tone(h.scheduler.freshness.status)}>{h.scheduler.freshness.status}</span> · last attempt {dash(h.scheduler.lastTickAt)} · last success {dash(h.scheduler.lastSuccessAt)}</li>
+          <li>Fixture metadata sync: <span className={tone(h.fixtureSync.freshness.status)}>{h.fixtureSync.freshness.status}</span> · threshold {(h.fixtureSync.freshness.staleAfterMs / 3_600_000).toFixed(0)}h</li>
+          <li>Upcoming fixture forecast coverage: <span className={tone(h.freshness.forecastCoverage.status)}>{h.freshness.forecastCoverage.status}</span> · current {h.freshness.forecastCoverage.current}/{h.freshness.forecastCoverage.totalFixtures} · missed {h.freshness.forecastCoverage.missed} · update due {h.freshness.forecastCoverage.updateDue}</li>
+        </ul>
       </section>
 
       <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
@@ -101,7 +115,7 @@ export default async function HealthPage() {
         <ul className="space-y-1 text-muted-foreground">
           <li>Last attempt: {dash(h.fixtureSync.lastAttempt)}</li>
           <li>Last success: {dash(h.fixtureSync.lastSuccess)}</li>
-          <li>Stale: {h.fixtureSync.stale ? "yes" : "no"}</li>
+          <li>Scoped freshness: {h.fixtureSync.freshness.status}</li>
           <li>Schedule revisions: {h.fixtureSync.revisionCount}</li>
           <li>
             Live sources:{" "}
@@ -143,7 +157,7 @@ export default async function HealthPage() {
           <li>running {h.scheduler.jobs.RUNNING}</li>
         </ul>
         <p className="mt-3 text-muted-foreground">
-          Cadence {h.scheduler.cadenceMs / 60000} min. Freshness {h.scheduler.freshness}.
+          Cadence {h.scheduler.cadenceMs / 60000} min. Scheduler liveness {h.scheduler.freshness.status}.
           {h.scheduler.host ? ` Host ${h.scheduler.host}.` : ""} Cancelled rows are historical
           ledger noise and are not active work. Next eligible job:{" "}
           {h.scheduler.nextJob
@@ -183,7 +197,7 @@ export default async function HealthPage() {
                 <th scope="col" className="py-2 pr-3 font-medium">Forecast snapshots</th>
                 <th scope="col" className="py-2 pr-3 font-medium">Settled snapshots</th>
                 <th scope="col" className="py-2 pr-3 font-medium">Unsettled snapshots</th>
-                <th scope="col" className="py-2 font-medium">Unique settled fixtures</th>
+                <th scope="col" className="py-2 font-medium">Unique fixtures with linked settlements</th>
               </tr>
             </thead>
             <tbody>
@@ -208,13 +222,17 @@ export default async function HealthPage() {
         </div>
         <ul className="mt-4 space-y-1 text-muted-foreground">
           <li>
+            Evaluation maturity {h.ledgerMetrics.evaluationMaturity.production.status} · valid independent evidence N={h.ledgerMetrics.evaluationMaturity.production.uniqueFixtureCount} fixtures
+          </li>
+          <li>
             Results last success {dash(h.results.lastSuccess)} · verified {h.results.verified} ·
             pending {h.results.pending} · conflict {h.results.conflict}
           </li>
           <li>
             Persisted settlement records {h.settlement.persistedSnapshotSettlementRecords} · linked
             to forecast snapshots {h.settlement.linkedForecastSnapshotRecords} · orphan records{" "}
-            {h.settlement.orphanSettlementRecords}
+            {h.settlement.orphanSettlementRecords} · inconsistent linked records{" "}
+            {h.settlement.inconsistentLinkedSettlementRecords}
           </li>
           <li>
             Settlement operations/events: unavailable (no durable operation-event ledger) ·

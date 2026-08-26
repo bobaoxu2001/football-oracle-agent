@@ -150,6 +150,8 @@ export interface ShadowPrediction {
     homeMatchIds: string[];
     awayMatchIds: string[];
     latestEvidenceKickoff: string | null;
+    /** Latest provider observation time among evidence actually consumed. */
+    latestEvidenceObservedAt: string | null;
   };
 }
 
@@ -231,6 +233,12 @@ export function predictPremierLeagueShadow(input: ShadowPredictionInput): Shadow
       awayMatchIds: awayMatches.map((m) => m.canonicalMatchId),
       latestEvidenceKickoff:
         admissible.length ? admissible[admissible.length - 1].kickoffUtc : null,
+      latestEvidenceObservedAt:
+        admissible
+          .map((match) => match.resultObservedAt)
+          .filter((value): value is string => value !== null)
+          .sort()
+          .at(-1) ?? null,
     },
   };
 }

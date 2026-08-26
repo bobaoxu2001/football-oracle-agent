@@ -6,10 +6,16 @@ import { liveFixtures } from "../fixture-store";
 import type { MarketHealthState, MarketRecorderState } from "./types";
 import { marketSourceConfigured } from "./source";
 import { loadMarketState, marketHealthCounts } from "./store";
-import { QUOTA_CRITICAL, QUOTA_LOW } from "./cadence";
+import { CADENCE_FAR_MS, QUOTA_CRITICAL, QUOTA_LOW } from "./cadence";
+import {
+  evaluateMarketObserverFreshness,
+  type MarketObserverFreshness,
+} from "../ops/production-freshness";
+import { MARKET_SCHEMA_VERSION, MARKET_SOURCE_THE_ODDS_API } from "./types";
 
 export interface MarketHealthReport {
   overall: MarketHealthState;
+  freshness: MarketObserverFreshness;
   reasons: string[];
   source: {
     id: string;
@@ -27,17 +33,63 @@ export interface MarketHealthReport {
   nextScheduledPoll: string | null;
   currentCadenceMs: number | null;
   eventsHint: string;
-  fixturesMatched: number;
-  unmatched: number;
-  ambiguous: number;
-  bookmakersObserved: number;
-  observationsStored: number;
-  consensusStored: number;
+  fixturesMatched: number | null;
+  unmatched: number | null;
+  ambiguous: number | null;
+  bookmakersObserved: number | null;
+  observationsStored: number | null;
+  consensusStored: number | null;
   firstMarketObservationAt: string | null;
   schemaVersion: string;
 }
 
 export const MARKET_HEALTH_SCHEDULER_JITTER_MS = 7 * 60_000;
+
+/** Full-shape, fail-closed response for an unavailable observational store. */
+export function unavailableMarketHealthReport(
+  now: Date,
+  reason: string
+): MarketHealthReport {
+  const configured = marketSourceConfigured();
+  const freshness = evaluateMarketObserverFreshness({
+    evaluatedAt: now.toISOString(),
+    configured,
+    lastAttemptAt: null,
+    lastSuccessAt: null,
+    staleAfterMs: CADENCE_FAR_MS + MARKET_HEALTH_SCHEDULER_JITTER_MS,
+    cadenceMs: null,
+    lastError: reason,
+  });
+  return {
+    overall: "DEGRADED",
+    freshness,
+    reasons: [reason],
+    source: {
+      id: MARKET_SOURCE_THE_ODDS_API,
+      configured,
+      region: "uk",
+      sport: "soccer_epl",
+      market: "h2h",
+    },
+    lastSuccessAt: null,
+    lastFailedAt: null,
+    lastError: reason,
+    quotaRemaining: null,
+    quotaUsed: null,
+    lastRequestCost: null,
+    nextScheduledPoll: null,
+    currentCadenceMs: null,
+    eventsHint: "market health unavailable; counts were not read",
+    fixturesMatched: null,
+    unmatched: null,
+    ambiguous: null,
+    bookmakersObserved: null,
+    observationsStored: null,
+    consensusStored: null,
+    firstMarketObservationAt: null,
+    schemaVersion: MARKET_SCHEMA_VERSION,
+  };
+}
 
 /** Freshness truth independent of quota/source-error classification. */
 export function marketRecorderFreshnessReasons(
@@ -67,6 +119,23 @@ export async function buildMarketHealthReport(now = new Date()): Promise<MarketH
   ]);
   const fixtures = liveFixtures();
   const configured = marketSourceConfigured();
+  const lastAttemptAt = [state.lastSuccessAt, state.lastFailedAt]
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1) ?? null;
+  const freshness = evaluateMarketObserverFreshness({
+    evaluatedAt: now.toISOString(),
+    configured,
+    lastAttemptAt,
+    lastSuccessAt: state.lastSuccessAt,
+    staleAfterMs:
+      (state.currentCadenceMs ?? CADENCE_FAR_MS) + MARKET_HEALTH_SCHEDULER_JITTER_MS,
+    cadenceMs: state.currentCadenceMs,
+    lastError:
+      state.lastFailedAt && (!state.lastSuccessAt || state.lastFailedAt > state.lastSuccessAt)
+        ? state.lastError
+        : null,
+  });
   const reasons: string[] = [];
   let overall: MarketHealthState = "HEALTHY";
   if (!configured) {
@@ -100,6 +169,7 @@ export async function buildMarketHealthReport(now = new Date()): Promise<MarketH
 
   return {
     overall,
+    freshness,
     reasons,
     source: {
       id: state.source,

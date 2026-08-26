@@ -92,6 +92,52 @@ The contract explicitly separates:
 - production, shadow, and all-track scopes.
 
 A settlement record is not a settlement operation. The application does not infer an operation-event count from snapshot-level settlement rows.
+Settlement integrity is explicitly scoped to `all-tracks`. A linked row must
+agree with the immutable snapshot identity, stage, probabilities, realised
+score/outcome, and recomputed Brier/RPS/LogLoss values; resolving the key alone
+is not enough. Inconsistent linked rows and true orphans are reported separately.
+
+### Snapshot evidence is not fixture evidence
+
+A forecast snapshot is one immutable point-in-time prediction. A fixture is the
+single realised sporting event and is the independent evaluation unit. Several
+stages can settle against the same match result, so settled snapshot rows are
+retained for trajectory diagnostics but never masquerade as independent matches.
+
+Production headline scores select one deterministic latest valid pre-kickoff
+snapshot per fixture. Stage headlines select one latest valid snapshot per
+fixture within that stage. Additional rolling-stage rows stay in the immutable
+timeline. Shadow headlines likewise select one latest valid same-cutoff pair per
+fixture; paired snapshot rows remain separate diagnostics.
+
+Evaluation maturity is centralized and based on unique fixtures:
+
+- fewer than 20: `EARLY_EVIDENCE`;
+- 20–49: `PROVISIONAL`, with deterministic fixture-bootstrap uncertainty;
+- 50 or more: `EVALUATION_READY`.
+
+`EVALUATION_READY` means only that a first formal evaluation is permitted. It
+does not prove accuracy, does not promote a model, and does not imply market
+edge. Below 20 fixtures, confidence intervals are withheld instead of being
+estimated from correlated stage rows.
+
+## Scoped production freshness
+
+Freshness is stage-based, not a generic snapshot-age boolean. The canonical
+policy reports separate scopes for scheduler liveness, fixture metadata sync,
+fixture forecast-stage coverage, and the observational market recorder. A
+healthy five-minute scheduler can therefore coexist truthfully with a fixture
+whose historical T7D window was missed; the missed stage remains visible and is
+never backfilled. An old baseline is still current before T7D is due, and a T7D
+snapshot remains current until T24H opens regardless of arbitrary wall-clock
+age.
+
+Every freshness-bearing production route is `no-store`, so a newly written
+stage cannot be hidden behind a stale Vercel edge response. `DATA_READY` remains
+explicitly a structural season-data gate, not a temporal freshness claim.
+`latestIncludedInputAt` is reported only from prospectively recorded source
+availability timestamps (for example, a rating-event application or fixture
+retrieval). It is never inferred from a rating cutoff or match kickoff.
 
 ## Main routes
 
@@ -154,6 +200,9 @@ The regression suites cover:
 - production/shadow/reconstruction isolation;
 - settlement replay behavior;
 - canonical snapshot-versus-fixture ledger metrics;
+- fixture-level maturity and equal-fixture cluster bootstrap gates;
+- canonical scoped scheduler, sync, forecast-stage, and market-observer freshness;
+- scheduler self-handoff, bounded failure recovery, and one-shot isolation;
 - independent core/observer leases and multi-process observer contention;
 - Match Room selection of the latest valid production snapshot;
 - content-addressed context snapshots, future-evidence exclusion, and retry idempotency;
@@ -167,9 +216,43 @@ The committed Premier League LIVE_OOS tape is append-protected and hash-gated by
 
 The app is deployed on Vercel. The scheduled operations endpoints are authenticated and persist state through the configured durable backend in production.
 
-The external hosted worker calls `/api/ops/tick?core=1` for the forecast-critical five-minute path. Its supervised loop runs for about five hours, below the GitHub-hosted job ceiling, so an hour-scale delay or missed delivery of a later schedule event does not immediately create a freshness gap. When an hourly schedule event is delivered, GitHub retains only the latest loop run as the pending successor. A separate five-minute one-shot backup first reads only the durable tick timestamp and runs the core path only when the primary loop is stale. Both paths call `/api/ops/observers`; the observer path has a separate 180-second Mongo lease and each observer retains its own cadence gate. This keeps slower observational work outside the forecast function budget while preventing overlapping triggers from spending provider quota twice.
+The external hosted worker calls `/api/ops/tick?core=1` for the forecast-critical
+five-minute path. A scheduled event bootstraps a finite loop of at most 60
+rounds. After a normal successful loop completes, a separate least-privilege
+handoff job dispatches exactly one 60-round successor and records the parent run
+ID in its title. The successor shares the loop concurrency group, so the
+current run is never cancelled and at most one effective pending loop remains.
+GitHub `schedule` is therefore a bootstrap/recovery safety net rather than the
+only recurrence mechanism. The five-minute one-shot backup remains in its own
+concurrency group and can never self-handoff.
 
-Selected read-only ledger pages coalesce durable hydration per function instance, verify the durable bundle version before reloading it, and use a short Vercel CDN stale-on-error window. Operational health, market health, and match intelligence are explicitly `no-store`. A cold reader fails visibly when durable state cannot be verified; a production writer always fails closed rather than flushing stale serverless state. Health is exposed at `/health` and `/api/health`.
+Core and observer requests track independent consecutive failures. A successful
+or lease-safe response resets its counter. Three consecutive forecast-core
+failures terminate the loop and suppress handoff. Observer failures remain
+visible as a separately scoped degradation but cannot stop forecast recurrence
+or suppress a successor, because observational market/ledger polling is not a
+production-model dependency. Attempts remain bounded to the loop's 60 rounds.
+A shadow-freeze failure is likewise recorded only on the challenger lifecycle;
+it cannot turn a successful production forecast tick into a production failure.
+A recovered isolated provider failure remains visible but does not poison five
+hours of later successful work. The handoff job
+has `actions: write` but no `CRON_SECRET`; the tick job has the secret but cannot
+dispatch Actions. Dispatch is preflighted by the exact parent marker, attempted
+once without an ambiguous automatic retry, and disabled unless the repository
+variable `OPS_HANDOFF_ENABLED=true` is present.
+
+To stop the chain gracefully, set `OPS_HANDOFF_ENABLED=false`; the active loop
+finishes without a successor. To stop all scheduling, then disable the workflow
+and cancel any active/pending loop. GitHub may still disable scheduled workflows
+in inactive public repositories, and a platform-wide Actions outage remains an
+external limitation.
+
+Production truth pages coalesce durable hydration and verify the bundle version
+before reloading it. Ledger, health, freshness, Match Room, Track Record, and
+Shadow truth surfaces are explicitly `no-store`. A cold reader fails visibly
+when durable state cannot be verified; a production writer always fails closed
+rather than flushing stale serverless state. Health is exposed at `/health` and
+`/api/health`.
 
 Never place secrets in committed files. Use `.env.local` for local development and Vercel environment variables for deployments.
 

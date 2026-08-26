@@ -80,8 +80,11 @@ export function upsertJobs(jobs: PredictionJob[]): PredictionJob[] {
       dirty = true;
       continue;
     }
-    // Never revive a terminal status via a planner upsert.
-    if (["SUCCEEDED", "MISSED", "CANCELLED"].includes(prev.status)) continue;
+    // SUCCEEDED/MISSED are immutable terminal outcomes. CANCELLED can be
+    // reactivated only when the same kickoff identity later becomes schedulable
+    // (for example DEFAULT -> CONFIRMED without a timestamp change).
+    if (["SUCCEEDED", "MISSED"].includes(prev.status)) continue;
+    if (prev.status === "CANCELLED" && job.status === "BLOCKED") continue;
     const merged: PredictionJob = {
       ...prev,
       ...job,

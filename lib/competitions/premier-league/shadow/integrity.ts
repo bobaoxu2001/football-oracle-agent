@@ -50,11 +50,11 @@ export interface ShadowIntegrityReport {
   ok: boolean;
   issues: IntegrityIssue[];
   /** Both models frozen at the same fixture/stage/asOf, asOf strictly before kickoff. */
-  frozenPairs: number;
+  frozenSnapshotPairs: number;
   /** Settlements that pair at the same cutoff and the same actual result. */
-  settledPairs: number;
-  /** Settled pairs that still resolve to immutable frozen snapshots. Not previews. */
-  pairedEvidence: number;
+  settledSnapshotPairs: number;
+  /** Settled forecast-snapshot pair rows resolving to immutable freezes. Not independent N. */
+  resolvedPairedSettlementRows: number;
   unpairedBaseline: number;
   /** Shadow snapshots with no baseline at the same cutoff. */
   orphanShadowSnapshots: number;
@@ -196,13 +196,13 @@ export function auditShadowIntegrity(input: {
   const shadow = snapshots.filter((s) => s.modelVersion === shadowVersion);
   const baselineIds = new Set(baseline.map((s) => pairId({ fixtureId: s.fixtureId, predictionStage: stageOf(s), asOf: s.asOf })));
 
-  let frozenPairs = 0;
+  let frozenSnapshotPairs = 0;
   let orphanShadow = 0;
   for (const s of shadow) {
     const id = pairId({ fixtureId: s.fixtureId, predictionStage: stageOf(s), asOf: s.asOf });
     if (baselineIds.has(id)) {
       const kickoff = kickoffOf(s);
-      if (!kickoff || Date.parse(s.asOf) < Date.parse(kickoff)) frozenPairs += 1;
+      if (!kickoff || Date.parse(s.asOf) < Date.parse(kickoff)) frozenSnapshotPairs += 1;
     } else {
       orphanShadow += 1;
       issues.push({
@@ -256,7 +256,7 @@ export function auditShadowIntegrity(input: {
     if (k && !snapByKey.has(k)) snapByKey.set(k, s);
   }
 
-  let pairedEvidence = 0;
+  let resolvedPairedSettlementRows = 0;
   for (const p of pairing.pairs) {
     const bKey = settlements.find(
       (s) =>
@@ -292,7 +292,7 @@ export function auditShadowIntegrity(input: {
       });
       continue;
     }
-    pairedEvidence += 1;
+    resolvedPairedSettlementRows += 1;
   }
 
   const pairIds = new Set<string>();
@@ -347,9 +347,9 @@ export function auditShadowIntegrity(input: {
   return {
     ok: issues.every((i) => !failCodes.has(i.code)),
     issues,
-    frozenPairs,
-    settledPairs: pairing.pairs.length,
-    pairedEvidence,
+    frozenSnapshotPairs,
+    settledSnapshotPairs: pairing.pairs.length,
+    resolvedPairedSettlementRows,
     unpairedBaseline: pairing.baselineOnly,
     orphanShadowSnapshots: orphanShadow,
     orphanShadowSettlements: pairing.shadowOnly,

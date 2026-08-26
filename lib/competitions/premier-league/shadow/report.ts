@@ -12,7 +12,11 @@ import { loadOpsTickState } from "../ops/tick";
 import { listJobs } from "../ops/job-ledger";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "../config";
 import { PRODUCTION_MODEL_VERSION } from "../model-tracks";
-import type { PredictionSnapshot } from "@/lib/snapshots/types";
+import {
+  effectiveSnapshotGeneratedAt,
+  effectiveSnapshotLatestIncludedInputAt,
+  type PredictionSnapshot,
+} from "@/lib/snapshots/types";
 import {
   breakdownByBucket,
   breakdownByOutcome,
@@ -23,6 +27,24 @@ import {
   type PairedMetrics,
   type PairedSettlement,
 } from "@/lib/evaluation/paired";
+import {
+  assessEvaluationMaturity,
+  fixtureClusterBootstrap,
+  publishFixtureClusterBootstrap,
+  selectLatestValidPreKickByFixture,
+  selectLatestValidPreKickByFixtureStage,
+  type EvaluationMaturityAssessment,
+  type FixtureClusterBootstrapResult,
+  type PublishedFixtureClusterBootstrapResult,
+  type PreKickEvidenceObservation,
+} from "@/lib/evaluation/evidence-integrity";
+import { canonicalizePredictionStage } from "@/lib/snapshots/types";
+import { liveFixtures } from "../fixture-store";
+import {
+  validateProductionForecastSnapshot,
+  type ForecastFreshnessSnapshotInput,
+} from "../ops/production-freshness";
+import { validateSettlementSnapshotConsistency } from "@/lib/evaluation/settlement-integrity";
 import {
   MIN_PAIRED_FOR_DECISION,
   MIN_PAIRED_FOR_DISPLAY,
@@ -51,12 +73,14 @@ export interface ShadowCollectionStatus {
   lastShadowLifecycleError: string | null;
   frozenBaselineSnapshots: number;
   frozenShadowSnapshots: number;
-  /** Both models frozen at the same fixture/stage/asOf. Not yet evidence. */
-  frozenPairs: number;
-  /** Both models settled against the same result at the same cutoff. */
-  settledPairs: number;
-  /** Settled pairs that pass integrity. Unsettled frozen pairs are not this. */
-  pairedEvidence: number;
+  /** Both model snapshots frozen at the same fixture/stage/asOf. Not yet evidence. */
+  frozenSnapshotPairs: number;
+  /** Both model snapshots settled against the same result at the same cutoff. */
+  settledSnapshotPairs: number;
+  /** Resolved paired settlement rows; canonical-valid evidence N is separate. */
+  resolvedPairedSettlementRows: number;
+  /** Independent fixtures represented by one valid headline pair each. */
+  uniquePairedFixtures: number;
   unpairedBaselineOnly: number;
   orphanShadowSettlements: number;
   orphanShadowSnapshots: number;
@@ -76,7 +100,12 @@ export interface ShadowEvaluationReport {
   shadowEnabled: boolean;
   frozenBaselineSnapshots: number;
   frozenShadowSnapshots: number;
-  pairedSettlements: number;
+  pairedSettlementRows: number;
+  uniquePairedFixtures: number;
+  aggregationUnit: "latest_valid_paired_pre_kickoff_snapshot_per_fixture";
+  headlineSelectionRule: "LATEST_VALID_PAIRED_PREKICK_PER_FIXTURE";
+  evaluationMaturity: EvaluationMaturityAssessment;
+  uncertainty: PublishedFixtureClusterBootstrapResult;
   baselineOnlySettlements: number;
   shadowOnlySettlements: number;
   inconsistentPairs: number;
@@ -92,8 +121,8 @@ export interface ShadowEvaluationReport {
   integrity: ShadowIntegrityReport;
   promotion: {
     status: "NOT_ELIGIBLE" | "UNDER_OBSERVATION";
-    minForDisplay: number;
-    minForDecision: number;
+    minUniqueFixturesForDisplay: number;
+    minUniqueFixturesForDecision: number;
     metricsVisible: boolean;
     criteria: typeof PROMOTION_CRITERIA;
     reasons: string[];
@@ -101,14 +130,101 @@ export interface ShadowEvaluationReport {
   };
 }
 
-function countSnapshots(season: string, modelVersion: string): number {
-  try {
-    return listLiveSnapshots({ season }).filter(
-      (s: PredictionSnapshot) => s.modelVersion === modelVersion
-    ).length;
-  } catch {
-    return 0;
+interface PairedEvidenceObservation extends PreKickEvidenceObservation {
+  pair: PairedSettlement;
+}
+
+function pairedSnapshotInput(
+  snapshot: PredictionSnapshot
+): ForecastFreshnessSnapshotInput {
+  return {
+    snapshotId: snapshot.provenance.uniqueKey,
+    fixtureId: snapshot.fixtureId,
+    modelRole: snapshot.modelVersion === PRODUCTION_MODEL_VERSION ? "production" : "shadow",
+    modelVersion: snapshot.modelVersion,
+    evaluationClass: snapshot.evaluationClass ?? null,
+    predictionStage: String(snapshot.predictionStage),
+    kickoffUtc: snapshot.kickoff,
+    cutoffAt: snapshot.asOf,
+    generatedAt: effectiveSnapshotGeneratedAt(snapshot),
+    latestIncludedInputAt: effectiveSnapshotLatestIncludedInputAt(snapshot),
+  };
+}
+
+function pairedEvidenceObservations(
+  pairs: PairedSettlement[],
+  snapshots: PredictionSnapshot[]
+): PairedEvidenceObservation[] {
+  const productionByIdentity = new Map<string, PredictionSnapshot>();
+  const shadowByIdentity = new Map<string, PredictionSnapshot>();
+  for (const snapshot of snapshots) {
+    const identity = `${snapshot.fixtureId}\u0000${canonicalizePredictionStage(snapshot.predictionStage)}\u0000${snapshot.asOf}`;
+    if (snapshot.modelVersion === PRODUCTION_MODEL_VERSION) {
+      productionByIdentity.set(identity, snapshot);
+    } else if (snapshot.modelVersion === SHADOW_MODEL_VERSION) {
+      shadowByIdentity.set(identity, snapshot);
+    }
   }
+  const currentKickoffByFixture = new Map(
+    liveFixtures().map((fixture) => [
+      fixture.id,
+      fixture.kickoffUtc ?? fixture.kickoff ?? null,
+    ])
+  );
+  const out: PairedEvidenceObservation[] = [];
+  for (const pair of pairs) {
+    const identity = `${pair.fixtureId}\u0000${canonicalizePredictionStage(pair.predictionStage)}\u0000${pair.asOf}`;
+    const snapshot = productionByIdentity.get(identity);
+    const shadowSnapshot = shadowByIdentity.get(identity);
+    const currentKickoff = currentKickoffByFixture.get(pair.fixtureId) ?? snapshot?.kickoff;
+    if (
+      !snapshot?.kickoff ||
+      !shadowSnapshot?.kickoff ||
+      !currentKickoff ||
+      Date.parse(snapshot.kickoff) !== Date.parse(shadowSnapshot.kickoff)
+    ) continue;
+    const productionValidation = validateProductionForecastSnapshot({
+      snapshot: pairedSnapshotInput(snapshot),
+      expectedKickoffUtc: currentKickoff,
+      evaluatedAt: pair.settledAt,
+    });
+    const shadowValidation = validateProductionForecastSnapshot({
+      snapshot: pairedSnapshotInput(shadowSnapshot),
+      expectedKickoffUtc: currentKickoff,
+      evaluatedAt: pair.settledAt,
+    });
+    if (!productionValidation.valid || !shadowValidation.valid) continue;
+    const generatedAt = [
+      effectiveSnapshotGeneratedAt(snapshot),
+      effectiveSnapshotGeneratedAt(shadowSnapshot),
+    ].sort().at(-1)!;
+    out.push({
+      pair,
+      fixtureId: pair.fixtureId,
+      predictionStage: canonicalizePredictionStage(pair.predictionStage),
+      snapshotUniqueKey: snapshot.provenance.uniqueKey,
+      cutoffAt: pair.asOf,
+      generatedAt,
+      kickoffAt: currentKickoff,
+      kickoffAtFreeze: snapshot.kickoff,
+    });
+  }
+  return out;
+}
+
+function pairedUncertainty(pairs: PairedSettlement[]): FixtureClusterBootstrapResult {
+  return fixtureClusterBootstrap(
+    pairs.map((pair) => ({
+      fixtureId: pair.fixtureId,
+      observationId: `${pair.predictionStage}\u0000${pair.asOf}`,
+      values: {
+        deltaBrier: pair.delta.brier,
+        deltaRps: pair.delta.rps,
+        deltaLogLoss: pair.delta.logLoss,
+      },
+    })),
+    { metricKeys: ["deltaBrier", "deltaRps", "deltaLogLoss"] }
+  );
 }
 
 function nextEligibleFreezes(limit = 8): NextEligibleFreeze[] {
@@ -148,24 +264,50 @@ function latestShadowCreatedAt(season: string): string | null {
 export function shadowEvaluationReport(
   season = PREMIER_LEAGUE_CURRENT_SEASON
 ): ShadowEvaluationReport {
-  const settlements = loadSettlements();
+  const allSettlements = loadSettlements();
+  const snapshots = listLiveSnapshots({ season });
+  const snapshotByKey = new Map(
+    snapshots.map((snapshot) => [snapshot.provenance.uniqueKey, snapshot])
+  );
+  const settlements = allSettlements.filter((settlement) => {
+    const snapshot = snapshotByKey.get(settlement.snapshotUniqueKey);
+    return snapshot
+      ? validateSettlementSnapshotConsistency(settlement, snapshot).consistent
+      : false;
+  });
   const pairing = pairSettlements({
     settlements,
     baselineVersion: PRODUCTION_MODEL_VERSION,
     shadowVersion: SHADOW_MODEL_VERSION,
     season,
   });
-  const integrity = auditShadowIntegrity({ settlements, season });
-  const n = integrity.pairedEvidence;
-  const frozenBaseline = countSnapshots(season, PRODUCTION_MODEL_VERSION);
-  const frozenShadow = countSnapshots(season, SHADOW_MODEL_VERSION);
+  const integrity = auditShadowIntegrity({ settlements: allSettlements, season });
+  const pairEvidence = pairedEvidenceObservations(pairing.pairs, snapshots);
+  const headlinePairs = selectLatestValidPreKickByFixture(pairEvidence).map(
+    (row) => row.pair
+  );
+  const stageHeadlinePairs = selectLatestValidPreKickByFixtureStage(pairEvidence).map(
+    (row) => row.pair
+  );
+  const uniquePairedFixtures = headlinePairs.length;
+  const evaluationMaturity = assessEvaluationMaturity(uniquePairedFixtures);
+  const enoughToShow = shadowMetricsVisible(uniquePairedFixtures, integrity.ok);
+  const uncertainty = publishFixtureClusterBootstrap(
+    pairedUncertainty(headlinePairs),
+    enoughToShow
+  );
+  const frozenBaseline = snapshots.filter(
+    (snapshot) => snapshot.modelVersion === PRODUCTION_MODEL_VERSION
+  ).length;
+  const frozenShadow = snapshots.filter(
+    (snapshot) => snapshot.modelVersion === SHADOW_MODEL_VERSION
+  ).length;
   const tick = loadOpsTickState();
   const lastFreeze =
     tick.lastShadowFreezeAt ?? latestShadowCreatedAt(season);
   const neverFrozen = frozenShadow === 0 && !lastFreeze;
-  const enoughToShow = shadowMetricsVisible(n, integrity.ok);
   const promotionStatus = shadowPromotionStatus({
-    pairedEvidence: n,
+    uniquePairedFixtures,
     integrityOk: integrity.ok,
     hasProductionShadowFreeze: !neverFrozen,
   });
@@ -179,13 +321,13 @@ export function shadowEvaluationReport(
   if (neverFrozen) {
     reasons.push("No production shadow freeze has been recorded yet.");
   }
-  if (n < MIN_PAIRED_FOR_DISPLAY) {
+  if (uniquePairedFixtures < MIN_PAIRED_FOR_DISPLAY) {
     reasons.push(
-      `Paired evidence n=${n} is below the metrics display floor of ${MIN_PAIRED_FOR_DISPLAY}. Headline metrics are withheld.`
+      `Independent paired-fixture N=${uniquePairedFixtures} is below the metrics display floor of ${MIN_PAIRED_FOR_DISPLAY}. Headline metrics and intervals are withheld.`
     );
-  } else if (n < MIN_PAIRED_FOR_DECISION) {
+  } else if (uniquePairedFixtures < MIN_PAIRED_FOR_DECISION) {
     reasons.push(
-      `Paired evidence n=${n} meets the display floor (${MIN_PAIRED_FOR_DISPLAY}) but is below the promotion consideration floor of ${MIN_PAIRED_FOR_DECISION}. Metrics may be shown; promotion stays NOT_ELIGIBLE.`
+      `Independent paired-fixture N=${uniquePairedFixtures} meets the display floor (${MIN_PAIRED_FOR_DISPLAY}) but is below the formal evaluation floor of ${MIN_PAIRED_FOR_DECISION}. Metrics may be shown; promotion stays NOT_ELIGIBLE.`
     );
   }
   if (promotionStatus === "NOT_ELIGIBLE" && reasons.length === 0) {
@@ -200,19 +342,24 @@ export function shadowEvaluationReport(
     shadowEnabled: shadowModelEnabled(),
     frozenBaselineSnapshots: frozenBaseline,
     frozenShadowSnapshots: frozenShadow,
-    pairedSettlements: pairing.pairs.length,
+    pairedSettlementRows: pairing.pairs.length,
+    uniquePairedFixtures,
+    aggregationUnit: "latest_valid_paired_pre_kickoff_snapshot_per_fixture",
+    headlineSelectionRule: "LATEST_VALID_PAIRED_PREKICK_PER_FIXTURE",
+    evaluationMaturity,
+    uncertainty,
     baselineOnlySettlements: pairing.baselineOnly,
     shadowOnlySettlements: pairing.shadowOnly,
     inconsistentPairs: pairing.inconsistent,
     cutoffMismatches: pairing.cutoffMismatch,
-    metrics: enoughToShow ? pairedMetrics(pairing.pairs) : null,
-    byOutcome: enoughToShow ? breakdownByOutcome(pairing.pairs) : [],
-    byBucket: enoughToShow ? breakdownByBucket(pairing.pairs) : [],
-    byStage: enoughToShow ? breakdownByStage(pairing.pairs) : [],
+    metrics: enoughToShow ? pairedMetrics(headlinePairs) : null,
+    byOutcome: enoughToShow ? breakdownByOutcome(headlinePairs) : [],
+    byBucket: enoughToShow ? breakdownByBucket(headlinePairs) : [],
+    byStage: enoughToShow ? breakdownByStage(stageHeadlinePairs) : [],
     recentPairs: pairing.pairs.slice(-10).reverse(),
     sampleNote: enoughToShow
-      ? `${n} paired evidence rows. Differences are still small-sample; ${MIN_PAIRED_FOR_DECISION} pairs are the floor for any promotion decision.`
-      : `Only ${n} paired evidence row${n === 1 ? "" : "s"}. Sample size is insufficient — headline metrics are withheld until ${MIN_PAIRED_FOR_DISPLAY} integrity-passing settled pairs exist. Frozen-but-unsettled pairs and preview comparisons are not evidence.`,
+      ? `${evaluationMaturity.status} — independent N=${uniquePairedFixtures} unique fixtures. ${pairing.pairs.length} paired forecast-snapshot rows remain trajectory diagnostics; headline comparisons use one latest valid pair per fixture.`
+      : `${evaluationMaturity.status} — independent N=${uniquePairedFixtures} unique paired fixture${uniquePairedFixtures === 1 ? "" : "s"}. The independent fixture sample is insufficient for headline inference. The ledger contains ${pairing.pairs.length} paired forecast-snapshot row${pairing.pairs.length === 1 ? "" : "s"}; those correlated rows do not increase N. Headline metrics and intervals are withheld until ${MIN_PAIRED_FOR_DISPLAY} unique paired fixtures.`,
     collection: {
       freezingEnabled: shadowModelEnabled(),
       lastSuccessfulShadowFreezeAt: lastFreeze,
@@ -220,9 +367,10 @@ export function shadowEvaluationReport(
       lastShadowLifecycleError: tick.lastShadowError ?? null,
       frozenBaselineSnapshots: frozenBaseline,
       frozenShadowSnapshots: frozenShadow,
-      frozenPairs: integrity.frozenPairs,
-      settledPairs: integrity.settledPairs,
-      pairedEvidence: integrity.pairedEvidence,
+      frozenSnapshotPairs: integrity.frozenSnapshotPairs,
+      settledSnapshotPairs: integrity.settledSnapshotPairs,
+      resolvedPairedSettlementRows: integrity.resolvedPairedSettlementRows,
+      uniquePairedFixtures,
       unpairedBaselineOnly: integrity.unpairedBaseline,
       orphanShadowSettlements: integrity.orphanShadowSettlements,
       orphanShadowSnapshots: integrity.orphanShadowSnapshots,
@@ -235,8 +383,8 @@ export function shadowEvaluationReport(
     integrity,
     promotion: {
       status: promotionStatus,
-      minForDisplay: MIN_PAIRED_FOR_DISPLAY,
-      minForDecision: MIN_PAIRED_FOR_DECISION,
+      minUniqueFixturesForDisplay: MIN_PAIRED_FOR_DISPLAY,
+      minUniqueFixturesForDecision: MIN_PAIRED_FOR_DECISION,
       metricsVisible: enoughToShow,
       criteria: PROMOTION_CRITERIA,
       reasons,

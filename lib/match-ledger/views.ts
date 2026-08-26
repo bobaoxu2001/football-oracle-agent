@@ -11,33 +11,43 @@ import type { BigFiveCompetitionId } from "@/lib/competitions/types";
 import { getCompetition } from "@/lib/competitions/registry";
 import { loadSettlements, type SettlementRecord } from "@/lib/competitions/premier-league/settlement";
 import { listLiveSnapshots } from "@/lib/competitions/premier-league/ops/live-snapshot-reader";
-import type { PredictionSnapshot } from "@/lib/snapshots/types";
+import {
+  effectiveSnapshotGeneratedAt,
+  type PredictionSnapshot,
+} from "@/lib/snapshots/types";
 import { listCanonicalMatches } from "./store";
 import { isCompletedMatch, type CanonicalMatch } from "./types";
-import { serializeMatchForApi, serializeTeamSeason, type SerializedMatch, type SerializedTeamSeason } from "./serialize";
+import {
+  isPublicProductionSnapshotForMatch,
+  serializeMatchForApi,
+  serializeTeamSeason,
+  type SerializedMatch,
+  type SerializedTeamSeason,
+} from "./serialize";
 import { FOOTBALL_DATA_CAPABILITY } from "./providers/football-data";
 import { productionModelVersion } from "@/lib/competitions/premier-league/shadow/track";
 
 /**
- * The prediction that was frozen closest to kickoff WITHOUT crossing it.
+ * The latest canonical production prediction valid for this completed match.
  *
- * "Closest before kickoff" is the honest choice for a match card: it is the
- * model's final pre-match view. A snapshot at or after kickoff is never
- * eligible, so a post-hoc row could not be displayed as a pre-match call.
+ * Eligibility is deliberately stricter than a simple `asOf < kickoff` check:
+ * it includes production/evaluation/competition isolation, current kickoff
+ * identity, actual generation time, deterministic stage windows and recorded
+ * input-cutoff evidence. Invalid immutable rows remain in their audit stores;
+ * they simply cannot be attached to a public canonical-match row.
  */
 export function latestPreKickoffSnapshot(
-  snapshots: PredictionSnapshot[],
-  kickoffUtc: string | null
+  snapshots: readonly PredictionSnapshot[],
+  match: CanonicalMatch
 ): PredictionSnapshot | null {
-  if (!kickoffUtc) return null;
-  const kickoffMs = Date.parse(kickoffUtc);
-  if (!Number.isFinite(kickoffMs)) return null;
   const eligible = snapshots
-    .filter((s) => {
-      const asOf = Date.parse(s.asOf);
-      return Number.isFinite(asOf) && asOf < kickoffMs;
-    })
-    .sort((a, b) => a.asOf.localeCompare(b.asOf));
+    .filter((snapshot) => isPublicProductionSnapshotForMatch(match, snapshot))
+    .sort(
+      (a, b) =>
+        a.asOf.localeCompare(b.asOf) ||
+        effectiveSnapshotGeneratedAt(a).localeCompare(effectiveSnapshotGeneratedAt(b)) ||
+        a.provenance.uniqueKey.localeCompare(b.provenance.uniqueKey)
+    );
   return eligible[eligible.length - 1] ?? null;
 }
 
@@ -57,18 +67,32 @@ export interface MatchHistoryView {
   capability: typeof FOOTBALL_DATA_CAPABILITY;
 }
 
-function snapshotsByFixture(season: string): Map<string, PredictionSnapshot[]> {
+function snapshotsByFixture(
+  competition: BigFiveCompetitionId,
+  season: string
+): Map<string, PredictionSnapshot[]> {
   const out = new Map<string, PredictionSnapshot[]>();
+  // Production forecasts are Premier League-only. Do not even enumerate the
+  // PL store for another league: canonical ids are namespaced by convention,
+  // but public isolation must not depend on that convention remaining unique.
+  if (competition !== "premier-league") return out;
   let rows: PredictionSnapshot[] = [];
   try {
-    rows = listLiveSnapshots({ season });
+    rows = listLiveSnapshots({ season, evaluationClass: "LIVE_OOS" });
   } catch {
     return out;
   }
   for (const s of rows) {
     // Match history is a production surface. A challenger frozen later (or
     // earlier) must never win the generic "latest before kickoff" selection.
-    if (s.modelVersion !== productionModelVersion()) continue;
+    if (
+      s.competition !== "premier-league" ||
+      s.season !== season ||
+      s.evaluationClass !== "LIVE_OOS" ||
+      s.modelVersion !== productionModelVersion()
+    ) {
+      continue;
+    }
     const list = out.get(s.fixtureId);
     if (list) list.push(s);
     else out.set(s.fixtureId, [s]);
@@ -76,8 +100,12 @@ function snapshotsByFixture(season: string): Map<string, PredictionSnapshot[]> {
   return out;
 }
 
-function settlementsByFixture(): Map<string, SettlementRecord[]> {
+function settlementsByFixture(
+  competition: BigFiveCompetitionId,
+  season: string
+): Map<string, SettlementRecord[]> {
   const out = new Map<string, SettlementRecord[]>();
+  if (competition !== "premier-league") return out;
   let rows: SettlementRecord[] = [];
   try {
     rows = loadSettlements();
@@ -85,6 +113,13 @@ function settlementsByFixture(): Map<string, SettlementRecord[]> {
     return out;
   }
   for (const r of rows) {
+    if (
+      r.season !== season ||
+      r.evaluationClass !== "LIVE_OOS" ||
+      r.modelVersion !== productionModelVersion()
+    ) {
+      continue;
+    }
     const list = out.get(r.fixtureId);
     if (list) list.push(r);
     else out.set(r.fixtureId, [r]);
@@ -98,7 +133,7 @@ function joinOne(
   snaps: Map<string, PredictionSnapshot[]>,
   settled: Map<string, SettlementRecord[]>
 ): SerializedMatch {
-  const snapshot = latestPreKickoffSnapshot(snaps.get(match.canonicalMatchId) ?? [], match.kickoffUtc);
+  const snapshot = latestPreKickoffSnapshot(snaps.get(match.canonicalMatchId) ?? [], match);
   const settlements = settled.get(match.canonicalMatchId) ?? [];
   const settlement =
     (snapshot
@@ -113,8 +148,8 @@ export async function matchHistoryView(
 ): Promise<MatchHistoryView> {
   const all = await listCanonicalMatches({ competition, season });
   const completed = all.filter(isCompletedMatch);
-  const snaps = snapshotsByFixture(season);
-  const settled = settlementsByFixture();
+  const snaps = snapshotsByFixture(competition, season);
+  const settled = settlementsByFixture(competition, season);
 
   const byMatchday = new Map<number | null, SerializedMatch[]>();
   for (const m of completed) {
@@ -154,8 +189,8 @@ export async function teamSeasonView(
   const completed = all.filter(isCompletedMatch);
   const played = completed.filter((m) => m.home.slug === teamSlug || m.away.slug === teamSlug);
   if (!played.length) return null;
-  const snaps = snapshotsByFixture(season);
-  const settled = settlementsByFixture();
+  const snaps = snapshotsByFixture(competition, season);
+  const settled = settlementsByFixture(competition, season);
   const base = serializeTeamSeason(completed, teamSlug, competition, season);
   return {
     ...base,

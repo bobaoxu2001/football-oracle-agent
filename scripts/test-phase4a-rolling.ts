@@ -31,6 +31,7 @@ import {
   getJob,
   jobIdOf,
   listJobs,
+  updateJob,
 } from "@/lib/competitions/premier-league/ops/job-ledger";
 import {
   executeEligibleJobs,
@@ -365,6 +366,50 @@ function main(): void {
   assert.equal(missedT24.status, "MISSED");
   assert.match(missedT24.failureReason ?? "", /no cutoff-admissible fixture evidence/);
 
+  // A legacy cancellation at the same kickoff must not remain terminal after
+  // fixture certainty becomes CONFIRMED. Replanning is idempotent and does not
+  // create a second job identity.
+  const sameKickoffConfirmation = fixture({
+    id: "phase4a-same-kickoff-confirmation",
+    homeSlug: "chelsea",
+    awaySlug: "west-ham",
+    kickoffUtc: "2026-10-10T15:00:00.000Z",
+    retrievedAt: "2026-09-25T00:00:00.000Z",
+  });
+  planPredictionJobs({
+    fixtures: [sameKickoffConfirmation],
+    now: "2026-09-30T00:00:00.000Z",
+  });
+  const sameKickoffT24Id = jobIdOf(
+    sameKickoffConfirmation.id,
+    "T24H",
+    sameKickoffConfirmation.kickoffUtc!
+  );
+  updateJob(sameKickoffT24Id, {
+    status: "CANCELLED",
+    blockedReason: "legacy cancellation while kickoff certainty was DEFAULT",
+    updatedAt: "2026-09-30T00:01:00.000Z",
+  });
+  const confirmedSameKickoff: Fixture = {
+    ...sameKickoffConfirmation,
+    kickoffCertainty: "CONFIRMED",
+    retrievedAt: "2026-10-07T00:00:00.000Z",
+  };
+  planPredictionJobs({
+    fixtures: [confirmedSameKickoff],
+    now: "2026-10-08T00:00:00.000Z",
+  });
+  assert.equal(getJob(sameKickoffT24Id)?.status, "PENDING");
+  assert.equal(getJob(sameKickoffT24Id)?.blockedReason, null);
+  planPredictionJobs({
+    fixtures: [confirmedSameKickoff],
+    now: "2026-10-08T00:05:00.000Z",
+  });
+  assert.equal(
+    listJobs().filter((job) => job.jobId === sameKickoffT24Id).length,
+    1
+  );
+
   const selectionFixture = fixture({
     id: "phase4a-rescheduled-selection",
     homeSlug: rolling.homeSlug,
@@ -408,20 +453,66 @@ function main(): void {
     asOf: "2026-09-30T19:00:00.000Z",
     sourceState: { computedAt: "2026-10-01T19:01:00.000Z" },
   });
+  const futureAtRender = cloneSnapshot(obsoleteNewer, {
+    fixtureId: selectionFixture.id,
+    kickoff: selectionFixture.kickoffUtc!,
+    predictionStage: "T24H",
+    asOf: "2026-09-30T19:00:00.000Z",
+    sourceState: { computedAt: "2026-09-30T19:05:00.000Z", origin: "scheduled" },
+  });
+  const malformedLaterTimed = cloneSnapshot(obsoleteNewer, {
+    fixtureId: selectionFixture.id,
+    kickoff: selectionFixture.kickoffUtc!,
+    predictionStage: "T24H",
+    // One minute before the canonical T24H cutoff: auditable history, but not
+    // a valid T24H snapshot and therefore never eligible for current selection.
+    asOf: "2026-09-30T18:59:00.000Z",
+    sourceState: { computedAt: "2026-09-30T19:01:00.000Z", origin: "scheduled" },
+  });
+  const postCutoffInputLater = cloneSnapshot(obsoleteNewer, {
+    fixtureId: selectionFixture.id,
+    kickoff: selectionFixture.kickoffUtc!,
+    predictionStage: "T2H",
+    asOf: "2026-10-01T17:00:00.000Z",
+    sourceState: {
+      computedAt: "2026-10-01T17:05:00.000Z",
+      origin: "scheduled",
+      latestRatingEventAppliedAt: "2026-10-01T17:01:00.000Z",
+    },
+  });
+  assert.equal(
+    selectProductionSnapshot(
+      selectionFixture,
+      [currentSnapshot, malformedLaterTimed, postCutoffInputLater],
+      new Date("2026-10-01T17:30:00.000Z")
+    ).provenance.uniqueKey,
+    currentSnapshot.provenance.uniqueKey,
+    "a malformed timed row or post-cutoff input must not displace the latest valid production snapshot"
+  );
   const candidates = [
     obsoleteNewer,
     shadow,
     generatedAfterKickoff,
+    futureAtRender,
     reconstruction,
     currentSnapshot,
   ];
   assert.equal(
-    selectProductionSnapshot(selectionFixture, candidates).provenance.uniqueKey,
+    selectProductionSnapshot(
+      selectionFixture,
+      candidates,
+      new Date("2026-09-27T00:00:00.000Z")
+    ).provenance.uniqueKey,
     currentSnapshot.provenance.uniqueKey
   );
-  assert.equal(productionSnapshotsForMatch(selectionFixture.id, candidates).length, 3);
-  const timeline = forecastTimeline(selectionFixture, candidates);
+  assert.equal(productionSnapshotsForMatch(selectionFixture.id, candidates).length, 4);
+  const timeline = forecastTimeline(
+    selectionFixture,
+    candidates,
+    new Date("2026-09-27T00:00:00.000Z")
+  );
   assert.equal(timeline.length, 2);
+  assert.equal(timeline.some((point) => point.forecastId === futureAtRender.provenance.uniqueKey), false);
   assert.equal(timeline.some((point) => point.validForCurrentKickoff === false), true);
   assert.equal(
     timeline.find((point) => point.forecastId === obsoleteNewer.provenance.uniqueKey)?.kickoffAtFreeze,

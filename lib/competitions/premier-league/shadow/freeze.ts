@@ -138,6 +138,7 @@ export function snapshotShadowPrediction(
       evidenceMatchIdsHome: prediction.features.homeMatchIds,
       evidenceMatchIdsAway: prediction.features.awayMatchIds,
       latestEvidenceKickoff: prediction.features.latestEvidenceKickoff,
+      latestEvidenceObservedAt: prediction.features.latestEvidenceObservedAt,
       baselineHome: prediction.baseline.home,
       baselineDraw: prediction.baseline.draw,
       baselineAway: prediction.baseline.away,

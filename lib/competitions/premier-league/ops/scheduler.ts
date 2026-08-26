@@ -236,7 +236,10 @@ export function planPredictionJobs(input: {
     for (const stage of TIMED_STAGES) {
       const job = buildJob(fixture, stage, nowIso, input.modelVersion);
       const prev = getJob(job.jobId);
-      if (prev?.status === "SUCCEEDED" || prev?.status === "MISSED" || prev?.status === "CANCELLED") {
+      if (prev?.status === "SUCCEEDED" || prev?.status === "MISSED") {
+        continue;
+      }
+      if (prev?.status === "CANCELLED" && job.status === "BLOCKED") {
         continue;
       }
 

@@ -64,6 +64,7 @@ import { freezeShadowForCompletedJobs, snapshotShadowPrediction } from "@/lib/co
 import { explainShadowPrediction } from "@/lib/competitions/premier-league/shadow/explain";
 import { shadowEvaluationReport } from "@/lib/competitions/premier-league/shadow/report";
 import { auditShadowIntegrity } from "@/lib/competitions/premier-league/shadow/integrity";
+import { compareFixture } from "@/lib/competitions/premier-league/shadow/compare";
 import { upsertJob } from "@/lib/competitions/premier-league/ops/job-ledger";
 import { archiveOperationalLiveOos } from "@/lib/competitions/premier-league/ops/operational-archive";
 import type { PredictionJob } from "@/lib/competitions/premier-league/ops/types";
@@ -321,6 +322,7 @@ check("current-season weight is 1/9 at one match", near(next.features.awayStreng
 check("evidence match id recorded", next.features.awayMatchIds.includes("pl-2026-27-arsenal-coventry"));
 check("feature cutoff recorded", next.features.featureCutoff === NEXT_ASOF);
 check("latest evidence kickoff recorded", next.features.latestEvidenceKickoff === COVENTRY_KICKOFF);
+check("latest evidence availability recorded", next.features.latestEvidenceObservedAt === RESULT_KNOWN);
 
 // (3) Opponent strength matters: the same 3-0 against a stronger side moves more.
 const vsStrong = ledgerMatch({
@@ -616,6 +618,61 @@ async function main() {
     return near(b.predicted.home, baselineHomeProb) && near(s.predicted.home, shadowSnap.homeProbability);
   })());
 
+  const frozenComparison = compareFixture({
+    fixtureId: PAIR_FIXTURE,
+    homeSlug: "aston-villa",
+    awaySlug: "arsenal",
+    kickoffUtc: NEXT_KICKOFF,
+    ledgerMatches: [ARSENAL_COVENTRY],
+    season: "2026-27",
+    now: "2026-08-31T21:30:00.000Z",
+  });
+  check("fixture comparison retains a canonical valid frozen pair", frozenComparison.pairedAndFrozen);
+  check(
+    "fixture comparison exposes the pair's common canonical stage",
+    frozenComparison.baseline.predictionStage === "T24H" &&
+      frozenComparison.shadow.predictionStage === "T24H"
+  );
+  check(
+    "fixture comparison exposes only consistency-validated settlements",
+    frozenComparison.baseline.settlement !== null && frozenComparison.shadow.settlement !== null
+  );
+
+  const settlementFile = process.env.SETTLEMENT_STORE_PATH!;
+  const settlementBytes = fs.readFileSync(settlementFile, "utf8");
+  try {
+    const corruptBytes = settlementBytes
+      .split("\n")
+      .map((line) => {
+        if (!line.trim()) return line;
+        const row = JSON.parse(line) as SettlementRecord;
+        return JSON.stringify(
+          row.snapshotUniqueKey === baselineKey ? { ...row, brier: row.brier + 0.25 } : row
+        );
+      })
+      .join("\n");
+    fs.writeFileSync(settlementFile, corruptBytes, "utf8");
+    const corruptSettlementComparison = compareFixture({
+      fixtureId: PAIR_FIXTURE,
+      homeSlug: "aston-villa",
+      awaySlug: "arsenal",
+      kickoffUtc: NEXT_KICKOFF,
+      ledgerMatches: [ARSENAL_COVENTRY],
+      season: "2026-27",
+      now: "2026-08-31T21:30:00.000Z",
+    });
+    check(
+      "fixture comparison redacts a corrupt linked settlement",
+      corruptSettlementComparison.baseline.settlement === null
+    );
+    check(
+      "a corrupt settlement does not hide the consistent paired settlement",
+      corruptSettlementComparison.shadow.settlement !== null
+    );
+  } finally {
+    fs.writeFileSync(settlementFile, settlementBytes, "utf8");
+  }
+
   const pairing = pairSettlements({
     settlements: loadSettlements(),
     baselineVersion: PRODUCTION_MODEL_VERSION,
@@ -698,7 +755,9 @@ async function main() {
   check("production is never the shadow", report.servingVersion !== SHADOW_MODEL_VERSION);
   check("productionModelVersion() is the champion", productionModelVersion() === PRODUCTION_MODEL_VERSION);
   check("isShadowVersion identifies the challenger", isShadowVersion(SHADOW_MODEL_VERSION) && !isShadowVersion(PRODUCTION_MODEL_VERSION));
-  check("report counts the paired settlement", report.pairedSettlements === 1);
+  check("report counts the paired settlement row", report.pairedSettlementRows === 1);
+  check("report counts one independent paired fixture", report.uniquePairedFixtures === 1);
+  check("one paired fixture remains EARLY_EVIDENCE", report.evaluationMaturity.status === "EARLY_EVIDENCE");
   check("headline metrics WITHHELD below the display threshold", report.metrics === null);
   check("sample note says the sample is insufficient", report.sampleNote.toLowerCase().includes("insufficient"));
   check("promotion status is NOT_ELIGIBLE", report.promotion.status === "NOT_ELIGIBLE");
@@ -710,22 +769,22 @@ async function main() {
   check("n=20 still withholds metrics if integrity failed", shadowMetricsVisible(20, false) === false);
   check(
     "n=20 metrics-visible is NOT promotion-eligible",
-    shadowPromotionStatus({ pairedEvidence: 20, integrityOk: true, hasProductionShadowFreeze: true }) ===
+    shadowPromotionStatus({ uniquePairedFixtures: 20, integrityOk: true, hasProductionShadowFreeze: true }) ===
       "NOT_ELIGIBLE"
   );
   check(
     "n=49 still NOT_ELIGIBLE",
-    shadowPromotionStatus({ pairedEvidence: 49, integrityOk: true, hasProductionShadowFreeze: true }) ===
+    shadowPromotionStatus({ uniquePairedFixtures: 49, integrityOk: true, hasProductionShadowFreeze: true }) ===
       "NOT_ELIGIBLE"
   );
   check(
     "n=50 with integrity and a freeze is UNDER_OBSERVATION, not promoted",
-    shadowPromotionStatus({ pairedEvidence: 50, integrityOk: true, hasProductionShadowFreeze: true }) ===
+    shadowPromotionStatus({ uniquePairedFixtures: 50, integrityOk: true, hasProductionShadowFreeze: true }) ===
       "UNDER_OBSERVATION"
   );
   check(
     "n=50 without a production freeze stays NOT_ELIGIBLE",
-    shadowPromotionStatus({ pairedEvidence: 50, integrityOk: true, hasProductionShadowFreeze: false }) ===
+    shadowPromotionStatus({ uniquePairedFixtures: 50, integrityOk: true, hasProductionShadowFreeze: false }) ===
       "NOT_ELIGIBLE"
   );
   check("promotion criteria are declared", PROMOTION_CRITERIA.length >= 8);
@@ -740,10 +799,211 @@ async function main() {
     return off === false;
   })());
   check("disabling the shadow never changes what production serves", productionModelVersion() === PRODUCTION_MODEL_VERSION);
-  check("collection reports paired evidence separately from frozen pairs", report.collection.pairedEvidence === 1);
-  check("collection does not treat a frozen-only pair as evidence without settlement", report.collection.settledPairs === report.collection.pairedEvidence);
+  check("collection reports resolved paired settlement rows separately from frozen snapshot pairs", report.collection.resolvedPairedSettlementRows === 1);
+  check("collection does not treat a frozen-only pair as settled evidence", report.collection.settledSnapshotPairs === report.collection.resolvedPairedSettlementRows);
   check("promotion reasons mention the sample floor", report.promotion.reasons.some((r) => r.includes("display floor")));
   check("integrity is OK for the isolated pair", report.integrity.ok === true, report.integrity.issues.map((i) => i.code).join(","));
+
+  // ── Public fixture-comparison validity gates ────────────────────────────
+  function comparisonSnapshot(input: {
+    fixtureId: string;
+    modelVersion: string;
+    kickoff: string;
+    asOf: string;
+    computedAt: string;
+    stage: "PRESEASON" | "T24H" | "T2H";
+    evaluationClass?: "LIVE_OOS" | "BACKTEST";
+    latestIncludedInputAt?: string | null;
+  }) {
+    return createSnapshot({
+      fixtureId: input.fixtureId,
+      competition: "premier-league",
+      season: "2026-27",
+      asOf: input.asOf,
+      kickoff: input.kickoff,
+      modelVersion: input.modelVersion,
+      predictionStage: input.stage,
+      evaluationClass: input.evaluationClass ?? "LIVE_OOS",
+      homeSlug: "chelsea",
+      awaySlug: "fulham",
+      home: input.modelVersion === PRODUCTION_MODEL_VERSION ? 0.5 : 0.48,
+      draw: 0.27,
+      away: input.modelVersion === PRODUCTION_MODEL_VERSION ? 0.23 : 0.25,
+      homeExpectedGoals: 1.5,
+      awayExpectedGoals: 1,
+      scorelineDistribution: {},
+      sourceState: {
+        origin: "scheduled",
+        computedAt: input.computedAt,
+        latestEvidenceObservedAt: input.latestIncludedInputAt ?? null,
+      },
+    });
+  }
+
+  function comparisonPair(input: {
+    fixtureId: string;
+    kickoff: string;
+    snapshotKickoff?: string;
+    asOf: string;
+    computedAt: string;
+    baselineStage?: "PRESEASON" | "T24H" | "T2H";
+    shadowStage?: "PRESEASON" | "T24H" | "T2H";
+    evaluationClass?: "LIVE_OOS" | "BACKTEST";
+    latestIncludedInputAt?: string | null;
+  }) {
+    const common = {
+      fixtureId: input.fixtureId,
+      kickoff: input.snapshotKickoff ?? input.kickoff,
+      asOf: input.asOf,
+      computedAt: input.computedAt,
+      evaluationClass: input.evaluationClass,
+      latestIncludedInputAt: input.latestIncludedInputAt,
+    };
+    comparisonSnapshot({
+      ...common,
+      modelVersion: PRODUCTION_MODEL_VERSION,
+      stage: input.baselineStage ?? "T24H",
+    });
+    comparisonSnapshot({
+      ...common,
+      modelVersion: SHADOW_MODEL_VERSION,
+      stage: input.shadowStage ?? "T24H",
+    });
+  }
+
+  const invalidLaterAsOf = "2026-08-31T18:00:00.000Z";
+  comparisonPair({
+    fixtureId: PAIR_FIXTURE,
+    kickoff: NEXT_KICKOFF,
+    asOf: invalidLaterAsOf,
+    computedAt: invalidLaterAsOf,
+    baselineStage: "T2H",
+    shadowStage: "T2H",
+  });
+  const invalidLaterComparison = compareFixture({
+    fixtureId: PAIR_FIXTURE,
+    homeSlug: "aston-villa",
+    awaySlug: "arsenal",
+    kickoffUtc: NEXT_KICKOFF,
+    ledgerMatches: [ARSENAL_COVENTRY],
+    season: "2026-27",
+    now: "2026-08-31T21:30:00.000Z",
+  });
+  check(
+    "a later mislabeled pair cannot displace the latest canonical frozen pair",
+    invalidLaterComparison.pairedAndFrozen &&
+      invalidLaterComparison.baseline.asOf === NEXT_ASOF &&
+      invalidLaterComparison.baseline.predictionStage === "T24H"
+  );
+
+  const postKickFixture = "pl-2026-27-shadow-compare-post-kick";
+  const postKickKickoff = "2026-09-20T15:00:00.000Z";
+  comparisonPair({
+    fixtureId: postKickFixture,
+    kickoff: postKickKickoff,
+    asOf: "2026-09-19T15:00:00.000Z",
+    computedAt: "2026-09-20T15:01:00.000Z",
+  });
+  const postKickComparison = compareFixture({
+    fixtureId: postKickFixture,
+    homeSlug: "chelsea",
+    awaySlug: "fulham",
+    kickoffUtc: postKickKickoff,
+    ledgerMatches: [],
+    season: "2026-27",
+    now: "2026-09-20T16:00:00.000Z",
+  });
+  check(
+    "post-kick generated rows are preview-only and never expose settlement",
+    !postKickComparison.pairedAndFrozen &&
+      !postKickComparison.baseline.frozen &&
+      !postKickComparison.shadow.frozen &&
+      postKickComparison.baseline.settlement === null &&
+      postKickComparison.shadow.settlement === null
+  );
+
+  const obsoleteFixture = "pl-2026-27-shadow-compare-obsolete-kickoff";
+  comparisonPair({
+    fixtureId: obsoleteFixture,
+    kickoff: "2026-09-22T15:00:00.000Z",
+    snapshotKickoff: "2026-09-21T15:00:00.000Z",
+    asOf: "2026-09-20T15:00:00.000Z",
+    computedAt: "2026-09-20T15:00:00.000Z",
+  });
+  const obsoleteComparison = compareFixture({
+    fixtureId: obsoleteFixture,
+    homeSlug: "chelsea",
+    awaySlug: "fulham",
+    kickoffUtc: "2026-09-22T15:00:00.000Z",
+    ledgerMatches: [],
+    season: "2026-27",
+    now: "2026-09-20T16:00:00.000Z",
+  });
+  check("obsolete-kickoff rows cannot be labeled frozen", !obsoleteComparison.pairedAndFrozen);
+
+  const stageMismatchFixture = "pl-2026-27-shadow-compare-stage-mismatch";
+  comparisonPair({
+    fixtureId: stageMismatchFixture,
+    kickoff: "2026-09-24T15:00:00.000Z",
+    asOf: "2026-09-23T15:00:00.000Z",
+    computedAt: "2026-09-23T15:00:00.000Z",
+    baselineStage: "T24H",
+    shadowStage: "PRESEASON",
+  });
+  const stageMismatchComparison = compareFixture({
+    fixtureId: stageMismatchFixture,
+    homeSlug: "chelsea",
+    awaySlug: "fulham",
+    kickoffUtc: "2026-09-24T15:00:00.000Z",
+    ledgerMatches: [],
+    season: "2026-27",
+    now: "2026-09-23T16:00:00.000Z",
+  });
+  check(
+    "same-cutoff snapshots at different canonical stages are not paired",
+    !stageMismatchComparison.pairedAndFrozen
+  );
+
+  const futureInputFixture = "pl-2026-27-shadow-compare-future-input";
+  comparisonPair({
+    fixtureId: futureInputFixture,
+    kickoff: "2026-09-26T15:00:00.000Z",
+    asOf: "2026-09-25T15:00:00.000Z",
+    computedAt: "2026-09-25T15:05:00.000Z",
+    latestIncludedInputAt: "2026-09-25T15:01:00.000Z",
+  });
+  const futureInputComparison = compareFixture({
+    fixtureId: futureInputFixture,
+    homeSlug: "chelsea",
+    awaySlug: "fulham",
+    kickoffUtc: "2026-09-26T15:00:00.000Z",
+    ledgerMatches: [],
+    season: "2026-27",
+    now: "2026-09-25T16:00:00.000Z",
+  });
+  check(
+    "rows that consumed input after cutoff cannot be labeled frozen",
+    !futureInputComparison.pairedAndFrozen
+  );
+
+  const wrongClassFixture = "pl-2026-27-shadow-compare-backtest";
+  comparisonPair({
+    fixtureId: wrongClassFixture,
+    kickoff: "2026-09-28T15:00:00.000Z",
+    asOf: "2026-09-27T15:00:00.000Z",
+    computedAt: "2026-09-27T15:00:00.000Z",
+    evaluationClass: "BACKTEST",
+  });
+  const wrongClassComparison = compareFixture({
+    fixtureId: wrongClassFixture,
+    homeSlug: "chelsea",
+    awaySlug: "fulham",
+    kickoffUtc: "2026-09-28T15:00:00.000Z",
+    ledgerMatches: [],
+    season: "2026-27",
+    now: "2026-09-27T16:00:00.000Z",
+  });
+  check("BACKTEST rows cannot enter the public frozen comparison", !wrongClassComparison.pairedAndFrozen);
 
   // ── Freeze pipeline rehearsal (isolated; never writes production) ──────
   function succeededJob(input: {
@@ -884,8 +1144,8 @@ async function main() {
     season: "2026-27",
   });
   check("integrity accepts genuine same-cutoff pairs", isolatedIntegrity.ok, isolatedIntegrity.issues.map((i) => i.code).join(","));
-  check("integrity counts two frozen pairs", isolatedIntegrity.frozenPairs === 2, String(isolatedIntegrity.frozenPairs));
-  check("integrity paired evidence is the settled count", isolatedIntegrity.pairedEvidence === isolatedIntegrity.settledPairs);
+  check("integrity counts two frozen snapshot pairs", isolatedIntegrity.frozenSnapshotPairs === 2, String(isolatedIntegrity.frozenSnapshotPairs));
+  check("integrity resolved paired rows equal the settled snapshot-pair count", isolatedIntegrity.resolvedPairedSettlementRows === isolatedIntegrity.settledSnapshotPairs);
 
   const orphanSnap = createSnapshot({
     fixtureId: "pl-2026-27-shadoworphan-fixture",
@@ -912,7 +1172,7 @@ async function main() {
   });
   check("integrity fails a shadow with no baseline", orphanAudit.ok === false);
   check("integrity reports shadow-without-baseline", orphanAudit.issues.some((i) => i.code === "shadow-without-baseline"));
-  check("orphan shadow is not paired evidence", orphanAudit.pairedEvidence === 0);
+  check("orphan shadow is not a resolved paired settlement row", orphanAudit.resolvedPairedSettlementRows === 0);
 
   const missedKickoff = "2026-08-10T15:00:00.000Z";
   const missedAsOf = "2026-08-09T15:00:00.000Z";

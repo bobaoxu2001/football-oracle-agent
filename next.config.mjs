@@ -1,22 +1,22 @@
 /** @type {import('next').NextConfig} */
 const publicReadRoutes = [
+  "/matches",
+];
+
+const noStoreRoutes = [
   "/",
   "/accuracy",
   "/live",
   "/live/:path*",
   "/shadow",
-  "/matches",
   "/match/:path*",
+  "/health",
+  "/market",
   "/api/live",
   "/api/live/:path*",
   "/api/accuracy",
   "/api/shadow",
   "/api/matches/upcoming",
-];
-
-const noStoreRoutes = [
-  "/health",
-  "/market",
   "/api/health",
   "/api/market",
   "/api/market/health",

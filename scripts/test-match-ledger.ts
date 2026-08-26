@@ -73,7 +73,9 @@ import {
 import { fixtureFromCanonicalMatch, settleCompletedMatches } from "@/lib/match-ledger/settlement-link";
 import { ingestIsDue, emptyLedgerState } from "@/lib/match-ledger/scheduler";
 import { serializeMatchForApi, serializeTeamSeason } from "@/lib/match-ledger/serialize";
+import { latestPreKickoffSnapshot } from "@/lib/match-ledger/views";
 import { createSnapshot } from "@/lib/snapshots/store";
+import { snapshotUniqueKey, type PredictionSnapshot } from "@/lib/snapshots/types";
 import { loadSettlements } from "@/lib/competitions/premier-league/settlement";
 
 let passed = 0;
@@ -613,13 +615,13 @@ async function main() {
     home: { ...ledgerMatch.home, slug: "ledgertesthome" },
     away: { ...ledgerMatch.away, slug: "ledgertestaway" },
   };
-  createSnapshot({
+  const settleSnapshot = createSnapshot({
     fixtureId: TEST_FIXTURE_ID,
     competition: "premier-league",
     season: "2026-27",
-    asOf: "2026-08-20T12:00:00.000Z",
+    asOf: "2026-08-20T19:00:00.000Z",
     kickoff: KICKOFF,
-    modelVersion: "test-model-v1",
+    modelVersion: "pl-live-v0.2.0",
     predictionStage: "T24H",
     evaluationClass: "LIVE_OOS",
     homeSlug: "ledgertesthome",
@@ -630,6 +632,11 @@ async function main() {
     homeExpectedGoals: 2.1,
     awayExpectedGoals: 0.6,
     scorelineDistribution: {},
+    sourceState: {
+      origin: "scheduled",
+      computedAt: "2026-08-20T19:05:00.000Z",
+      latestEvidenceObservedAt: "2026-08-20T18:00:00.000Z",
+    },
   });
   const settleReport = settleCompletedMatches({
     competition: "premier-league",
@@ -662,6 +669,77 @@ async function main() {
   check("ledger-only league writes no settlements", ligaReport.settlementsWritten === 0);
   check("ledger-only league reports missing snapshots honestly", ligaReport.matchesWithoutSnapshots === 1);
 
+  // ── Public match-ledger forecast boundary ─────────────────────────────
+  const withIdentity = (
+    snapshot: PredictionSnapshot,
+    changes: Partial<PredictionSnapshot>
+  ): PredictionSnapshot => {
+    const changed = { ...snapshot, ...changes } as PredictionSnapshot;
+    return {
+      ...changed,
+      provenance: {
+        ...changed.provenance,
+        uniqueKey: snapshotUniqueKey(changed),
+      },
+    };
+  };
+  check(
+    "public ledger selects a valid PL production LIVE_OOS snapshot",
+    latestPreKickoffSnapshot([settleSnapshot], settleTarget)?.provenance.uniqueKey ===
+      settleSnapshot.provenance.uniqueKey
+  );
+  check(
+    "public ledger rejects a snapshot generated at kickoff",
+    latestPreKickoffSnapshot(
+      [
+        {
+          ...settleSnapshot,
+          sourceState: {
+            ...settleSnapshot.sourceState,
+            origin: "scheduled",
+            computedAt: KICKOFF,
+          },
+        },
+      ],
+      settleTarget
+    ) === null
+  );
+  check(
+    "public ledger rejects an obsolete frozen kickoff",
+    latestPreKickoffSnapshot(
+      [withIdentity(settleSnapshot, { kickoff: "2026-08-22T19:00:00.000Z" })],
+      settleTarget
+    ) === null
+  );
+  check(
+    "public ledger rejects a mislabeled deterministic stage",
+    latestPreKickoffSnapshot(
+      [withIdentity(settleSnapshot, { predictionStage: "T2H" })],
+      settleTarget
+    ) === null
+  );
+  check(
+    "public ledger rejects a non-LIVE_OOS evaluation class",
+    latestPreKickoffSnapshot(
+      [withIdentity(settleSnapshot, { evaluationClass: "RETROSPECTIVE" })],
+      settleTarget
+    ) === null
+  );
+  check(
+    "public ledger rejects a non-PL snapshot with the same fixture id",
+    latestPreKickoffSnapshot(
+      [withIdentity(settleSnapshot, { competition: "la-liga" })],
+      settleTarget
+    ) === null
+  );
+  check(
+    "another competition cannot inherit a PL snapshot through a fixture-id collision",
+    latestPreKickoffSnapshot(
+      [settleSnapshot],
+      { ...settleTarget, competition: "la-liga" as const }
+    ) === null
+  );
+
   // ── Cadence gate ───────────────────────────────────────────────────────
   const st = emptyLedgerState();
   check("first ingest is always due", ingestIsDue(st, OBSERVED, 60_000));
@@ -670,8 +748,11 @@ async function main() {
   check("a corrupt lastIngestAt does not block ingestion forever", ingestIsDue({ ...st, lastIngestAt: "garbage" }, OBSERVED, 60_000));
 
   // ── API / UI serialization ─────────────────────────────────────────────
-  const serialized = serializeMatchForApi(arsenal, { settlement: settlements[0] ?? null });
-  check("serialized match exposes the id", serialized.canonicalMatchId === "pl-2026-27-arsenal-coventry");
+  const serialized = serializeMatchForApi(settleTarget, {
+    snapshot: settleSnapshot,
+    settlement: settlements[0] ?? null,
+  });
+  check("serialized match exposes the id", serialized.canonicalMatchId === TEST_FIXTURE_ID);
   check("serialized match exposes the score", serialized.score.fullTime.home === 3);
   check("serialized match exposes the outcome", serialized.result === "HOME");
   check("serialized statistics list only AVAILABLE fields", serialized.statistics.length === 0);
@@ -682,8 +763,31 @@ async function main() {
     return true;
   })());
   check("serialized prediction carries the frozen probabilities", near(serialized.prediction!.home, 0.72));
-  check("serialized prediction carries its timestamp", serialized.prediction!.asOf === "2026-08-20T12:00:00.000Z");
+  check("serialized prediction carries its timestamp", serialized.prediction!.asOf === "2026-08-20T19:00:00.000Z");
   check("serialized prediction marks settled", serialized.prediction!.settled === true);
+  const corruptSettlement = {
+    ...settlements[0],
+    actualScore: { home: 4, away: 0 },
+  };
+  const serializedCorruptSettlement = serializeMatchForApi(settleTarget, {
+    snapshot: settleSnapshot,
+    settlement: corruptSettlement,
+  });
+  check(
+    "corrupt settlement is not published as settled",
+    serializedCorruptSettlement.prediction?.settled === false
+  );
+  check(
+    "a corrupt settlement does not erase the valid immutable forecast",
+    near(serializedCorruptSettlement.prediction?.home ?? -1, 0.72)
+  );
+  check(
+    "serializer rejects a cross-fixture snapshot and settlement",
+    serializeMatchForApi(arsenal, {
+      snapshot: settleSnapshot,
+      settlement: settlements[0] ?? null,
+    }).prediction === null
+  );
   const teamSeason = serializeTeamSeason(afterBoth, "arsenal", "premier-league", "2026-27");
   check("team season counts played", teamSeason.played === 2);
   check("team season W-D-L", teamSeason.wins === 2 && teamSeason.draws === 0 && teamSeason.losses === 0);

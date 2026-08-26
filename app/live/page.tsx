@@ -9,6 +9,7 @@ import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { utcIsoToLondonLocal } from "@/lib/competitions/premier-league/timezone";
 import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
+import { buildHealthReport } from "@/lib/competitions/premier-league/ops/health";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function LiveLedgerPage() {
   const gate = evaluateDataGate();
   const params = loadProductionParams();
   const upcoming = upcomingLiveFixtures().slice(0, 8);
+  const health = buildHealthReport();
 
   return (
     <div className="container py-8 md:py-12">
@@ -55,10 +57,12 @@ export default async function LiveLedgerPage() {
         </p>
       </section>
 
-      <section className="mx-auto mb-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mx-auto mb-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="Production forecast snapshots" value={String(metrics.production.totalForecastSnapshots)} />
         <Stat label="Settled forecast snapshots" value={String(metrics.production.settledForecastSnapshots)} />
-        <Stat label="Unique settled fixtures" value={String(metrics.production.uniqueFixturesSettled)} />
+        <Stat label="Unique fixtures with linked settlements" value={String(metrics.production.uniqueFixturesSettled)} />
+        <Stat label="Evaluation maturity" value={report.evaluationMaturity.status} />
+        <Stat label="Forecast stage coverage" value={health.freshness.forecastCoverage.status} />
         <Stat label="Data gate" value={gate.status} />
       </section>
 
@@ -78,7 +82,7 @@ export default async function LiveLedgerPage() {
                 <th scope="col" className="py-2 pr-3 font-medium">Forecast snapshots</th>
                 <th scope="col" className="py-2 pr-3 font-medium">Settled snapshots</th>
                 <th scope="col" className="py-2 pr-3 font-medium">Unsettled snapshots</th>
-                <th scope="col" className="py-2 font-medium">Unique settled fixtures</th>
+                <th scope="col" className="py-2 font-medium">Unique fixtures with linked settlements</th>
               </tr>
             </thead>
             <tbody>
@@ -111,9 +115,11 @@ export default async function LiveLedgerPage() {
       <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
         <h2 className="mb-3 font-semibold">Stage performance</h2>
         <p className="mb-3 text-xs text-muted-foreground">
-          Each stage is scored separately. N=0 is shown as —. Headline Brier/RPS/LogLoss stay blank
-          until 20 unique fixtures have settled. EARLY is the legacy initial freeze; T7D is the
-          deterministic rolling-early stage. FINAL_PREKICK is not a lineup-confirmed model.
+          Each stage uses one deterministic latest valid pre-kickoff snapshot per fixture within
+          that stage. Additional rolling snapshots remain trajectory rows and cannot inflate
+          effective N. Stage scores below 20 fixtures are descriptive only; headline scores and
+          intervals stay blank. EARLY is the legacy initial freeze; T7D is the deterministic
+          rolling-early stage. FINAL_PREKICK is not a lineup-confirmed model.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-muted-foreground">
@@ -123,6 +129,7 @@ export default async function LiveLedgerPage() {
                 <th scope="col" className="py-2 pr-3 font-medium">Stage</th>
                 <th scope="col" className="py-2 pr-3 font-medium">Snapshots</th>
                 <th scope="col" className="py-2 pr-3 font-medium">Settled snapshots</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Unique fixtures (N)</th>
                 <th scope="col" className="py-2 pr-3 font-medium">Brier</th>
                 <th scope="col" className="py-2 pr-3 font-medium">RPS</th>
                 <th scope="col" className="py-2 font-medium">LogLoss</th>
@@ -134,6 +141,7 @@ export default async function LiveLedgerPage() {
                   <th scope="row" className="py-1.5 pr-3 font-medium text-foreground">{row.stage}</th>
                   <td className="py-1.5 pr-3">{row.totalForecastSnapshots}</td>
                   <td className="py-1.5 pr-3">{row.settledForecastSnapshots}</td>
+                  <td className="py-1.5 pr-3">{row.effectiveN}</td>
                   <td className="py-1.5 pr-3">{row.brier === null ? "—" : row.brier.toFixed(4)}</td>
                   <td className="py-1.5 pr-3">{row.rps === null ? "—" : row.rps.toFixed(4)}</td>
                   <td className="py-1.5">{row.logLoss === null ? "—" : row.logLoss.toFixed(4)}</td>
@@ -148,11 +156,16 @@ export default async function LiveLedgerPage() {
         <h2 className="mb-3 font-semibold">LIVE_OOS scores</h2>
         <p className="mb-4 text-amber-200/90">{report.sampleNote}</p>
         <ul className="space-y-1 text-muted-foreground">
-          <li>Brier: {pct(report.brier, 4)}</li>
-          <li>RPS: {pct(report.rps, 4)}</li>
-          <li>LogLoss: {pct(report.logLoss, 4)}</li>
+          <li>Brier: {pct(report.brier, 4)}{intervalText(report.uncertainty.intervals?.brier)}</li>
+          <li>RPS: {pct(report.rps, 4)}{intervalText(report.uncertainty.intervals?.rps)}</li>
+          <li>LogLoss: {pct(report.logLoss, 4)}{intervalText(report.uncertainty.intervals?.logLoss)}</li>
           <li>Calibration (confidence ECE): {report.confidenceEce === null ? "n too small" : pct(report.confidenceEce, 3)}</li>
           <li>Top-pick accuracy (secondary): {report.topPickAccuracy === null ? "—" : `${(report.topPickAccuracy * 100).toFixed(1)}%`}</li>
+          <li>
+            Fixture-bootstrap intervals: {report.uncertainty.intervalStatus === "AVAILABLE"
+              ? "available below each machine-readable metric"
+              : report.uncertainty.intervalReason}
+          </li>
         </ul>
       </section>
 
@@ -205,4 +218,8 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-xl font-bold">{value}</p>
     </div>
   );
+}
+
+function intervalText(interval: { lo: number; hi: number } | undefined): string {
+  return interval ? ` · 95% fixture bootstrap ${interval.lo.toFixed(4)}–${interval.hi.toFixed(4)}` : "";
 }

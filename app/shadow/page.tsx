@@ -39,11 +39,13 @@ export default async function ShadowPage() {
         </p>
       </section>
 
-      <section className="mx-auto mb-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <section className="mx-auto mb-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="Production snapshots" value={String(ledgerMetrics.production.totalForecastSnapshots)} />
         <Stat label="Shadow snapshots" value={String(ledgerMetrics.shadow.totalForecastSnapshots)} />
         <Stat label="Settled shadow snapshots" value={String(ledgerMetrics.shadow.settledForecastSnapshots)} />
-        <Stat label="Unique settled fixtures" value={String(ledgerMetrics.shadow.uniqueFixturesSettled)} />
+        <Stat label="Paired snapshot rows" value={String(report.pairedSettlementRows)} />
+        <Stat label="Unique paired fixtures (independent N)" value={String(report.uniquePairedFixtures)} />
+        <Stat label="Evaluation maturity" value={report.evaluationMaturity.status} />
         <Stat label="Shadow freezing" value={report.shadowEnabled ? "ON" : "OFF"} />
       </section>
 
@@ -51,8 +53,8 @@ export default async function ShadowPage() {
         <h2 className="mb-2 font-semibold">Collection status</h2>
         <p className="mb-4 text-xs text-muted-foreground">
           A frozen pair is both models written at the same cutoff. A settled pair is both scored
-          against the same result. Paired evidence is a settled pair that still resolves to those
-          frozen snapshots. Unsettled frozen pairs and live previews are not evidence.
+          against the same result. Paired snapshot rows remain trajectory evidence; independent N
+          counts each fixture once. Unsettled frozen pairs and live previews are not evidence.
         </p>
         {report.collection.neverFrozenInProduction ? (
           <p className="mb-4 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3 text-xs text-amber-100/90">
@@ -72,10 +74,10 @@ export default async function ShadowPage() {
             label="Last shadow lifecycle error"
             value={report.collection.lastShadowLifecycleError ?? "none"}
           />
-          <Line label="Frozen pairs" value={String(report.collection.frozenPairs)} />
-          <Line label="Settled pairs" value={String(report.collection.settledPairs)} />
-          <Line label="Paired forecast-snapshot evidence n" value={String(report.collection.pairedEvidence)} />
-          <Line label="Unique settled fixtures" value={String(ledgerMetrics.shadow.uniqueFixturesSettled)} />
+          <Line label="Frozen forecast-snapshot pairs" value={String(report.collection.frozenSnapshotPairs)} />
+          <Line label="Settled forecast-snapshot pairs" value={String(report.collection.settledSnapshotPairs)} />
+          <Line label="Resolved paired settlement rows" value={String(report.collection.resolvedPairedSettlementRows)} />
+          <Line label="Unique paired fixtures (independent N)" value={String(report.collection.uniquePairedFixtures)} />
           <Line label="Unpaired baseline-only" value={String(report.collection.unpairedBaselineOnly)} />
           <Line
             label="Orphan shadow settlements"
@@ -93,11 +95,11 @@ export default async function ShadowPage() {
           />
           <Line
             label="Metrics display floor"
-            value={`${report.promotion.minForDisplay} paired evidence`}
+            value={`${report.promotion.minUniqueFixturesForDisplay} unique paired fixtures`}
           />
           <Line
             label="Promotion consideration floor"
-            value={`${report.promotion.minForDecision} paired evidence`}
+            value={`${report.promotion.minUniqueFixturesForDecision} unique paired fixtures`}
           />
           <Line
             label="Headline metrics"
@@ -153,7 +155,8 @@ export default async function ShadowPage() {
                   <th className="py-2 pr-3 font-medium">Metric</th>
                   <th className="py-2 pr-3 font-medium">Baseline</th>
                   <th className="py-2 pr-3 font-medium">Shadow</th>
-                  <th className="py-2 font-medium">Δ (shadow − baseline)</th>
+                  <th className="py-2 pr-3 font-medium">Δ (shadow − baseline)</th>
+                  <th className="py-2 font-medium">95% fixture-bootstrap interval</th>
                 </tr>
               </thead>
               <tbody>
@@ -162,37 +165,42 @@ export default async function ShadowPage() {
                   a={report.metrics.baseline.brier}
                   b={report.metrics.shadow.brier}
                   d={report.metrics.delta.brier}
+                  ci={report.uncertainty.intervals?.deltaBrier ?? null}
                 />
                 <MetricRow
                   label="RPS"
                   a={report.metrics.baseline.rps}
                   b={report.metrics.shadow.rps}
                   d={report.metrics.delta.rps}
+                  ci={report.uncertainty.intervals?.deltaRps ?? null}
                 />
                 <MetricRow
                   label="LogLoss"
                   a={report.metrics.baseline.logLoss}
                   b={report.metrics.shadow.logLoss}
                   d={report.metrics.delta.logLoss}
+                  ci={report.uncertainty.intervals?.deltaLogLoss ?? null}
                 />
                 <MetricRow
                   label="Top-pick accuracy (descriptive)"
                   a={report.metrics.baseline.topPickAccuracy}
                   b={report.metrics.shadow.topPickAccuracy}
                   d={null}
+                  ci={null}
                 />
               </tbody>
             </table>
             <p className="mt-3 text-[10px]">
               Negative Δ means the shadow scored better on that proper score. Top-pick accuracy is
-              descriptive only and is never a promotion criterion.
+              descriptive only and is never a promotion criterion. Intervals resample fixtures,
+              not correlated stage rows.
             </p>
           </div>
         ) : (
           <p className="text-muted-foreground">
-            Headline metrics are withheld until {report.promotion.minForDisplay} paired settlements
-            exist. Reporting a Brier delta over {report.pairedSettlements} forecast-snapshot pairs
-            across {ledgerMetrics.shadow.uniqueFixturesSettled} unique fixtures would invite exactly
+            Headline metrics and intervals are withheld until {report.promotion.minUniqueFixturesForDisplay} unique paired fixtures
+            exist. Reporting a Brier delta over {report.pairedSettlementRows} correlated forecast-snapshot rows
+            across {report.uniquePairedFixtures} independent fixtures would invite exactly
             the conclusion this evaluation is designed to avoid.
           </p>
         )}
@@ -234,8 +242,8 @@ export default async function ShadowPage() {
         <h2 className="mb-2 font-semibold">Promotion gate — {report.promotion.status}</h2>
         <p className="mb-3 text-xs text-muted-foreground">
           Metric visibility and promotion eligibility are different thresholds: headline metrics
-          appear at {report.promotion.minForDisplay} paired evidence rows; a human may consider
-          promotion only at {report.promotion.minForDecision}. UNDER_OBSERVATION is not promotion.
+          appear at {report.promotion.minUniqueFixturesForDisplay} unique paired fixtures; a human may consider
+          promotion only at {report.promotion.minUniqueFixturesForDecision}. UNDER_OBSERVATION is not promotion.
           Production continues to serve {report.servingVersion}.
         </p>
         <p className="mb-3 text-xs text-muted-foreground">{report.promotion.note}</p>
@@ -279,18 +287,23 @@ function MetricRow({
   a,
   b,
   d,
+  ci,
 }: {
   label: string;
   a: number | null;
   b: number | null;
   d: number | null;
+  ci: { lo: number; hi: number } | null;
 }) {
   return (
     <tr className="border-b border-white/5">
       <td className="py-1.5 pr-3 text-foreground">{label}</td>
       <td className="py-1.5 pr-3 tabular-nums">{a === null ? "—" : a.toFixed(4)}</td>
       <td className="py-1.5 pr-3 tabular-nums">{b === null ? "—" : b.toFixed(4)}</td>
-      <td className="py-1.5 tabular-nums">{d === null ? "—" : signed(d)}</td>
+      <td className="py-1.5 pr-3 tabular-nums">{d === null ? "—" : signed(d)}</td>
+      <td className="py-1.5 tabular-nums">
+        {ci ? `${signed(ci.lo)} to ${signed(ci.hi)}` : "—"}
+      </td>
     </tr>
   );
 }

@@ -1,10 +1,15 @@
 /** Production read-path resilience and writer fail-closed gates. */
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { TickOptions } from "@/lib/competitions/premier-league/ops/tick";
+
+const require = createRequire(import.meta.url);
+const yaml = require("js-yaml") as { load(source: string): unknown };
 
 function emptyBundle() {
   return {
@@ -202,7 +207,7 @@ async function main(): Promise<void> {
     /JSON|Unexpected|position/i
   );
   const brokenBytes = fs.readFileSync(bundlePath, "utf8");
-  const { liveOpsObserversDegraded, runGuardedLiveOpsTick } = await import(
+  const { liveOpsObserversDegraded, runGuardedLiveOpsTick, runLiveOpsTick } = await import(
     "@/lib/competitions/premier-league/ops/tick"
   );
   await assert.rejects(
@@ -311,6 +316,7 @@ async function main(): Promise<void> {
     "/health",
     "/market",
     "/api/health",
+    "/api/live",
     "/api/market",
     "/api/market/health",
     "/api/matches/:matchId/intelligence",
@@ -321,7 +327,6 @@ async function main(): Promise<void> {
       header.key === "Cache-Control" && header.value === "private, no-store"
     ));
   }
-  assert.equal(publicCacheSources.includes("/api/live"), true);
   const redirects = await configModule.default.redirects();
   assert.ok(redirects.some((redirect: { source: string }) => redirect.source === "/favicon.ico"));
   assert.equal(publicCacheSources.some(source => /agent|scenario/.test(source)), false);
@@ -465,10 +470,22 @@ async function main(): Promise<void> {
     path.join(process.cwd(), ".github", "workflows", "ops-tick.yml"),
     "utf8"
   );
+  const workflowDocument = yaml.load(workflow) as {
+    jobs?: { tick?: { steps?: Array<{ name?: string; run?: string }> } };
+  };
+  assert.ok(workflowDocument, "ops workflow must be valid YAML");
   assert.match(workflow, /cron: "3-58\/5 \* \* \* \*"/);
   assert.match(workflow, /cron: "17 \* \* \* \*"/);
   assert.match(workflow, /timeout-minutes: 330/);
-  assert.match(workflow, /if \[ "\$MODE" = "loop" \]; then\s+ROUNDS=60/);
+  assert.match(workflow, /mode:\s+description:[\s\S]*?type: choice[\s\S]*?options:\s+- once\s+- loop/);
+  assert.match(workflow, /continue_chain:\s+description:[\s\S]*?type: boolean[\s\S]*?default: false/);
+  assert.match(workflow, /rounds:\s+description:[\s\S]*?type: number[\s\S]*?default: 60/);
+  assert.match(workflow, /parent_run_id:\s+description:[\s\S]*?type: string/);
+  assert.match(workflow, /run-name:.*handoff-from-\{0\}.*inputs\.parent_run_id/);
+  assert.match(workflow, /REQUESTED_ROUNDS: \$\{\{ inputs\.rounds \}\}/);
+  assert.match(workflow, /REQUESTED_ROUNDS="\$\{REQUESTED_ROUNDS:-60\}"/);
+  assert.match(workflow, /\^\[0-9\]\+\$/);
+  assert.match(workflow, /"\$REQUESTED_ROUNDS" -lt 1[\s\S]*?"\$REQUESTED_ROUNDS" -gt 60/);
   assert.match(workflow, /: > \/tmp\/tick-body/);
   assert.match(workflow, /: > \/tmp\/observer-body/);
   assert.match(workflow, /OBSERVER_CODE=[\s\S]*?--max-time 130/);
@@ -477,11 +494,223 @@ async function main(): Promise<void> {
     /for i in \$\(seq 1 "\$ROUNDS"\); do[\s\S]*?: > \/tmp\/observer-body[\s\S]*?OBSERVER_CODE=/
   );
   assert.match(workflow, /"\$OBSERVER_CODE" != "200"[\s\S]*?"\$OBSERVER_CODE" != "409"/);
-  assert.match(workflow, /observer_state=http_\$\{OBSERVER_CODE\}[\s\S]*?fail=1/);
+  assert.match(workflow, /MAX_CONSECUTIVE_FAILURES: "3"/);
+  assert.match(workflow, /core_consecutive_failures="\$\(\( core_consecutive_failures \+ 1 \)\)"/);
+  assert.match(workflow, /observer_consecutive_failures="\$\(\( observer_consecutive_failures \+ 1 \)\)"/);
+  assert.match(workflow, /failure_recovery=core[\s\S]*?core_consecutive_failures=0/);
+  assert.match(workflow, /failure_recovery=observer[\s\S]*?observer_consecutive_failures=0/);
+  assert.match(
+    workflow,
+    /core_consecutive_failures" -ge "\$MAX_CONSECUTIVE_FAILURES"[\s\S]*?fatal_state=core_consecutive_failure_threshold[\s\S]*?break/
+  );
+  assert.doesNotMatch(
+    workflow,
+    /observer_consecutive_failures" -ge "\$MAX_CONSECUTIVE_FAILURES"[\s\S]*?fatal/
+  );
+  assert.match(workflow, /terminal core failures:[\s\S]*?terminal observer failures/);
   assert.match(workflow, /github\.event\.schedule == '17 \* \* \* \*'/);
-  assert.match(workflow, /github\.event_name == 'workflow_dispatch'[\s\S]*?github\.event\.inputs\.mode == 'loop'/);
+  assert.match(workflow, /github\.event_name == 'workflow_dispatch'[\s\S]*?inputs\.mode == 'loop'/);
   assert.match(workflow, /ROUND_STARTED_AT=/);
   assert.match(workflow, /DELAY="\$\(\( 300 - ELAPSED \)\)"/);
+  assert.match(workflow, /permissions: \{\}/);
+  assert.match(workflow, /cancel-in-progress: false/);
+  assert.doesNotMatch(workflow, /cancel-in-progress: true/);
+
+  const tickJobStart = workflow.indexOf("\n  tick:");
+  const handoffJobStart = workflow.indexOf("\n  handoff:");
+  assert.ok(tickJobStart > 0 && handoffJobStart > tickJobStart, "tick and handoff jobs must exist");
+  const tickJob = workflow.slice(tickJobStart, handoffJobStart);
+  const handoffJob = workflow.slice(handoffJobStart);
+  assert.match(tickJob, /permissions:\s+contents: read/);
+  assert.doesNotMatch(tickJob, /actions: write/);
+  assert.match(tickJob, /ROUNDS=1[\s\S]*?if \[ "\$MODE" = "loop" \]/);
+  assert.match(tickJob, /if \[ "\$MODE" = "once" \]; then\s+CORE_URL="\$\{CORE_URL\}&backup=1"/);
+  assert.doesNotMatch(tickJob, /\bfail=[01]\b/);
+  assert.match(
+    tickJob,
+    /market\/ledger observer remains degraded[\s\S]*?forecast-core recurrence will continue/
+  );
+  assert.match(handoffJob, /permissions:\s+actions: write/);
+  assert.doesNotMatch(handoffJob, /CRON_SECRET/);
+  assert.match(handoffJob, /needs: tick/);
+  assert.match(handoffJob, /needs\.tick\.result == 'success'/);
+  assert.match(handoffJob, /github\.run_attempt == 1/);
+  assert.match(handoffJob, /vars\.OPS_HANDOFF_ENABLED == 'true'/);
+  assert.match(handoffJob, /inputs\.mode == 'loop'[\s\S]*?inputs\.continue_chain/);
+  assert.doesNotMatch(handoffJob, /inputs\.mode == 'once'/);
+  assert.doesNotMatch(handoffJob, /always\(\)/);
+  assert.match(handoffJob, /NEXT_TITLE: ops-tick handoff-from-\$\{\{ github\.run_id \}\}/);
+  assert.match(handoffJob, /run\.get\("display_title"\) == os\.environ\["NEXT_TITLE"\]/);
+  assert.match(handoffJob, /handoff_state=already_exists/);
+  assert.match(handoffJob, /"mode": "loop"[\s\S]*?"continue_chain": "true"[\s\S]*?"rounds": "60"/);
+  assert.match(handoffJob, /"parent_run_id": os\.environ\["PARENT_RUN_ID"\]/);
+  assert.equal(
+    (workflow.match(/actions\/workflows\/\$\{WORKFLOW_ID\}\/dispatches/g) ?? []).length,
+    1,
+    "one workflow definition must contain exactly one successor dispatch"
+  );
+  assert.doesNotMatch(handoffJob, /--retry|retry-all-errors/);
+  assert.match(handoffJob, /X-GitHub-Api-Version: 2026-03-10/);
+  assert.doesNotMatch(handoffJob, /return_run_details/);
+  assert.match(handoffJob, /workflow_run_id/);
+  assert.match(handoffJob, /handoff_state=created successor_run_id=/);
+
+  // Execute the exact checked-in tick shell with deterministic HTTP doubles.
+  // Observer-only failures must leave recurrence successful; core failures
+  // still fail closed after the configured threshold.
+  const tickScript = workflowDocument.jobs?.tick?.steps?.find(
+    (step) => step.name === "Authenticated production ticks"
+  )?.run;
+  assert.ok(tickScript, "workflow tick shell must be extractable from parsed YAML");
+  const shellRoot = path.join(root, "workflow-shell");
+  const binRoot = path.join(shellRoot, "bin");
+  fs.mkdirSync(binRoot, { recursive: true });
+  const curlDouble = path.join(binRoot, "curl");
+  fs.writeFileSync(
+    curlDouble,
+    `#!/usr/bin/env bash
+set -euo pipefail
+output=""
+url=""
+for ((i=1; i<=$#; i++)); do
+  arg="\${!i}"
+  if [ "$arg" = "-o" ]; then
+    next=$((i + 1))
+    output="\${!next}"
+  fi
+  if [[ "$arg" == http* ]]; then url="$arg"; fi
+done
+if [[ "$url" == *observers* ]]; then
+  code="\${TEST_OBSERVER_CODE}"
+else
+  code="\${TEST_CORE_CODE}"
+fi
+printf '{}' > "$output"
+printf '%s' "$code"
+`,
+    "utf8"
+  );
+  fs.chmodSync(curlDouble, 0o755);
+  const sleepDouble = path.join(binRoot, "sleep");
+  fs.writeFileSync(sleepDouble, "#!/usr/bin/env bash\nexit 0\n", "utf8");
+  fs.chmodSync(sleepDouble, 0o755);
+  const tickScriptPath = path.join(shellRoot, "tick.sh");
+  fs.writeFileSync(tickScriptPath, tickScript, "utf8");
+  fs.chmodSync(tickScriptPath, 0o755);
+
+  function runWorkflowShell(input: {
+    mode: "once" | "loop";
+    rounds: string;
+    coreCode: string;
+    observerCode: string;
+  }) {
+    const summaryPath = path.join(
+      shellRoot,
+      `summary-${input.mode}-${input.coreCode}-${input.observerCode}.md`
+    );
+    return spawnSync("bash", [tickScriptPath], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${binRoot}:${process.env.PATH ?? ""}`,
+        CRON_SECRET: "test-secret",
+        OPS_TICK_URL: "https://example.invalid/api/ops/tick",
+        OPS_OBSERVER_URL: "https://example.invalid/api/ops/observers",
+        MODE: input.mode,
+        REQUESTED_ROUNDS: input.rounds,
+        MAX_CONSECUTIVE_FAILURES: "3",
+        GITHUB_STEP_SUMMARY: summaryPath,
+        TEST_CORE_CODE: input.coreCode,
+        TEST_OBSERVER_CODE: input.observerCode,
+      },
+    });
+  }
+
+  const observerDegraded = runWorkflowShell({
+    mode: "loop",
+    rounds: "3",
+    coreCode: "200",
+    observerCode: "503",
+  });
+  assert.equal(observerDegraded.status, 0, observerDegraded.stderr);
+  assert.match(observerDegraded.stdout, /forecast-core recurrence will continue/);
+  assert.match(observerDegraded.stdout, /round=3 /);
+
+  const coreDegraded = runWorkflowShell({
+    mode: "loop",
+    rounds: "3",
+    coreCode: "503",
+    observerCode: "200",
+  });
+  assert.notEqual(coreDegraded.status, 0);
+  assert.match(coreDegraded.stdout, /fatal_state=core_consecutive_failure_threshold/);
+
+  const oneShotObserverDegraded = runWorkflowShell({
+    mode: "once",
+    rounds: "60",
+    coreCode: "200",
+    observerCode: "503",
+  });
+  assert.equal(oneShotObserverDegraded.status, 0, oneShotObserverDegraded.stderr);
+  assert.match(oneShotObserverDegraded.stdout, /mode=once rounds=1/);
+  assert.doesNotMatch(oneShotObserverDegraded.stdout, /round=2 /);
+
+  const isolatedNow = "2026-08-26T12:30:00.000Z";
+  const isolatedCoreOptions: TickOptions = {
+    now: isolatedNow,
+    fixtures: [],
+    sources: [
+      {
+        id: "isolated-test-source",
+        kind: "baseline",
+        configured: true,
+        async fetch() {
+          return [];
+        },
+      },
+    ],
+    persistFixtures: false,
+    persistObservations: false,
+    persistFixturePatches: false,
+    skipObservers: true,
+  };
+  await runLiveOpsTick({
+    ...isolatedCoreOptions,
+    shadowFreezeRunner: async () => ({ frozen: 0, errors: [] }),
+  });
+  const { buildHealthReport } = await import(
+    "@/lib/competitions/premier-league/ops/health"
+  );
+  const cleanShadowHealth = buildHealthReport(new Date(isolatedNow));
+  const isolatedShadowFailure = await runLiveOpsTick({
+    ...isolatedCoreOptions,
+    shadowFreezeRunner: async () => {
+      throw new Error("synthetic challenger failure");
+    },
+  });
+  const failedShadowHealth = buildHealthReport(new Date(isolatedNow));
+  assert.deepEqual(isolatedShadowFailure.errors, []);
+  assert.deepEqual(isolatedShadowFailure.shadowErrors, ["synthetic challenger failure"]);
+  assert.equal(isolatedShadowFailure.state.lastError, null);
+  assert.equal(isolatedShadowFailure.state.lastSuccessAt, isolatedNow);
+  assert.equal(
+    isolatedShadowFailure.state.lastShadowError,
+    "synthetic challenger failure"
+  );
+  assert.equal(failedShadowHealth.scheduler.freshness.status, "FRESH");
+  assert.deepEqual(
+    {
+      overall: failedShadowHealth.overall,
+      reasons: failedShadowHealth.reasons,
+      schedulerFreshness: failedShadowHealth.scheduler.freshness,
+    },
+    {
+      overall: cleanShadowHealth.overall,
+      reasons: cleanShadowHealth.reasons,
+      schedulerFreshness: cleanShadowHealth.scheduler.freshness,
+    },
+    "challenger failure must not alter production health"
+  );
   const opsTickSource = fs.readFileSync(
     path.join(process.cwd(), "lib", "competitions", "premier-league", "ops", "tick.ts"),
     "utf8"

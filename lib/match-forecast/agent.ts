@@ -986,10 +986,14 @@ function cacheKey(
     .digest("hex");
 }
 
-export async function runMatchAgent(matchId: string, question: string): Promise<MatchAgentResponse> {
+export async function runMatchAgent(
+  matchId: string,
+  question: string,
+  now = new Date()
+): Promise<MatchAgentResponse> {
   // Resolve the match and establish one immutable tool context before intent
   // handling. Every subsequent numeric answer reads this same context.
-  const { intelligence } = await getMatchContext(matchId);
+  const { intelligence } = await getMatchContext(matchId, now);
   const key = cacheKey(
     matchId,
     question,

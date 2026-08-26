@@ -14,8 +14,11 @@ export interface MatchAgentToolContext {
   intelligence: MatchIntelligence;
 }
 
-export async function getMatchContext(matchId: string): Promise<MatchAgentToolContext> {
-  return { intelligence: await getMatchIntelligence(matchId) };
+export async function getMatchContext(
+  matchId: string,
+  now = new Date()
+): Promise<MatchAgentToolContext> {
+  return { intelligence: await getMatchIntelligence(matchId, now) };
 }
 
 export function getMatchForecast(context: MatchAgentToolContext): MatchForecast {

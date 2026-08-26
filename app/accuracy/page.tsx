@@ -48,8 +48,8 @@ export default async function AccuracyPage() {
         <p className="mx-auto mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">Premier League production snapshots, experimental shadow pairs and historical World Cup reconstruction answer different questions. They are never pooled into one headline accuracy claim.</p>
       </section>
       <section className="mx-auto mb-12 grid max-w-5xl gap-4 md:grid-cols-3">
-        <EvidenceCard label="Premier League production" value={`${ledgerMetrics.production.settledForecastSnapshots} settled snapshots`} status={`${ledgerMetrics.production.uniqueFixturesSettled} unique settled fixtures`} copy={`${ledgerMetrics.production.totalForecastSnapshots} immutable production forecast snapshots. ${production.sampleNote}`} href="/live" />
-        <EvidenceCard label="Shadow challenger" value={`${ledgerMetrics.shadow.settledForecastSnapshots} paired snapshots`} status={`${ledgerMetrics.shadow.uniqueFixturesSettled} unique settled fixtures · ${shadow.promotion.status}`} copy={shadow.sampleNote} href="/shadow" />
+        <EvidenceCard label="Premier League production" value={`${ledgerMetrics.production.settledForecastSnapshots} settled snapshots`} status={`${production.evaluationMaturity.status} · independent N=${production.independentSampleSize} fixtures`} copy={`${ledgerMetrics.production.totalForecastSnapshots} immutable production forecast snapshots. ${production.sampleNote}`} href="/live" />
+        <EvidenceCard label="Shadow challenger" value={`${shadow.pairedSettlementRows} paired snapshot rows`} status={`${shadow.evaluationMaturity.status} · independent N=${shadow.uniquePairedFixtures} fixtures`} copy={shadow.sampleNote} href="/shadow" />
         <EvidenceCard label="World Cup reconstruction" value={`${track.nMatches} matches`} status="Historical only" copy="Walk-forward chronology is enforced inside a completed dataset, but forecasts were not proven frozen and served live before every kickoff." href="#world-cup-reconstruction" />
       </section>
       {/* hero */}

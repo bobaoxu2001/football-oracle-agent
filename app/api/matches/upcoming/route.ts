@@ -10,7 +10,7 @@ export async function GET() {
     await hydrateDurableOps();
     return NextResponse.json(
       { competition: "premier-league", support: "production", matches: upcomingMatchForecasts(8) },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
+      { headers: { "Cache-Control": "private, no-store" } }
     );
   } catch (error) {
     console.error("[/api/matches/upcoming] error:", error);

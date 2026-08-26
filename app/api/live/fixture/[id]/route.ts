@@ -5,17 +5,27 @@ import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { getVerification } from "@/lib/competitions/premier-league/ops/result-feed";
 import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 import { jobsForFixture } from "@/lib/competitions/premier-league/ops/job-ledger";
+import { listLiveSnapshots } from "@/lib/competitions/premier-league/ops/live-snapshot-reader";
+import { forecastFreshness } from "@/lib/match-forecast/service";
+import { effectiveSnapshotGeneratedAt } from "@/lib/snapshots/types";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   await hydrateDurableOps();
+  const now = new Date();
   const fixture = liveFixtures().find((f) => f.id === id);
   if (!fixture) return NextResponse.json({ error: "unknown fixture" }, { status: 404 });
-  const view = fixtureLiveView(id);
+  const view = fixtureLiveView(id, fixture.season, now);
   const verification = getVerification(id);
   const jobs = jobsForFixture(id);
+  const freshness = forecastFreshness(
+    fixture,
+    listLiveSnapshots({ fixtureId: id }),
+    now,
+    jobs
+  );
   const currentKickoff = fixture.kickoffUtc ?? fixture.kickoff ?? null;
   return NextResponse.json({
     fixture: {
@@ -29,6 +39,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       awayGoals: fixture.awayGoals,
     },
     verification,
+    freshness,
     stages: Object.fromEntries(
       Object.entries(view.byStage).map(([stage, row]) => [
         stage,
@@ -47,15 +58,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
                 draw: row.snapshot.drawProbability,
                 away: row.snapshot.awayProbability,
                 asOf: row.snapshot.asOf,
-                generatedAt:
-                  typeof row.snapshot.sourceState?.computedAt === "string"
-                    ? row.snapshot.sourceState.computedAt
-                    : row.snapshot.createdAt,
+                generatedAt: effectiveSnapshotGeneratedAt(row.snapshot),
                 kickoffAtFreeze: row.snapshot.kickoff,
-                validForCurrentKickoff:
-                  !row.snapshot.kickoff ||
-                  (currentKickoff !== null &&
-                    Date.parse(row.snapshot.kickoff) === Date.parse(currentKickoff)),
+                kickoffIdentityCurrent: row.kickoffIdentityCurrent,
+                validForStagePolicy: row.validForStagePolicy,
+                validForCurrentSelection: row.validForCurrentSelection,
+                validityIssues: row.validityIssues,
                 modelVersion: row.snapshot.modelVersion,
               }
             : null,
@@ -72,18 +80,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         },
       ])
     ),
-    immutableTimeline: view.snapshots.map((snapshot) => ({
+    immutableTimeline: view.timeline.map(({ snapshot, ...validity }) => ({
       snapshotKey: snapshot.provenance.uniqueKey,
       stage: snapshot.predictionStage,
       cutoffAt: snapshot.asOf,
-      generatedAt:
-        typeof snapshot.sourceState?.computedAt === "string"
-          ? snapshot.sourceState.computedAt
-          : snapshot.createdAt,
+      generatedAt: effectiveSnapshotGeneratedAt(snapshot),
       kickoffAtFreeze: snapshot.kickoff,
-      validForCurrentKickoff:
-        !snapshot.kickoff ||
-        (currentKickoff !== null && Date.parse(snapshot.kickoff) === Date.parse(currentKickoff)),
+      ...validity,
       modelVersion: snapshot.modelVersion,
     })),
   });

@@ -10,6 +10,7 @@ import { currentHonestyText } from "@/lib/competitions/premier-league/honesty";
 import { loadProductionParams } from "@/lib/competitions/premier-league/model-tracks";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
+import { buildHealthReport } from "@/lib/competitions/premier-league/ops/health";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export async function GET() {
   const report = livePerformanceReport("LIVE_OOS", PREMIER_LEAGUE_CURRENT_SEASON);
   const publicReport = publicLivePerformanceReport(report);
   const ledgerMetrics = canonicalLedgerMetrics(PREMIER_LEAGUE_CURRENT_SEASON);
+  const health = buildHealthReport();
   const upcoming = upcomingLiveFixtures().slice(0, 8).map((f) => ({
     fixtureId: f.id,
     date: f.date,
@@ -46,6 +48,7 @@ export async function GET() {
       operationalForecastSnapshots: ledgerMetrics.production.operationalForecastSnapshots,
     },
     settlements: ledgerMetrics.settlements,
+    freshness: health.freshness,
     productionPerformance: publicReport,
     stagePerformance: publicReport.byStage,
     upcoming,

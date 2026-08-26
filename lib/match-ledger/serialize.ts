@@ -15,7 +15,18 @@
 import type { BigFiveCompetitionId } from "@/lib/competitions/types";
 import { getCompetition } from "@/lib/competitions/registry";
 import type { SettlementRecord } from "@/lib/competitions/premier-league/settlement";
-import type { PredictionSnapshot } from "@/lib/snapshots/types";
+import { productionModelVersion } from "@/lib/competitions/premier-league/shadow/track";
+import {
+  validateProductionForecastSnapshot,
+  type ForecastFreshnessSnapshotInput,
+} from "@/lib/competitions/premier-league/ops/production-freshness";
+import { validateSettlementSnapshotConsistency } from "@/lib/evaluation/settlement-integrity";
+import {
+  effectiveSnapshotGeneratedAt,
+  effectiveSnapshotLatestIncludedInputAt,
+  snapshotUniqueKey,
+  type PredictionSnapshot,
+} from "@/lib/snapshots/types";
 import type { CanonicalMatch, TeamMatchStatistics } from "./types";
 import { isCompletedMatch } from "./types";
 import { teamMatchLines } from "./features";
@@ -90,6 +101,118 @@ export interface SerializedMatch {
   prediction: SerializedPrediction | null;
 }
 
+const PROBABILITY_EPSILON = 1e-12;
+
+function closeEnough(left: number, right: number): boolean {
+  return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= PROBABILITY_EPSILON;
+}
+
+function validProbabilityVector(snapshot: PredictionSnapshot): boolean {
+  const probabilities = [
+    snapshot.homeProbability,
+    snapshot.drawProbability,
+    snapshot.awayProbability,
+  ];
+  return (
+    probabilities.every((value) => Number.isFinite(value) && value >= 0 && value <= 1) &&
+    closeEnough(probabilities.reduce((sum, value) => sum + value, 0), 1) &&
+    closeEnough(snapshot.home, snapshot.homeProbability) &&
+    closeEnough(snapshot.draw, snapshot.drawProbability) &&
+    closeEnough(snapshot.away, snapshot.awayProbability)
+  );
+}
+
+function publicFreshnessInput(snapshot: PredictionSnapshot): ForecastFreshnessSnapshotInput {
+  return {
+    snapshotId: snapshot.provenance?.uniqueKey ?? "",
+    fixtureId: snapshot.fixtureId,
+    modelRole: "production",
+    modelVersion: snapshot.modelVersion,
+    evaluationClass: snapshot.evaluationClass ?? null,
+    predictionStage: String(snapshot.predictionStage),
+    kickoffUtc: snapshot.kickoff,
+    cutoffAt: snapshot.asOf,
+    generatedAt: effectiveSnapshotGeneratedAt(snapshot),
+    latestIncludedInputAt: effectiveSnapshotLatestIncludedInputAt(snapshot),
+  };
+}
+
+/**
+ * Public match-ledger forecast eligibility.
+ *
+ * The match ledger spans the Big Five, while production forecasting currently
+ * spans only the Premier League. Consequently a provider/canonical fixture id
+ * collision must never let a Premier League forecast appear on another
+ * competition's row. The result-observation time is a deterministic read-time
+ * bound for completed matches; it is necessarily after every honest pre-kick
+ * snapshot and avoids making historical serialization depend on wall-clock
+ * time.
+ */
+export function isPublicProductionSnapshotForMatch(
+  match: CanonicalMatch,
+  snapshot: PredictionSnapshot
+): boolean {
+  if (
+    match.competition !== "premier-league" ||
+    !isCompletedMatch(match) ||
+    !match.kickoffUtc ||
+    !match.resultObservedAt ||
+    snapshot.competition !== "premier-league" ||
+    snapshot.season !== match.season ||
+    snapshot.fixtureId !== match.canonicalMatchId ||
+    snapshot.homeSlug !== match.home.slug ||
+    snapshot.awaySlug !== match.away.slug ||
+    snapshot.evaluationClass !== "LIVE_OOS" ||
+    snapshot.modelVersion !== productionModelVersion() ||
+    snapshot.dataCutoff !== snapshot.asOf ||
+    snapshot.provenance?.uniqueKey !== snapshotUniqueKey(snapshot) ||
+    !validProbabilityVector(snapshot)
+  ) {
+    return false;
+  }
+
+  return Boolean(
+    validateProductionForecastSnapshot({
+      snapshot: publicFreshnessInput(snapshot),
+      expectedKickoffUtc: match.kickoffUtc,
+      evaluatedAt: match.resultObservedAt,
+    }).valid
+  );
+}
+
+function settlementMatchesCanonicalResult(
+  match: CanonicalMatch,
+  snapshot: PredictionSnapshot,
+  settlement: SettlementRecord
+): boolean {
+  if (
+    !isPublicProductionSnapshotForMatch(match, snapshot) ||
+    !validateSettlementSnapshotConsistency(settlement, snapshot).consistent ||
+    settlement.fixtureId !== match.canonicalMatchId ||
+    settlement.season !== match.season ||
+    settlement.evaluationClass !== "LIVE_OOS" ||
+    settlement.actualScore.home !== match.fullTimeHomeGoals ||
+    settlement.actualScore.away !== match.fullTimeAwayGoals
+  ) {
+    return false;
+  }
+
+  const actualOutcome =
+    (match.fullTimeHomeGoals as number) > (match.fullTimeAwayGoals as number)
+      ? "home"
+      : (match.fullTimeHomeGoals as number) < (match.fullTimeAwayGoals as number)
+        ? "away"
+        : "draw";
+  const settledAt = Date.parse(settlement.settledAt);
+  const kickoffAt = Date.parse(match.kickoffUtc as string);
+  return (
+    settlement.actualOutcome === actualOutcome &&
+    Number.isFinite(settledAt) &&
+    Number.isFinite(kickoffAt) &&
+    settledAt >= kickoffAt
+  );
+}
+
 export function serializeMatchForApi(
   match: CanonicalMatch,
   extra: { settlement?: SettlementRecord | null; snapshot?: PredictionSnapshot | null } = {}
@@ -113,16 +236,29 @@ export function serializeMatchForApi(
     }
   }
 
-  const settlement = extra.settlement ?? null;
-  const snapshot = extra.snapshot ?? null;
+  // Fail closed at the public serialization boundary even if a future caller
+  // bypasses the view selector. A corrupt settlement does not erase an honest
+  // immutable forecast; it is simply not published as settled.
+  const candidateSnapshot = extra.snapshot ?? null;
+  const snapshot =
+    candidateSnapshot && isPublicProductionSnapshotForMatch(match, candidateSnapshot)
+      ? candidateSnapshot
+      : null;
+  const candidateSettlement = extra.settlement ?? null;
+  const settlement =
+    snapshot &&
+    candidateSettlement &&
+    settlementMatchesCanonicalResult(match, snapshot, candidateSettlement)
+      ? candidateSettlement
+      : null;
   let prediction: SerializedPrediction | null = null;
-  if (settlement) {
+  if (settlement && snapshot) {
     prediction = {
       modelVersion: settlement.modelVersion,
       predictionStage: String(settlement.predictionStage),
-      // The snapshot's asOf is the authoritative cutoff; fall back to the
-      // settlement key, which embeds it, rather than to settledAt (post-result).
-      asOf: snapshot?.asOf ?? settlement.snapshotUniqueKey.split("::").pop() ?? settlement.settledAt,
+      // A settlement is publishable only with its exact validated snapshot, so
+      // the immutable snapshot cutoff is always authoritative here.
+      asOf: snapshot.asOf,
       home: settlement.predicted.home,
       draw: settlement.predicted.draw,
       away: settlement.predicted.away,

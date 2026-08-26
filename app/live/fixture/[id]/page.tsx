@@ -11,6 +11,8 @@ import { compareFixture } from "@/lib/competitions/premier-league/shadow/compare
 import { listCanonicalMatches } from "@/lib/match-ledger/store";
 import { ModelComparison } from "@/components/shadow/model-comparison";
 import { jobsForFixture } from "@/lib/competitions/premier-league/ops/job-ledger";
+import { listLiveSnapshots } from "@/lib/competitions/premier-league/ops/live-snapshot-reader";
+import { forecastFreshness } from "@/lib/match-forecast/service";
 
 export const dynamic = "force-dynamic";
 
@@ -26,12 +28,19 @@ function fmt(n: number | null | undefined, d = 3): string {
 export default async function FixtureLivePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await hydrateDurableOps();
+  const now = new Date();
   const fixture = liveFixtures().find((f) => f.id === id);
   if (!fixture) notFound();
   const home = getClub(fixture.homeSlug);
   const away = getClub(fixture.awaySlug);
-  const view = fixtureLiveView(id);
+  const view = fixtureLiveView(id, fixture.season, now);
   const jobs = jobsForFixture(id);
+  const freshness = forecastFreshness(
+    fixture,
+    listLiveSnapshots({ fixtureId: id }),
+    now,
+    jobs
+  );
   const verification = getVerification(id);
   const ledgerMatches = await listCanonicalMatches({
     competition: "premier-league",
@@ -77,6 +86,17 @@ export default async function FixtureLivePage({ params }: { params: Promise<{ id
       </section>
 
       <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
+        <h2 className="font-semibold">Fixture forecast stage coverage</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {freshness.status.replaceAll("_", " ")} · selected {freshness.selectedStage ?? "none"} ·
+          latest required {freshness.latestRequiredStage ?? "baseline"} · missed {freshness.missedStages.length ? freshness.missedStages.join(", ") : "none"}.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          This is fixture-specific forecast coverage. Scheduler liveness and fixture metadata sync are separate scoped statuses on Operational Health.
+        </p>
+      </section>
+
+      <section className="mx-auto mb-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
         <h2 className="mb-3 font-semibold">Predictions by stage</h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[48rem] text-left text-xs text-muted-foreground">
@@ -102,19 +122,17 @@ export default async function FixtureLivePage({ params }: { params: Promise<{ id
                   stageJobs.find((candidate) => candidate.kickoffUtc === currentKickoff) ??
                   stageJobs[0] ??
                   null;
-                const snapshotMatchesCurrentKickoff =
-                  !row.snapshot?.kickoff ||
-                  (currentKickoff !== null &&
-                    Date.parse(row.snapshot.kickoff) === Date.parse(currentKickoff));
                 const status = row.snapshot
-                  ? snapshotMatchesCurrentKickoff
+                  ? row.validForCurrentSelection
                     ? "SUCCEEDED"
-                    : "SUPERSEDED_KICKOFF"
+                    : row.kickoffIdentityCurrent
+                      ? "INVALID_PREKICK"
+                      : "SUPERSEDED_KICKOFF"
                   : job?.status ?? "NOT_SCHEDULED";
                 return (
                   <tr key={stage} className="border-b border-white/5">
                     <th scope="row" className="py-1.5 pr-3 font-medium text-foreground">{stage}</th>
-                    <td className={status === "MISSED" || status === "SUPERSEDED_KICKOFF" ? "py-1.5 pr-3 font-semibold text-amber-200" : "py-1.5 pr-3"}>
+                    <td className={status === "MISSED" || status === "SUPERSEDED_KICKOFF" || status === "INVALID_PREKICK" ? "py-1.5 pr-3 font-semibold text-amber-200" : "py-1.5 pr-3"}>
                       {status}
                     </td>
                     <td className="py-1.5 pr-3 tabular-nums">

@@ -4,6 +4,7 @@ import type {
   MatchLineupContext,
   OverallLineupStatus,
 } from "@/lib/competitions/premier-league/context";
+import type { FixtureForecastFreshness } from "@/lib/competitions/premier-league/ops/production-freshness";
 
 export type ContextSnapshotStatus = "RECORDED" | "NOT_RECORDED" | "MISSING";
 
@@ -103,7 +104,9 @@ export interface ForecastProvenance {
   dataFreshness: {
     fixtureRetrievedAt: string | null;
     ratingStateAsOf: string;
-    latestInputAt: string;
+    /** Actual maximum included input timestamp when prospectively recorded. */
+    latestIncludedInputAt: string | null;
+    latestIncludedInputStatus: "RECORDED" | "UNAVAILABLE";
   };
   immutableForecastId: string;
   scoreDistributionArtifact:
@@ -186,6 +189,7 @@ export interface ForecastTimelinePoint {
   generatedAt: string;
   kickoffAtFreeze: string | null;
   validForCurrentKickoff: boolean;
+  validityIssues: string[];
   predictionStage: PredictionStage;
   modelVersion: string;
   result: MatchForecast["result"];
@@ -266,11 +270,7 @@ export interface MatchIntelligence {
   audit: ForecastProvenance;
 }
 
-export interface ForecastFreshness {
-  status: "fresh" | "stale";
-  ageHours: number;
-  note: string;
-}
+export type ForecastFreshness = FixtureForecastFreshness;
 
 export interface UpcomingMatchForecast {
   match: MatchIntelligence["match"];

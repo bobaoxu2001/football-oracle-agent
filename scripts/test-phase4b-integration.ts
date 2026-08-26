@@ -459,10 +459,12 @@ async function main(): Promise<void> {
   assert.ok(intelligence.comparison?.contextChanges.some((item) => item.entityId === "saka"));
   assert.equal(intelligence.comparison?.modelVersionChanged, false);
   assert.equal(intelligence.comparison?.cutoffChanged, true);
+  const agentNow = new Date("2026-09-05T19:00:00.000Z");
 
   const moved = await agent.runMatchAgent(
     fixture.id,
-    "Why did your Arsenal probability move?"
+    "Why did your Arsenal probability move?",
+    agentNow
   );
   assert.equal(moved.answer.includes(intelligence.comparison!.oldForecastId), true);
   assert.equal(moved.answer.includes(intelligence.comparison!.newForecastId), true);
@@ -474,7 +476,8 @@ async function main(): Promise<void> {
   agent.clearMatchAgentCacheForTests();
   const llmEnabledWhy = await agent.runMatchAgent(
     fixture.id,
-    "Why does the production model lean this way?"
+    "Why does the production model lean this way?",
+    agentNow
   );
   assert.equal(llmEnabledWhy.narration.mode, "deterministic-template");
   assert.equal(llmEnabledWhy.narration.provider, null);
@@ -482,56 +485,62 @@ async function main(): Promise<void> {
   process.env.MATCH_AGENT_LLM_ENABLED = "0";
   agent.clearMatchAgentCacheForTests();
 
-  const availability = await agent.runMatchAgent(fixture.id, "Is Bukayo Saka expected to play?");
+  const availability = await agent.runMatchAgent(fixture.id, "Is Bukayo Saka expected to play?", agentNow);
   assert.match(availability.answer, /EXPECTED_AVAILABLE/);
   assert.deepEqual(availability.numericEvidence, {});
-  const available = await agent.runMatchAgent(fixture.id, "Is Bukayo Saka available?");
+  const available = await agent.runMatchAgent(fixture.id, "Is Bukayo Saka available?", agentNow);
   assert.match(available.answer, /EXPECTED_AVAILABLE/);
   assert.deepEqual(available.numericEvidence, {});
-  const out = await agent.runMatchAgent(fixture.id, "Is Bukayo Saka out?");
+  const out = await agent.runMatchAgent(fixture.id, "Is Bukayo Saka out?", agentNow);
   assert.match(out.answer, /EXPECTED_AVAILABLE/);
   assert.deepEqual(out.numericEvidence, {});
   const known = await agent.runMatchAgent(
     fixture.id,
-    "Was Saka's availability known at this forecast cutoff?"
+    "Was Saka's availability known at this forecast cutoff?",
+    agentNow
   );
   assert.match(known.answer, /known to Oracle by this forecast cutoff/i);
   const deictic = await agent.runMatchAgent(
     fixture.id,
-    "Was that information known when this forecast was made?"
+    "Was that information known when this forecast was made?",
+    agentNow
   );
   assert.match(deictic.answer, /does not identify which evidence item/i);
-  const used = await agent.runMatchAgent(fixture.id, "Did the model use Saka's availability?");
+  const used = await agent.runMatchAgent(fixture.id, "Did the model use Saka's availability?", agentNow);
   assert.match(used.answer, /Context evidence used in this forecast: 0/);
   assert.deepEqual(used.numericEvidence, {});
-  const scenario = await agent.runMatchAgent(fixture.id, "What if Saka doesn't start?");
+  const scenario = await agent.runMatchAgent(fixture.id, "What if Saka doesn't start?", agentNow);
   assert.match(scenario.answer, /UNSUPPORTED_SCENARIO/);
   assert.equal(/\d+(?:\.\d+)?%/.test(scenario.answer), false);
   assert.deepEqual(scenario.numericEvidence, {});
   const alternateScenario = await agent.runMatchAgent(
     fixture.id,
-    "Suppose Saka does not start; how would the probabilities change?"
+    "Suppose Saka does not start; how would the probabilities change?",
+    agentNow
   );
   assert.match(alternateScenario.answer, /UNSUPPORTED_SCENARIO/);
   assert.equal(/\d+(?:\.\d+)?%/.test(alternateScenario.answer), false);
   assert.deepEqual(alternateScenario.numericEvidence, {});
   const declarativeScenario = await agent.runMatchAgent(
     fixture.id,
-    "Saka does not start; how do the probabilities change?"
+    "Saka does not start; how do the probabilities change?",
+    agentNow
   );
   assert.match(declarativeScenario.answer, /UNSUPPORTED_SCENARIO/);
   assert.equal(/\d+(?:\.\d+)?%/.test(declarativeScenario.answer), false);
   assert.deepEqual(declarativeScenario.numericEvidence, {});
   const withScenario = await agent.runMatchAgent(
     fixture.id,
-    "How would probabilities change with Saka unavailable?"
+    "How would probabilities change with Saka unavailable?",
+    agentNow
   );
   assert.match(withScenario.answer, /UNSUPPORTED_SCENARIO/);
   assert.equal(/\d+(?:\.\d+)?%/.test(withScenario.answer), false);
   assert.deepEqual(withScenario.numericEvidence, {});
   const unicodeScenario = await agent.runMatchAgent(
     fixture.id,
-    "Suppose Martin Ødegaard does not start; how would the probabilities change?"
+    "Suppose Martin Ødegaard does not start; how would the probabilities change?",
+    agentNow
   );
   assert.match(unicodeScenario.answer, /UNSUPPORTED_SCENARIO/);
   assert.equal(/\d+(?:\.\d+)?%/.test(unicodeScenario.answer), false);
@@ -562,7 +571,7 @@ async function main(): Promise<void> {
     ),
     false
   );
-  const lineup = await agent.runMatchAgent(fixture.id, "Is the expected lineup available?");
+  const lineup = await agent.runMatchAgent(fixture.id, "Is the expected lineup available?", agentNow);
   assert.match(lineup.answer, /lineup state: NONE/i);
   assert.doesNotMatch(lineup.answer, /that player/i);
 

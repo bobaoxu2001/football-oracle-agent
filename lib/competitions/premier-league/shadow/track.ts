@@ -13,6 +13,7 @@
 
 import type { ModelTrack } from "../model-tracks";
 import { PRODUCTION_MODEL_VERSION } from "../model-tracks";
+import { EVALUATION_MATURITY_POLICY } from "@/lib/evaluation/evidence-integrity";
 
 export const SHADOW_MODEL_VERSION = "pl-live-v0.3.0-shadow";
 
@@ -82,10 +83,12 @@ export function isShadowVersion(modelVersion: string): boolean {
  * Below this, differences are noise and displaying them invites false
  * conclusions — the same threshold the LIVE_OOS ledger already uses.
  */
-export const MIN_PAIRED_FOR_DISPLAY = 20;
+export const MIN_PAIRED_FOR_DISPLAY =
+  EVALUATION_MATURITY_POLICY.provisionalMinUniqueFixtures;
 
 /** Minimum paired settlements before a promotion decision is even considered. */
-export const MIN_PAIRED_FOR_DECISION = 50;
+export const MIN_PAIRED_FOR_DECISION =
+  EVALUATION_MATURITY_POLICY.evaluationReadyMinUniqueFixtures;
 
 /**
  * Metric visibility is not promotion eligibility.
@@ -95,19 +98,22 @@ export const MIN_PAIRED_FOR_DECISION = 50;
  *   n ≥ 50  → metrics visible, status UNDER_OBSERVATION (a human may evaluate;
  *             nothing here promotes automatically)
  */
-export function shadowMetricsVisible(pairedEvidence: number, integrityOk: boolean): boolean {
-  return pairedEvidence >= MIN_PAIRED_FOR_DISPLAY && integrityOk;
+export function shadowMetricsVisible(
+  uniquePairedFixtures: number,
+  integrityOk: boolean
+): boolean {
+  return uniquePairedFixtures >= MIN_PAIRED_FOR_DISPLAY && integrityOk;
 }
 
 export type ShadowPromotionStatus = "NOT_ELIGIBLE" | "UNDER_OBSERVATION";
 
 export function shadowPromotionStatus(input: {
-  pairedEvidence: number;
+  uniquePairedFixtures: number;
   integrityOk: boolean;
   hasProductionShadowFreeze: boolean;
 }): ShadowPromotionStatus {
   if (
-    input.pairedEvidence >= MIN_PAIRED_FOR_DECISION &&
+    input.uniquePairedFixtures >= MIN_PAIRED_FOR_DECISION &&
     input.integrityOk &&
     input.hasProductionShadowFreeze
   ) {
@@ -130,7 +136,7 @@ export interface PromotionCriterion {
 export const PROMOTION_CRITERIA: PromotionCriterion[] = [
   {
     key: "sample-size",
-    requirement: `>= ${MIN_PAIRED_FOR_DECISION} paired settlements`,
+    requirement: `>= ${MIN_PAIRED_FOR_DECISION} unique fixtures with valid paired settlements`,
     rationale:
       "Proper-score differences on small samples are dominated by variance. 20 is the floor for looking; 50 is the floor for deciding.",
   },

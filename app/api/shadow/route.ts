@@ -45,10 +45,7 @@ export async function GET(req: Request) {
       });
       return NextResponse.json({
         servingModelVersion: productionModelVersion(),
-        ledgerMetrics: {
-          production: ledgerMetrics.production,
-          shadow: ledgerMetrics.shadow,
-        },
+        ledgerMetrics,
         experimental: comparison.shadow.modelVersion,
         disclaimer:
           "The shadow model is a challenger under evaluation. It is never served as the product's prediction and a probability difference is not evidence that either model is better.",
@@ -59,10 +56,7 @@ export async function GET(req: Request) {
     const report = shadowEvaluationReport(season);
     return NextResponse.json({
       servingModelVersion: productionModelVersion(),
-      ledgerMetrics: {
-        production: ledgerMetrics.production,
-        shadow: ledgerMetrics.shadow,
-      },
+      ledgerMetrics,
       disclaimer:
         "Paired forward out-of-sample evaluation. Headline metrics are withheld below the display threshold, and promotion is never automatic.",
       ...report,

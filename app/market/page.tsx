@@ -3,7 +3,10 @@ import Link from "next/link";
 import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
-import { buildMarketHealthReport } from "@/lib/competitions/premier-league/market/health";
+import {
+  buildMarketHealthReport,
+  unavailableMarketHealthReport,
+} from "@/lib/competitions/premier-league/market/health";
 import {
   emptyMarketState,
   listLatestConsensus,
@@ -38,34 +41,10 @@ export default async function MarketPage() {
   const health: MarketHealthReport =
     healthResult.status === "fulfilled"
       ? healthResult.value
-      : {
-          overall: "DEGRADED",
-          reasons: ["market summary temporarily unavailable"],
-          source: {
-            id: "the-odds-api",
-            configured: false,
-            region: "uk",
-            sport: "soccer_epl",
-            market: "h2h",
-          },
-          lastSuccessAt: null,
-          lastFailedAt: null,
-          lastError: "market summary temporarily unavailable",
-          quotaRemaining: null,
-          quotaUsed: null,
-          lastRequestCost: null,
-          nextScheduledPoll: null,
-          currentCadenceMs: null,
-          eventsHint: "summary unavailable",
-          fixturesMatched: 0,
-          unmatched: 0,
-          ambiguous: 0,
-          bookmakersObserved: 0,
-          observationsStored: 0,
-          consensusStored: 0,
-          firstMarketObservationAt: null,
-          schemaVersion: "market-recorder-v0.1.0",
-        };
+      : unavailableMarketHealthReport(
+          new Date(),
+          "market summary temporarily unavailable"
+        );
   const state =
     stateResult.status === "fulfilled" ? stateResult.value : emptyMarketState();
   const consensus =
@@ -89,7 +68,7 @@ export default async function MarketPage() {
 
       <section className="mx-auto mb-8 grid max-w-3xl gap-3 sm:grid-cols-3">
         <Stat label="Market health" value={health.overall} />
-        <Stat label="Observations" value={String(health.observationsStored)} />
+        <Stat label="Observations" value={health.observationsStored === null ? "—" : String(health.observationsStored)} />
         <Stat label="Last poll" value={health.lastSuccessAt ? health.lastSuccessAt.slice(0, 16) : "—"} />
       </section>
 

@@ -41,6 +41,11 @@ export interface TickOptions {
   skipShadow?: boolean;
   /** Keep slow observational consumers outside the forecast function budget. */
   skipObservers?: boolean;
+  /** Deterministic test seam for proving challenger/production isolation. */
+  shadowFreezeRunner?: (now: string) => Promise<{
+    frozen: number;
+    errors: string[];
+  }>;
 }
 
 export interface TickResult {
@@ -57,6 +62,8 @@ export interface TickResult {
   ratingsApplied: number;
   /** Challenger snapshots frozen this tick. Never affects the baseline count. */
   shadowFrozen: number;
+  /** Challenger-only diagnostics. Never control production tick success. */
+  shadowErrors: string[];
   errors: string[];
   state: LiveOpsTickState;
 }
@@ -169,20 +176,28 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
   // Any failure is captured, never propagated: the challenger must not be able
   // to break production forecasting.
   let shadowFrozen = 0;
+  const shadowErrors: string[] = [];
   if (!options.skipShadow) {
     try {
-      const [{ freezeShadowForCompletedJobs }, { shadowModelEnabled }, { listCanonicalMatches }] =
-        await Promise.all([
-          import("../shadow/freeze"),
-          import("../shadow/track"),
-          import("@/lib/match-ledger/store"),
-        ]);
-      if (shadowModelEnabled()) {
-        const ledgerMatches = await listCanonicalMatches({
-          competition: "premier-league",
-          season: PREMIER_LEAGUE_CURRENT_SEASON,
-        });
-        const shadow = freezeShadowForCompletedJobs({ now, ledgerMatches });
+      let shadow: { frozen: number; errors: string[] } | null = null;
+      if (options.shadowFreezeRunner) {
+        shadow = await options.shadowFreezeRunner(now);
+      } else {
+        const [{ freezeShadowForCompletedJobs }, { shadowModelEnabled }, { listCanonicalMatches }] =
+          await Promise.all([
+            import("../shadow/freeze"),
+            import("../shadow/track"),
+            import("@/lib/match-ledger/store"),
+          ]);
+        if (shadowModelEnabled()) {
+          const ledgerMatches = await listCanonicalMatches({
+            competition: "premier-league",
+            season: PREMIER_LEAGUE_CURRENT_SEASON,
+          });
+          shadow = freezeShadowForCompletedJobs({ now, ledgerMatches });
+        }
+      }
+      if (shadow) {
         shadowFrozen = shadow.frozen;
         if (shadow.frozen > 0) {
           state.lastShadowFreezeAt = now;
@@ -190,7 +205,7 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
         }
         if (shadow.errors.length) {
           state.lastShadowError = shadow.errors[shadow.errors.length - 1];
-          errors.push(...shadow.errors.map((e) => `shadow: ${e}`));
+          shadowErrors.push(...shadow.errors);
         } else {
           state.lastShadowError = null;
         }
@@ -198,7 +213,7 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     } catch (err) {
       const message = (err as Error).message;
       state.lastShadowError = message;
-      errors.push(`shadow freeze: ${message}`);
+      shadowErrors.push(message);
     }
   }
 
@@ -263,6 +278,7 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     settled,
     ratingsApplied,
     shadowFrozen,
+    shadowErrors,
     errors,
     state,
   };
@@ -410,6 +426,7 @@ export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<
       settled: 0,
       ratingsApplied: 0,
       shadowFrozen: 0,
+      shadowErrors: [],
       errors: [],
       state,
       skipped: true,

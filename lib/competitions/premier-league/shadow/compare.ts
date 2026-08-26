@@ -12,9 +12,19 @@ import { loadSettlements, type SettlementRecord } from "../settlement";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "../config";
 import { PRODUCTION_MODEL_VERSION } from "../model-tracks";
 import { getClub } from "../clubs";
+import {
+  validateProductionForecastSnapshot,
+  type ForecastSnapshotRole,
+  type ProductionFreshnessStage,
+} from "../ops/production-freshness";
 import { predictPremierLeagueMatch } from "@/lib/prediction-engine/league-engine";
-import type { PredictionSnapshot } from "@/lib/snapshots/types";
+import {
+  effectiveSnapshotGeneratedAt,
+  effectiveSnapshotLatestIncludedInputAt,
+  type PredictionSnapshot,
+} from "@/lib/snapshots/types";
 import type { CanonicalMatch } from "@/lib/match-ledger/types";
+import { validateSettlementSnapshotConsistency } from "@/lib/evaluation/settlement-integrity";
 import { predictPremierLeagueShadow } from "./model";
 import { explainShadowPrediction, type ShadowExplanation } from "./explain";
 import { SHADOW_MODEL_VERSION, productionModelVersion } from "./track";
@@ -71,17 +81,127 @@ export interface FixtureComparison {
   note: string;
 }
 
-function latestBefore(
-  snapshots: PredictionSnapshot[],
-  modelVersion: string,
-  kickoffUtc: string | null
-): PredictionSnapshot | null {
-  if (!kickoffUtc) return null;
-  const kickoffMs = Date.parse(kickoffUtc);
-  const eligible = snapshots
-    .filter((s) => s.modelVersion === modelVersion && Date.parse(s.asOf) < kickoffMs)
-    .sort((a, b) => a.asOf.localeCompare(b.asOf));
-  return eligible[eligible.length - 1] ?? null;
+interface ValidComparisonSnapshot {
+  snapshot: PredictionSnapshot;
+  stage: ProductionFreshnessStage;
+  cutoffMs: number;
+  generatedMs: number;
+}
+
+interface FrozenComparisonPair {
+  baseline: PredictionSnapshot;
+  shadow: PredictionSnapshot;
+  stage: ProductionFreshnessStage;
+}
+
+function validComparisonSnapshots(input: {
+  snapshots: PredictionSnapshot[];
+  modelVersion: string;
+  modelRole: ForecastSnapshotRole;
+  fixtureId: string;
+  homeSlug: string;
+  awaySlug: string;
+  kickoffUtc: string | null;
+  season: string;
+  evaluatedAt: string;
+}): ValidComparisonSnapshot[] {
+  if (!input.kickoffUtc) return [];
+  const valid: ValidComparisonSnapshot[] = [];
+  for (const snapshot of input.snapshots) {
+    if (
+      snapshot.competition !== "premier-league" ||
+      snapshot.season !== input.season ||
+      snapshot.fixtureId !== input.fixtureId ||
+      snapshot.homeSlug !== input.homeSlug ||
+      snapshot.awaySlug !== input.awaySlug ||
+      snapshot.modelVersion !== input.modelVersion ||
+      snapshot.evaluationClass !== "LIVE_OOS"
+    ) {
+      continue;
+    }
+    const result = validateProductionForecastSnapshot({
+      snapshot: {
+        snapshotId: snapshot.provenance.uniqueKey,
+        fixtureId: snapshot.fixtureId,
+        modelRole: input.modelRole,
+        modelVersion: snapshot.modelVersion,
+        evaluationClass: snapshot.evaluationClass ?? null,
+        predictionStage: String(snapshot.predictionStage),
+        kickoffUtc: snapshot.kickoff,
+        cutoffAt: snapshot.asOf,
+        generatedAt: effectiveSnapshotGeneratedAt(snapshot),
+        latestIncludedInputAt: effectiveSnapshotLatestIncludedInputAt(snapshot),
+      },
+      expectedKickoffUtc: input.kickoffUtc,
+      evaluatedAt: input.evaluatedAt,
+    });
+    if (!result.valid) continue;
+    valid.push({
+      snapshot,
+      stage: result.valid.stage,
+      cutoffMs: result.valid.cutoffMs,
+      generatedMs: result.valid.generatedMs,
+    });
+  }
+  return valid;
+}
+
+function latestValidPair(input: {
+  snapshots: PredictionSnapshot[];
+  fixtureId: string;
+  homeSlug: string;
+  awaySlug: string;
+  kickoffUtc: string | null;
+  season: string;
+  evaluatedAt: string;
+}): FrozenComparisonPair | null {
+  const shared = {
+    snapshots: input.snapshots,
+    fixtureId: input.fixtureId,
+    homeSlug: input.homeSlug,
+    awaySlug: input.awaySlug,
+    kickoffUtc: input.kickoffUtc,
+    season: input.season,
+    evaluatedAt: input.evaluatedAt,
+  };
+  const baseline = validComparisonSnapshots({
+    ...shared,
+    modelVersion: PRODUCTION_MODEL_VERSION,
+    modelRole: "production",
+  });
+  const shadowByPair = new Map(
+    validComparisonSnapshots({
+      ...shared,
+      modelVersion: SHADOW_MODEL_VERSION,
+      modelRole: "shadow",
+    }).map((row) => [`${row.stage}\u0000${row.snapshot.asOf}`, row] as const)
+  );
+  const pairs = baseline
+    .map((row) => {
+      const shadow = shadowByPair.get(`${row.stage}\u0000${row.snapshot.asOf}`);
+      return shadow ? { baseline: row, shadow } : null;
+    })
+    .filter(
+      (pair): pair is { baseline: ValidComparisonSnapshot; shadow: ValidComparisonSnapshot } =>
+        pair !== null
+    )
+    .sort(
+      (a, b) =>
+        a.baseline.cutoffMs - b.baseline.cutoffMs ||
+        Math.max(a.baseline.generatedMs, a.shadow.generatedMs) -
+          Math.max(b.baseline.generatedMs, b.shadow.generatedMs) ||
+        a.baseline.snapshot.provenance.uniqueKey.localeCompare(
+          b.baseline.snapshot.provenance.uniqueKey
+        )
+    );
+  const latest = pairs.at(-1);
+  return latest
+    ? {
+        baseline: latest.baseline.snapshot,
+        shadow: latest.shadow.snapshot,
+        stage: latest.baseline.stage,
+      }
+    : null;
 }
 
 function settlementFor(
@@ -91,6 +211,7 @@ function settlementFor(
   if (!snapshot) return null;
   const row = settlements.find((s) => s.snapshotUniqueKey === snapshot.provenance.uniqueKey);
   if (!row) return null;
+  if (!validateSettlementSnapshotConsistency(row, snapshot).consistent) return null;
   return {
     brier: row.brier,
     rps: row.rps,
@@ -149,13 +270,22 @@ export function compareFixture(input: {
   }
   const settlements = loadSettlements().filter((s) => s.fixtureId === input.fixtureId);
 
-  const baselineSnap = latestBefore(snapshots, PRODUCTION_MODEL_VERSION, input.kickoffUtc);
-  const shadowSnap = latestBefore(snapshots, SHADOW_MODEL_VERSION, input.kickoffUtc);
+  const frozenPair = latestValidPair({
+    snapshots,
+    fixtureId: input.fixtureId,
+    homeSlug: input.homeSlug,
+    awaySlug: input.awaySlug,
+    kickoffUtc: input.kickoffUtc,
+    season,
+    evaluatedAt: now,
+  });
+  const baselineSnap = frozenPair?.baseline ?? null;
+  const shadowSnap = frozenPair?.shadow ?? null;
 
   // Both sides must be read at the SAME cutoff. When both are frozen we use the
   // shared asOf; otherwise we preview both at `now`, so a delta is never taken
   // across two different information sets.
-  const bothFrozen = Boolean(baselineSnap && shadowSnap && baselineSnap.asOf === shadowSnap.asOf);
+  const bothFrozen = Boolean(frozenPair);
   const cutoff = bothFrozen ? baselineSnap!.asOf : now;
 
   const shadowPrediction = predictPremierLeagueShadow({
@@ -174,7 +304,7 @@ export function compareFixture(input: {
         draw: baselineSnap!.drawProbability,
         away: baselineSnap!.awayProbability,
         asOf: baselineSnap!.asOf,
-        predictionStage: String(baselineSnap!.predictionStage),
+        predictionStage: frozenPair!.stage,
         frozen: true,
         settlement: settlementFor(settlements, baselineSnap),
       }
@@ -189,7 +319,7 @@ export function compareFixture(input: {
           draw: live.drawProbability,
           away: live.teamBWinProbability,
           asOf: cutoff,
-          predictionStage: baselineSnap ? String(baselineSnap.predictionStage) : null,
+          predictionStage: null,
           frozen: false,
           settlement: null,
         };
@@ -202,7 +332,7 @@ export function compareFixture(input: {
         draw: shadowSnap!.drawProbability,
         away: shadowSnap!.awayProbability,
         asOf: shadowSnap!.asOf,
-        predictionStage: String(shadowSnap!.predictionStage),
+        predictionStage: frozenPair!.stage,
         frozen: true,
         settlement: settlementFor(settlements, shadowSnap),
       }
@@ -212,7 +342,7 @@ export function compareFixture(input: {
         draw: shadowPrediction.draw,
         away: shadowPrediction.away,
         asOf: cutoff,
-        predictionStage: shadowSnap ? String(shadowSnap.predictionStage) : null,
+        predictionStage: null,
         frozen: false,
         settlement: null,
       };
