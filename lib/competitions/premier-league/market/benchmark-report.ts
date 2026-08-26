@@ -8,6 +8,7 @@ import { productionModelVersion } from "../shadow/track";
 import {
   countConsensus,
   listLatestConsensusAtOrBeforeByFixture,
+  loadMarketState,
 } from "./store";
 import {
   buildMarketBenchmarkReport,
@@ -30,13 +31,24 @@ export async function productionMarketBenchmarkReport(now = new Date()) {
     productionModelVersion: modelVersion,
     evaluatedAt,
   });
-  const cutoffByFixture = new Map(
-    selection.latestSnapshots.map((snapshot) => [snapshot.fixtureId, snapshot.asOf])
-  );
-  const [consensus, consensusStored] = await Promise.all([
-    listLatestConsensusAtOrBeforeByFixture(cutoffByFixture),
+  const [state, consensusStored] = await Promise.all([
+    loadMarketState(),
     countConsensus(),
   ]);
+  const firstMarketAt = state.firstMarketObservationAt
+    ? Date.parse(state.firstMarketObservationAt)
+    : null;
+  const cutoffByFixture = new Map(
+    selection.latestSnapshots
+      .filter(
+        (snapshot) =>
+          firstMarketAt === null || Date.parse(snapshot.asOf) >= firstMarketAt
+      )
+      .map((snapshot) => [snapshot.fixtureId, snapshot.asOf])
+  );
+  const consensus = cutoffByFixture.size
+    ? await listLatestConsensusAtOrBeforeByFixture(cutoffByFixture)
+    : [];
   return buildMarketBenchmarkReport({
     snapshots,
     consensus,

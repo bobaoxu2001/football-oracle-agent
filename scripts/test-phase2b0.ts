@@ -33,8 +33,10 @@ import { buildMarketHealthReport } from "@/lib/competitions/premier-league/marke
 import { buildHealthReport } from "@/lib/competitions/premier-league/ops/health";
 import {
   insertObservation,
+  insertConsensus,
   listConsensus,
   listLatestConsensus,
+  listLatestConsensusAtOrBeforeByFixture,
   listObservations,
   resetMarketStoreForTests,
 } from "@/lib/competitions/premier-league/market/store";
@@ -477,6 +479,28 @@ async function main() {
     "latest consensus selects the newest immutable row",
     latestForFixture?.retrievedAt === cons.map((row) => row.retrievedAt).sort().at(-1)
   );
+  await insertConsensus({
+    ...cons[0],
+    consensusId: `${cons[0].consensusId}::live-cutoff-test`,
+    origin: "LIVE_RECORDED",
+    retrievedAt: "2026-08-18T15:59:00.000Z",
+    computedAt: "2026-08-18T15:59:00.000Z",
+  });
+  const cutoffConsensus = await listLatestConsensusAtOrBeforeByFixture(
+    new Map([[arsenalCoventry.id, "2026-08-18T16:00:00.000Z"]])
+  );
+  check(
+    "cutoff query returns at most one consensus per fixture",
+    cutoffConsensus.length === 1
+  );
+  check(
+    "cutoff query cannot return future market data",
+    cutoffConsensus.every((row) => row.retrievedAt <= "2026-08-18T16:00:00.000Z")
+  );
+  const beforeFirstConsensus = await listLatestConsensusAtOrBeforeByFixture(
+    new Map([[arsenalCoventry.id, "2026-08-17T16:00:00.000Z"]])
+  );
+  check("cutoff query returns an honest zero before first print", beforeFirstConsensus.length === 0);
 
   check("cadence far", effectiveCadenceMs(10 * 24 * 3600_000, 400) === CADENCE_FAR_MS);
   check("cadence week", effectiveCadenceMs(5 * 24 * 3600_000, 400) === CADENCE_WEEK_MS);
