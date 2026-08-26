@@ -19,6 +19,7 @@ const noStoreRoutes = [
   "/api/matches/upcoming",
   "/api/health",
   "/api/market",
+  "/api/market/benchmark",
   "/api/market/health",
   "/api/matches/:matchId/intelligence",
 ];

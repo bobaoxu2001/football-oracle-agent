@@ -318,6 +318,7 @@ async function main(): Promise<void> {
     "/api/health",
     "/api/live",
     "/api/market",
+    "/api/market/benchmark",
     "/api/market/health",
     "/api/matches/:matchId/intelligence",
   ]) {

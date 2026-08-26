@@ -4,16 +4,19 @@ import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { listLatestConsensus, loadMarketState } from "@/lib/competitions/premier-league/market/store";
 import { buildMarketHealthReport } from "@/lib/competitions/premier-league/market/health";
+import { productionMarketBenchmarkReport } from "@/lib/competitions/premier-league/market/benchmark-report";
+import { marketQualityFlags } from "@/lib/competitions/premier-league/market/benchmark";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     await hydrateDurableOps();
-    const [health, state, consensus] = await Promise.all([
+    const [health, state, consensus, benchmark] = await Promise.all([
       buildMarketHealthReport(),
       loadMarketState(),
       listLatestConsensus(),
+      productionMarketBenchmarkReport(),
     ]);
     const fixtures = liveFixtures();
 
@@ -33,6 +36,7 @@ export async function GET() {
           marketImpliedFairDraw: c.fairDraw,
           marketImpliedFairAway: c.fairAway,
           marginRange: { min: c.marginMin, max: c.marginMax },
+          qualityFlags: marketQualityFlags(c),
           observationAgeMs: Date.now() - Date.parse(c.retrievedAt),
         };
       });
@@ -44,6 +48,19 @@ export async function GET() {
       origin: "LIVE_RECORDED",
       firstMarketObservationAt: state.firstMarketObservationAt,
       health,
+      benchmark: {
+        schemaVersion: benchmark.schemaVersion,
+        status: benchmark.status,
+        observationalOnly: benchmark.observationalOnly,
+        affectsProductionForecast: benchmark.affectsProductionForecast,
+        independentUnit: benchmark.independentUnit,
+        aggregationUnit: benchmark.aggregationUnit,
+        temporalRule: benchmark.temporalRule,
+        definitions: benchmark.definitions,
+        counts: benchmark.counts,
+        maturity: benchmark.maturity,
+        performance: benchmark.performance,
+      },
       fixtures: rows,
     });
   } catch (err) {

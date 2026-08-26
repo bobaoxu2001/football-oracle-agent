@@ -19,7 +19,7 @@ const researchLinks = [
 
 const operationsLinks = [
   ["System health", "/health"],
-  ["Market observations", "/market"],
+  ["External benchmark", "/market"],
 ] as const;
 
 export function Navbar() {

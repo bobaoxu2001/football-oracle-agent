@@ -27,6 +27,25 @@ Other material is deliberately separated:
 - Big Five league pages outside the Premier League are completed-match history only.
 - Bookmaker observations are stored as an external observational data track and never enter the production forecasting model.
 
+## Observational model-vs-market benchmark (Phase 4B0)
+
+The external benchmark compares like with like in time. For each fixture it
+selects one latest valid production snapshot, then selects the latest qualifying
+`LIVE_RECORDED` bookmaker consensus whose `retrievedAt` is no later than that
+forecast's immutable `cutoffAt`. A latest-current market price is never attached
+to an older forecast.
+
+The consensus is the median of each bookmaker's proportionally de-vigged 1X2
+probabilities and requires at least three books. Source rows with unusually high
+margin remain in the immutable recorder and in the robust median, but the public
+surface flags a quality caution when the maximum contributing margin exceeds
+25%. It does not silently edit market history.
+
+Aligned forecasts are deduplicated to one independent fixture. Outcome-score
+comparisons are withheld until at least 20 settled aligned fixtures exist;
+50 are required for `EVALUATION_READY`. The benchmark is read-only,
+observational, and cannot promote a model or affect production forecasts.
+
 ## Probability source of truth
 
 ```text
@@ -151,7 +170,7 @@ retrieval). It is never inferred from a rating cutoff or match kickoff.
 | `/health` | Production operations and canonical ledger health |
 | `/shadow` | Experimental paired shadow evaluation |
 | `/matches` | Completed-match historical ledgers |
-| `/market` | Observational market-data status; never a production model input |
+| `/market` | Time-aligned external benchmark plus raw observational market status |
 | `/research/world-cup` | Isolated World Cup research archive |
 
 Relevant JSON APIs:
@@ -161,6 +180,9 @@ Relevant JSON APIs:
 - `GET /api/accuracy`
 - `GET /api/health`
 - `GET /api/shadow`
+- `GET /api/market`
+- `GET /api/market/benchmark`
+- `GET /api/market/health`
 - `GET /api/matches/upcoming`
 - `GET /api/matches/:matchId/intelligence`
 - `POST /api/matches/:matchId/agent`

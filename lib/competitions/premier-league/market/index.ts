@@ -12,4 +12,10 @@ export { extractH2hOdds, TheOddsApiMarketSource, oddsApiConfigured } from "./the
 export { maybeRunMarketRecorder, observationIdOf } from "./recorder";
 export { buildMarketHealthReport } from "./health";
 export { alignMarketToModelAsOf, alignConsensusToModelAsOf, closingConsensus, closingObservation } from "./alignment";
+export {
+  buildMarketBenchmarkReport,
+  consensusRejectionReasons,
+  marketQualityFlags,
+  MARKET_BENCHMARK_SCHEMA_VERSION,
+} from "./benchmark";
 export { resetMarketStoreForTests } from "./store";
