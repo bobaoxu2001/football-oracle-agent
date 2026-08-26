@@ -315,6 +315,56 @@ export async function listLatestConsensus(): Promise<MarketConsensusSnapshot[]> 
   return [...latest.values()];
 }
 
+/**
+ * One latest consensus per fixture at or before that fixture's forecast cutoff.
+ *
+ * This is the production benchmark read path. It keeps the no-lookahead rule in
+ * the database query and returns at most one document per independent fixture,
+ * rather than downloading the complete immutable market history.
+ */
+export async function listLatestConsensusAtOrBeforeByFixture(
+  cutoffByFixture: ReadonlyMap<string, string>
+): Promise<MarketConsensusSnapshot[]> {
+  const cutoffs = [...cutoffByFixture.entries()].filter(([, cutoff]) =>
+    Number.isFinite(Date.parse(cutoff))
+  );
+  if (!cutoffs.length) return [];
+  if (marketStoreBackend() === "mongo") {
+    const db = await getMongoDb();
+    if (!db) return [];
+    return (await db.collection(COL_CONSENSUS).aggregate(
+      [
+        {
+          $match: {
+            origin: "LIVE_RECORDED",
+            $or: cutoffs.map(([canonicalFixtureId, cutoff]) => ({
+              canonicalFixtureId,
+              retrievedAt: { $lte: cutoff },
+            })),
+          },
+        },
+        { $sort: { canonicalFixtureId: 1, retrievedAt: -1 } },
+        { $group: { _id: "$canonicalFixtureId", latest: { $first: "$$ROOT" } } },
+        { $replaceRoot: { newRoot: "$latest" } },
+        { $project: { _id: 0 } },
+      ],
+      { timeoutMS: 8_000 }
+    ).toArray()) as unknown as MarketConsensusSnapshot[];
+  }
+  loadFileIfNeeded();
+  const latest = new Map<string, MarketConsensusSnapshot>();
+  for (const row of mem().consensus.values()) {
+    if (row.origin !== "LIVE_RECORDED") continue;
+    const cutoff = cutoffByFixture.get(row.canonicalFixtureId);
+    if (!cutoff || row.retrievedAt > cutoff) continue;
+    const prior = latest.get(row.canonicalFixtureId);
+    if (!prior || prior.retrievedAt < row.retrievedAt) {
+      latest.set(row.canonicalFixtureId, row);
+    }
+  }
+  return [...latest.values()];
+}
+
 export async function countObservations(): Promise<number> {
   if (marketStoreBackend() === "mongo") {
     const db = await getMongoDb();

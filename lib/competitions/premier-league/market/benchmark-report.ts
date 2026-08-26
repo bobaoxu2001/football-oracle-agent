@@ -5,22 +5,45 @@ import { PREMIER_LEAGUE_CURRENT_SEASON } from "../config";
 import { loadSettlements } from "../settlement";
 import { listLiveSnapshots } from "../ops/live-snapshot-reader";
 import { productionModelVersion } from "../shadow/track";
-import { listConsensus } from "./store";
-import { buildMarketBenchmarkReport } from "./benchmark";
+import {
+  countConsensus,
+  listLatestConsensusAtOrBeforeByFixture,
+} from "./store";
+import {
+  buildMarketBenchmarkReport,
+  selectMarketBenchmarkForecasts,
+} from "./benchmark";
 
 export async function productionMarketBenchmarkReport(now = new Date()) {
-  const consensus = await listConsensus();
+  const evaluatedAt = now.toISOString();
+  const fixtures = liveFixtures().filter(
+    (fixture) => fixture.season === PREMIER_LEAGUE_CURRENT_SEASON
+  );
+  const snapshots = listLiveSnapshots({
+    season: PREMIER_LEAGUE_CURRENT_SEASON,
+    evaluationClass: "LIVE_OOS",
+  });
+  const modelVersion = productionModelVersion();
+  const selection = selectMarketBenchmarkForecasts({
+    snapshots,
+    fixtures,
+    productionModelVersion: modelVersion,
+    evaluatedAt,
+  });
+  const cutoffByFixture = new Map(
+    selection.latestSnapshots.map((snapshot) => [snapshot.fixtureId, snapshot.asOf])
+  );
+  const [consensus, consensusStored] = await Promise.all([
+    listLatestConsensusAtOrBeforeByFixture(cutoffByFixture),
+    countConsensus(),
+  ]);
   return buildMarketBenchmarkReport({
-    snapshots: listLiveSnapshots({
-      season: PREMIER_LEAGUE_CURRENT_SEASON,
-      evaluationClass: "LIVE_OOS",
-    }),
+    snapshots,
     consensus,
-    fixtures: liveFixtures().filter(
-      (fixture) => fixture.season === PREMIER_LEAGUE_CURRENT_SEASON
-    ),
+    marketConsensusSnapshotsStored: consensusStored,
+    fixtures,
     settlements: loadSettlements(),
-    productionModelVersion: productionModelVersion(),
-    evaluatedAt: now.toISOString(),
+    productionModelVersion: modelVersion,
+    evaluatedAt,
   });
 }

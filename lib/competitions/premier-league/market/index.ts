@@ -16,6 +16,7 @@ export {
   buildMarketBenchmarkReport,
   consensusRejectionReasons,
   marketQualityFlags,
+  selectMarketBenchmarkForecasts,
   MARKET_BENCHMARK_SCHEMA_VERSION,
 } from "./benchmark";
 export { resetMarketStoreForTests } from "./store";

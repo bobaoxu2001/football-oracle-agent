@@ -117,8 +117,10 @@ export interface MarketBenchmarkReport {
     productionSnapshotsConsidered: number;
     productionSnapshotsRejected: number;
     latestValidProductionFixtures: number;
+    marketConsensusSnapshotsStored: number;
     marketConsensusSnapshotsConsidered: number;
     alignedUniqueFixtures: number;
+    fixturesWithoutAlignedConsensus: number;
     settledAlignedUniqueFixtures: number;
     conflictingSettlementFixtures: number;
   };
@@ -225,6 +227,49 @@ function latestSnapshotPerFixture(rows: PredictionSnapshot[]): PredictionSnapsho
   return [...selected.values()];
 }
 
+export interface MarketBenchmarkForecastSelection {
+  productionSnapshotsConsidered: number;
+  productionSnapshotsRejected: number;
+  latestSnapshots: PredictionSnapshot[];
+}
+
+/** Shared selection so the production store can query only cutoff-eligible rows. */
+export function selectMarketBenchmarkForecasts(input: {
+  snapshots: PredictionSnapshot[];
+  fixtures: Fixture[];
+  productionModelVersion: string;
+  evaluatedAt: string;
+}): MarketBenchmarkForecastSelection {
+  const fixtureById = new Map(input.fixtures.map((fixture) => [fixture.id, fixture]));
+  const production = input.snapshots.filter(
+    (snapshot) =>
+      snapshot.evaluationClass === "LIVE_OOS" &&
+      snapshot.modelVersion === input.productionModelVersion
+  );
+  const valid: PredictionSnapshot[] = [];
+  let rejected = 0;
+  for (const snapshot of production) {
+    const fixture = fixtureById.get(snapshot.fixtureId);
+    const kickoff = fixture ? fixtureKickoff(fixture) : null;
+    if (!fixture || !kickoff) {
+      rejected += 1;
+      continue;
+    }
+    const validation = validateProductionForecastSnapshot({
+      snapshot: snapshotInput(snapshot),
+      expectedKickoffUtc: kickoff,
+      evaluatedAt: input.evaluatedAt,
+    });
+    if (!validation.valid) rejected += 1;
+    else valid.push(snapshot);
+  }
+  return {
+    productionSnapshotsConsidered: production.length,
+    productionSnapshotsRejected: rejected,
+    latestSnapshots: latestSnapshotPerFixture(valid),
+  };
+}
+
 function actualOutcomes(rows: SettlementRecord[]): {
   byFixture: Map<string, Outcome>;
   conflicts: Set<string>;
@@ -310,32 +355,11 @@ export function buildMarketBenchmarkReport(input: {
   settlements: SettlementRecord[];
   productionModelVersion: string;
   evaluatedAt: string;
+  marketConsensusSnapshotsStored?: number;
 }): MarketBenchmarkReport {
   const fixtureById = new Map(input.fixtures.map((fixture) => [fixture.id, fixture]));
-  const production = input.snapshots.filter(
-    (snapshot) =>
-      snapshot.evaluationClass === "LIVE_OOS" &&
-      snapshot.modelVersion === input.productionModelVersion
-  );
-  const valid: PredictionSnapshot[] = [];
-  let rejectedSnapshots = 0;
-  for (const snapshot of production) {
-    const fixture = fixtureById.get(snapshot.fixtureId);
-    const kickoff = fixture ? fixtureKickoff(fixture) : null;
-    if (!fixture || !kickoff) {
-      rejectedSnapshots += 1;
-      continue;
-    }
-    const validation = validateProductionForecastSnapshot({
-      snapshot: snapshotInput(snapshot),
-      expectedKickoffUtc: kickoff,
-      evaluatedAt: input.evaluatedAt,
-    });
-    if (!validation.valid) rejectedSnapshots += 1;
-    else valid.push(snapshot);
-  }
-
-  const latestSnapshots = latestSnapshotPerFixture(valid);
+  const selection = selectMarketBenchmarkForecasts(input);
+  const latestSnapshots = selection.latestSnapshots;
   const consensusByFixture = new Map<string, MarketConsensusSnapshot[]>();
   for (const row of input.consensus) {
     const list = consensusByFixture.get(row.canonicalFixtureId) ?? [];
@@ -464,11 +488,14 @@ export function buildMarketBenchmarkReport(input: {
         "Public outcome-score comparison is withheld below 20 independent settled aligned fixtures.",
     },
     counts: {
-      productionSnapshotsConsidered: production.length,
-      productionSnapshotsRejected: rejectedSnapshots,
+      productionSnapshotsConsidered: selection.productionSnapshotsConsidered,
+      productionSnapshotsRejected: selection.productionSnapshotsRejected,
       latestValidProductionFixtures: latestSnapshots.length,
+      marketConsensusSnapshotsStored:
+        input.marketConsensusSnapshotsStored ?? input.consensus.length,
       marketConsensusSnapshotsConsidered: input.consensus.length,
       alignedUniqueFixtures: pairs.length,
+      fixturesWithoutAlignedConsensus: latestSnapshots.length - pairs.length,
       settledAlignedUniqueFixtures: settledCount,
       conflictingSettlementFixtures: outcomes.conflicts.size,
     },

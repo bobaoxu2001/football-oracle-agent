@@ -182,7 +182,9 @@ assert.equal(one.affectsProductionForecast, false);
 assert.equal(one.counts.productionSnapshotsConsidered, 3, "shadow and retrospective must be isolated");
 assert.equal(one.counts.productionSnapshotsRejected, 1, "generated-before-cutoff row must be retained but rejected");
 assert.equal(one.counts.latestValidProductionFixtures, 1, "multiple snapshots cannot inflate fixture N");
+assert.equal(one.counts.marketConsensusSnapshotsStored, 4);
 assert.equal(one.counts.alignedUniqueFixtures, 1);
+assert.equal(one.counts.fixturesWithoutAlignedConsensus, 0);
 assert.equal(one.counts.settledAlignedUniqueFixtures, 1);
 assert.equal(one.pairs[0].market.retrievedAt, "2026-08-31T11:55:00.000Z");
 assert.equal(one.pairs[0].market.lagToForecastCutoffMs, 5 * 60_000);
@@ -200,6 +202,7 @@ const futureOnly = report({
 });
 assert.equal(futureOnly.status, "NO_ALIGNED_EVIDENCE");
 assert.equal(futureOnly.counts.alignedUniqueFixtures, 0);
+assert.equal(futureOnly.counts.fixturesWithoutAlignedConsensus, 1);
 
 const fixtures20 = Array.from({ length: 20 }, (_, index) => fixture(`fixture-${index}`));
 const provisional = report({
