@@ -5,8 +5,10 @@
 #
 # Two complementary triggers:
 #   1. offset 5-minute cron — one-shot backup pinger
-#   2. hourly loop — supervised worker that ticks every 5 minutes for ~55 minutes
-#      and is restarted by GitHub each hour if the previous run ended.
+#   2. hourly loop — supervised worker that ticks every 5 minutes for ~5 hours.
+#      When an hourly event is delivered, GitHub keeps the latest run pending
+#      while one is active. A delayed or missing later delivery therefore does
+#      not create a freshness gap as soon as a 55-minute runner exits.
 # Both paths invoke the isolated observers. Their own Mongo lease makes an
 # overlapping backup a healthy no-op instead of a duplicate provider poll.
 name: ops-tick
@@ -27,8 +29,8 @@ on:
 permissions:
   contents: read
 
-# Separate groups per trigger, on purpose. A single shared group let the ~55
-# minute loop run hold the queue, so the 5-minute one-shot pings — the backup for
+# Separate groups per trigger, on purpose. A single shared group let the long
+# supervised loop hold the queue, so the 5-minute one-shot pings — the backup for
 # exactly the case where the loop dies — were suppressed while it ran, and only
 # one stale queued run fired afterwards. Overlap between the two is safe: the
 # core tick and observers are independently idempotent and serialized by their
@@ -41,7 +43,10 @@ jobs:
   tick:
     name: production-ops-tick
     runs-on: ubuntu-latest
-    timeout-minutes: 58
+    # GitHub-hosted jobs have a six-hour ceiling. Five hours of rounds plus a
+    # 30-minute cleanup/latency margin stays below it while bridging observed
+    # hour-scale schedule delivery gaps.
+    timeout-minutes: 330
     steps:
       - name: Authenticated production ticks
         env:
@@ -68,7 +73,7 @@ jobs:
           OBSERVER_URL="${OPS_OBSERVER_URL:-https://football-oracle-agent.vercel.app/api/ops/observers}"
           ROUNDS=1
           if [ "$MODE" = "loop" ]; then
-            ROUNDS=11
+            ROUNDS=60
           fi
           echo "mode=${MODE} rounds=${ROUNDS}"
           fail=0

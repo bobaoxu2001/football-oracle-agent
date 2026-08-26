@@ -467,6 +467,8 @@ async function main(): Promise<void> {
   );
   assert.match(workflow, /cron: "3-58\/5 \* \* \* \*"/);
   assert.match(workflow, /cron: "17 \* \* \* \*"/);
+  assert.match(workflow, /timeout-minutes: 330/);
+  assert.match(workflow, /if \[ "\$MODE" = "loop" \]; then\s+ROUNDS=60/);
   assert.match(workflow, /: > \/tmp\/tick-body/);
   assert.match(workflow, /: > \/tmp\/observer-body/);
   assert.match(workflow, /OBSERVER_CODE=[\s\S]*?--max-time 130/);
