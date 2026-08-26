@@ -17,16 +17,16 @@ export function MatchCard({ match }: { match: SerializedMatch }) {
   const p = match.prediction;
 
   return (
-    <details className="group rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-white/20">
-      <summary className="flex cursor-pointer list-none items-center gap-3 p-4 text-sm">
+    <details className="group min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-white/20">
+      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-3 p-4 text-sm">
         <span className="w-16 shrink-0 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
           {(match.kickoffUtc ?? "").slice(5, 10) || "—"}
         </span>
-        <span className="flex-1 text-right font-medium">{match.home.name}</span>
+        <span className="min-w-0 flex-1 truncate text-right font-medium">{match.home.name}</span>
         <span className="shrink-0 rounded-lg bg-white/[0.06] px-2.5 py-1 font-bold tabular-nums">
           {ft.home}–{ft.away}
         </span>
-        <span className="flex-1 font-medium">{match.away.name}</span>
+        <span className="min-w-0 flex-1 truncate font-medium">{match.away.name}</span>
         <span className="shrink-0 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
           {p?.settled ? "settled" : p ? "predicted" : ""}
         </span>
