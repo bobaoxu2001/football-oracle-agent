@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 function tone(state: string): string {
-  if (["HEALTHY", "DATA_READY", "FRESH", "CURRENT"].includes(state)) return "text-emerald-300";
+  if (["HEALTHY", "DATA_READY", "FRESH", "CURRENT", "READY"].includes(state)) return "text-emerald-300";
   if (["DEGRADED", "STALE", "EARLY_EVIDENCE", "PROVISIONAL"].includes(state)) return "text-amber-200";
   return "text-rose-300";
 }
@@ -164,6 +164,24 @@ export default async function HealthPage() {
             ? `${h.scheduler.nextJob.stage} ${h.scheduler.nextJob.fixtureId} · ${h.scheduler.nextJob.certainty ?? "?"} · kickoff ${h.scheduler.nextJob.kickoff} · window ${h.scheduler.nextJob.eligibleFrom} → ${h.scheduler.nextJob.eligibleUntil} · target ${h.scheduler.nextJob.target}`
             : "—"}
         </p>
+      </section>
+
+      <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
+        <h2 className="mb-3 font-semibold">Prospective PIT evidence capture</h2>
+        <ul className="space-y-1 text-muted-foreground">
+          <li>Status: <span className={tone(h.provenanceCapture.status)}>{h.provenanceCapture.status}</span></li>
+          <li>Invariant: <span className="font-mono text-[11px]">{h.provenanceCapture.temporalRule}</span></li>
+          {h.provenanceCapture.nextForecast ? <>
+            <li>Next check: {h.provenanceCapture.nextForecast.stage} · {h.provenanceCapture.nextForecast.fixtureId} · cutoff {h.provenanceCapture.nextForecast.cutoffAt}</li>
+            <li>Fixture revision: {dash(h.provenanceCapture.nextForecast.fixtureRevisionId)}</li>
+            <li>Membership snapshot: {dash(h.provenanceCapture.nextForecast.seasonMembershipSnapshotId)}</li>
+            <li>Model bundle: {dash(h.provenanceCapture.nextForecast.modelBundleId)}</li>
+            <li>Rating state hash: {dash(h.provenanceCapture.nextForecast.ratingStateHash)}</li>
+            <li>Application commit: {dash(h.provenanceCapture.nextForecast.applicationCommitSha)}</li>
+            {h.provenanceCapture.nextForecast.reasons.length ? <li className="text-rose-200">Reason: {h.provenanceCapture.nextForecast.reasons.join("; ")}</li> : null}
+          </> : null}
+        </ul>
+        <p className="mt-3 text-xs text-muted-foreground">{h.provenanceCapture.note}</p>
       </section>
 
       <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">

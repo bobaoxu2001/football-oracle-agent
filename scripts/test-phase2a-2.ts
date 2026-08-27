@@ -16,6 +16,8 @@ process.env.PL_SEASON_MANIFEST_PATH = path.join(TMP, "season.json");
 process.env.PL_FIXTURES_PATH = path.join(TMP, "fixtures.json");
 process.env.PL_CLUB_SEASONS_PATH = path.join(TMP, "clubs.json");
 process.env.PL_FIXTURE_REVISIONS_PATH = path.join(TMP, "revisions.jsonl");
+process.env.PL_PROVENANCE_DIR = path.join(TMP, "provenance");
+process.env.APPLICATION_COMMIT_SHA = "a".repeat(40);
 
 import { brier3, rps3 } from "@/lib/evaluation/metrics";
 import type { Fixture } from "@/lib/identity/types";
@@ -41,6 +43,7 @@ import { buildHealthReport } from "@/lib/competitions/premier-league/ops/health"
 import { clearLiveOpsForTests } from "@/lib/competitions/premier-league/ops/reset";
 import { ratingOf } from "@/lib/competitions/premier-league/ratings";
 import type { SourceObservation } from "@/lib/competitions/premier-league/ops/types";
+import { captureProspectiveProductionEvidence } from "@/lib/competitions/premier-league/provenance/production";
 
 const TAPE = path.resolve("data/processed/premier-league/live-oos-2026-27.jsonl");
 const START_MD5 = "34f7ca54025a3a48df9f1a169df66315";
@@ -123,6 +126,18 @@ function obs(partial: {
 }
 
 clearLiveOpsForTests();
+fs.copyFileSync(
+  path.resolve("data/processed/premier-league/season-2026-27.json"),
+  process.env.PL_SEASON_MANIFEST_PATH!
+);
+fs.copyFileSync(
+  path.resolve("data/processed/premier-league/fixtures-2026-27.json"),
+  process.env.PL_FIXTURES_PATH!
+);
+fs.copyFileSync(
+  path.resolve("data/processed/premier-league/club-seasons-2026-27.json"),
+  process.env.PL_CLUB_SEASONS_PATH!
+);
 
 // ── Trusted tape at start ───────────────────────────────────────────────
 check("tape 380 lines at start", tapeLines() === 380);
@@ -269,6 +284,11 @@ const confFx = fx({
   kickoffCertainty: "CONFIRMED",
 });
 const t24Now = new Date(Date.parse(confFx.kickoffUtc!) - 24 * 3600_000).toISOString();
+captureProspectiveProductionEvidence({
+  fixtures: [confFx],
+  observations: [],
+  capturedAt: "2026-08-16T00:00:00.000Z",
+});
 planPredictionJobs({ fixtures: [confFx], now: t24Now });
 refreshJobStatuses(t24Now);
 const t24Job = listJobs().find((j) => j.stage === "T24H")!;
@@ -693,7 +713,9 @@ const predA = snapshotPremierLeagueMatch("arsenal", "coventry", {
   fixtureId: match1.id,
   predictionStage: "T2H",
   evaluationClass: "LIVE_OOS",
-  origin: "scheduled",
+  // This unit test exercises rating chronology, not the production scheduler.
+  // A direct synthetic row is therefore explicitly legacy/manual evidence.
+  origin: "manual",
 });
 const applied1 = applyVerifiedRatingUpdate({ fixture: match1, appliedAt: "2026-08-21T22:00:00.000Z" });
 check("first verified result applies a rating event", applied1.applied === true);
@@ -707,7 +729,9 @@ const predB = snapshotPremierLeagueMatch("everton", "crystal-palace", {
   fixtureId: "pl-2026-27-everton-crystal-palace",
   predictionStage: "T24H",
   evaluationClass: "LIVE_OOS",
-  origin: "scheduled",
+  // This unit test exercises rating chronology, not the production scheduler.
+  // A direct synthetic row is therefore explicitly legacy/manual evidence.
+  origin: "manual",
 });
 const eloA = (predA.sourceState as { eloHome: number }).eloHome;
 const postState = liveRatingsAsOf("2026-08-22T10:00:00.000Z");

@@ -11,6 +11,8 @@ process.env.PL_OPS_DIR = path.join(TMP, "ops");
 process.env.SNAPSHOT_STORE_PATH = path.join(TMP, "working-snapshots.jsonl");
 process.env.SETTLEMENT_STORE_PATH = path.join(TMP, "settlements.jsonl");
 process.env.PL_OPERATIONAL_LIVE_OOS_PATH = path.join(TMP, "ops/live-oos-operational.jsonl");
+process.env.PL_PROVENANCE_DIR = path.join(TMP, "ops/provenance");
+process.env.APPLICATION_COMMIT_SHA = "a".repeat(40);
 
 import type { Fixture } from "@/lib/identity/types";
 import type { PredictionSnapshot } from "@/lib/snapshots/types";
@@ -50,6 +52,7 @@ import {
   productionSnapshotsForMatch,
   selectProductionSnapshot,
 } from "@/lib/match-forecast/service";
+import { captureProspectiveProductionEvidence } from "@/lib/competitions/premier-league/provenance/production";
 
 const TAPE = path.resolve("data/processed/premier-league/live-oos-2026-27.jsonl");
 const TAPE_SHA = "a9271d0d3fc3ef0f88bc9ab876cf3b244d70db71d00b568458286095642360da";
@@ -113,6 +116,12 @@ function cloneSnapshot(
     modelVersion,
     createdAt: input.createdAt ?? input.asOf,
     dataCutoff: input.asOf,
+    // Synthetic selection rows model the pre-manifest legacy population.
+    // Never inherit a PIT manifest from the source fixture after changing
+    // fixture, cutoff, stage, or kickoff identity.
+    inputManifestId: undefined,
+    inputManifest: undefined,
+    inputManifestRecords: undefined,
     sourceState: {
       ...source.sourceState,
       // These are synthetic pre-Phase-4B selection rows. Never carry a
@@ -211,6 +220,13 @@ function main(): void {
     [appliedKnown.eventId]
   );
 
+  const rollingEvidenceCapturedAt = "2026-08-21T21:31:00.000Z";
+  captureProspectiveProductionEvidence({
+    fixtures: [rolling],
+    observations: [],
+    capturedAt: rollingEvidenceCapturedAt,
+  });
+
   planPredictionJobs({ fixtures: [rolling], now: "2026-08-20T00:00:00.000Z" });
   const initialJobs = listJobs().filter((job) => job.fixtureId === rolling.id);
   assert.equal(initialJobs.length, 5);
@@ -240,7 +256,7 @@ function main(): void {
   assert.ok(frozen);
   assert.equal(frozen.asOf, t7.plannedAsOf);
   assert.equal(frozen.sourceState.computedAt, t7.plannedAsOf);
-  assert.equal(frozen.sourceState.fixtureRetrievedAt, rolling.retrievedAt);
+  assert.equal(frozen.sourceState.fixtureRetrievedAt, rollingEvidenceCapturedAt);
   assert.equal(frozen.sourceState.kickoffCertaintyAtFreeze, "DEFAULT");
   assert.deepEqual(frozen.sourceState.ratingEventIds, [appliedKnown.eventId]);
   assert.equal(frozen.sourceState.ratingEventsUsed, 1);
@@ -326,6 +342,12 @@ function main(): void {
     retrievedAt: "2026-08-20T00:00:00.000Z",
   });
   const graceWindow = windowFor("T7D", graceFixture.kickoffUtc!);
+  const graceEvidenceCapturedAt = "2026-09-01T00:00:00.000Z";
+  captureProspectiveProductionEvidence({
+    fixtures: [graceFixture],
+    observations: [],
+    capturedAt: graceEvidenceCapturedAt,
+  });
   planPredictionJobs({ fixtures: [graceFixture], now: "2026-09-01T00:00:00.000Z" });
   const refreshedAfterCutoff: Fixture = {
     ...graceFixture,
@@ -341,7 +363,7 @@ function main(): void {
   assert.equal(graceJob.cutoffKickoffCertainty, "DEFAULT");
   assert.equal(executeEligibleJobs({ fixtures: [refreshedAfterCutoff], now: graceNow }).succeeded, 1);
   const graceSnapshot = listSnapshots().find((snapshot) => snapshot.fixtureId === graceFixture.id)!;
-  assert.equal(graceSnapshot.sourceState.fixtureRetrievedAt, graceFixture.retrievedAt);
+  assert.equal(graceSnapshot.sourceState.fixtureRetrievedAt, graceEvidenceCapturedAt);
   assert.equal(graceSnapshot.sourceState.kickoffCertaintyAtFreeze, "DEFAULT");
 
   const lateConfirmation = fixture({

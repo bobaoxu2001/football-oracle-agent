@@ -14,6 +14,18 @@ import { gunzipSync, gzipSync } from "node:zlib";
 import type { AnyBulkWriteOperation, Db } from "mongodb";
 import { getMongoDb } from "@/lib/db/mongodb";
 import { isCanonicalLiveTapePath, resetSnapshotCache } from "@/lib/snapshots/store";
+import { canonicalJson } from "../provenance/canonical";
+import {
+  assertProvenanceRecordIntegrity,
+  provenanceRecordId,
+} from "../provenance/manifest";
+import {
+  mergeProvenanceRecordsJsonl,
+  parseProvenanceRecordsJsonl,
+  replaceProvenanceRecordsFromJsonl,
+  serializeProvenanceRecordsJsonl,
+} from "../provenance/durable";
+import type { ProvenanceRecord } from "../provenance/types";
 import {
   assertMatchContextIntegrity,
   type MatchContextSnapshot,
@@ -47,6 +59,7 @@ export type OpsBackendKind = "file" | "mongo" | "bundle";
 const COMMITTED_ROOT = path.resolve(process.cwd(), "data/processed/premier-league");
 const OPS_BUNDLE_COLLECTION = "pl_ops_bundle";
 const CONTEXT_SNAPSHOT_COLLECTION = "pl_match_context_snapshots";
+const PROVENANCE_RECORD_COLLECTION = "pl_provenance_records";
 const OPS_MIGRATION_BACKUP_COLLECTION = "pl_ops_migration_backups";
 const JOBS_ENCODING = "gzip-base64-v1";
 const BUNDLE_WRITER_SCHEMA = 2;
@@ -71,13 +84,18 @@ const BUNDLE_KEYS = [
   "settlements",
   "workingSnapshots",
   "contextSnapshots",
+  "provenanceRecords",
   "fixturesOverlay",
 ] as const;
 
 type DurableBundleKey = (typeof BUNDLE_KEYS)[number];
-/** contextSnapshots is optional when reading pre-Phase-4B bundles. */
-export type DurableBundle = Omit<Record<DurableBundleKey, string>, "contextSnapshots"> & {
+/** Dedicated-collection fields remain optional when reading older bundles. */
+export type DurableBundle = Omit<
+  Record<DurableBundleKey, string>,
+  "contextSnapshots" | "provenanceRecords"
+> & {
   contextSnapshots?: string;
+  provenanceRecords?: string;
 };
 
 export function opsBackend(): OpsBackendKind {
@@ -106,6 +124,7 @@ function emptyBundle(): DurableBundle {
     settlements: "",
     workingSnapshots: "",
     contextSnapshots: "",
+    provenanceRecords: "",
     fixturesOverlay: "",
   };
 }
@@ -197,6 +216,10 @@ export function validateDurableBundle(
     normalized.contextSnapshots ?? "",
     `${sourceLabel}.contextSnapshots`
   );
+  parseProvenanceRecordsJsonl(
+    normalized.provenanceRecords ?? "",
+    `${sourceLabel}.provenanceRecords`
+  );
   return normalized;
 }
 
@@ -218,7 +241,9 @@ export function requireCompleteMongoStoredBundle(
   const stored = value as MongoStoredBundle;
   const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(stored, key);
   for (const key of BUNDLE_KEYS) {
-    if (key === "jobs" || key === "contextSnapshots") continue;
+    if (key === "jobs" || key === "contextSnapshots" || key === "provenanceRecords") {
+      continue;
+    }
     if (!hasOwn(key) || typeof stored[key] !== "string") {
       throw new Error(`${sourceLabel}.${key} is missing or not a string`);
     }
@@ -233,6 +258,9 @@ export function requireCompleteMongoStoredBundle(
   }
   if (hasOwn("contextSnapshots") && typeof stored.contextSnapshots !== "string") {
     throw new Error(`${sourceLabel}.contextSnapshots is not a string`);
+  }
+  if (hasOwn("provenanceRecords") && typeof stored.provenanceRecords !== "string") {
+    throw new Error(`${sourceLabel}.provenanceRecords is not a string`);
   }
   return stored;
 }
@@ -308,7 +336,8 @@ export function encodeMongoBundleForStorage(bundle: DurableBundle): MongoStoredB
   const {
     jobs,
     contextSnapshots: _contextSnapshots,
-    ...bundleWithoutJobsAndContexts
+    provenanceRecords: _provenanceRecords,
+    ...bundleWithoutDedicatedCollections
   } = validated;
   const jobsBytes = Buffer.byteLength(jobs, "utf8");
   if (jobsBytes > MAX_JOBS_UNCOMPRESSED_BYTES) {
@@ -317,7 +346,7 @@ export function encodeMongoBundleForStorage(bundle: DurableBundle): MongoStoredB
     );
   }
   return {
-    ...bundleWithoutJobsAndContexts,
+    ...bundleWithoutDedicatedCollections,
     jobsEncoding: JOBS_ENCODING,
     jobsGzipBase64: gzipSync(Buffer.from(jobs, "utf8"), { level: 9 }).toString("base64"),
     jobsSha256: sha256(jobs),
@@ -331,7 +360,11 @@ export function mongoBundleForWrite(
 ): MongoStoredBundle {
   const validated = validateDurableBundle(bundle);
   if (jobsCompressed) return encodeMongoBundleForStorage(validated);
-  const { contextSnapshots: _contextSnapshots, ...plainBundle } = validated;
+  const {
+    contextSnapshots: _contextSnapshots,
+    provenanceRecords: _provenanceRecords,
+    ...plainBundle
+  } = validated;
   return plainBundle;
 }
 
@@ -492,6 +525,95 @@ export function mergeMongoContextDocumentsWithLegacy(
   return mergeContextSnapshotJsonl(collectionJsonl, legacyJsonl);
 }
 
+export interface MongoProvenanceRecordDocument {
+  _id: string;
+  record: ProvenanceRecord;
+  insertedAt: string;
+}
+
+function validatedMongoProvenanceRecords(
+  documents: readonly Pick<
+    MongoProvenanceRecordDocument,
+    "_id" | "record" | "insertedAt"
+  >[],
+  sourceLabel: string
+): ProvenanceRecord[] {
+  const records: ProvenanceRecord[] = [];
+  for (const [index, document] of documents.entries()) {
+    const label = `${sourceLabel} document ${index + 1}`;
+    if (!document || typeof document !== "object" || Array.isArray(document)) {
+      throw new Error(`${label} must be an object`);
+    }
+    if (typeof document._id !== "string" || !document._id) {
+      throw new Error(`${label} has no content-addressed _id`);
+    }
+    if (
+      typeof document.insertedAt !== "string" ||
+      !isIsoTimestamp(document.insertedAt)
+    ) {
+      throw new Error(`${label}.insertedAt is not a timestamp`);
+    }
+    try {
+      assertProvenanceRecordIntegrity(document.record);
+    } catch (error) {
+      throw new Error(
+        `${label} failed provenance integrity validation: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+    const recordId = provenanceRecordId(document.record);
+    if (document._id !== recordId) {
+      throw new Error(`${label} has mismatched _id ${document._id}; expected ${recordId}`);
+    }
+    records.push(document.record);
+  }
+  // This additionally rejects duplicate IDs whose content differs.
+  return parseProvenanceRecordsJsonl(
+    records.map((record) => canonicalJson(record)).join("\n"),
+    sourceLabel
+  );
+}
+
+/** Build insert-only Mongo operations after strict mixed-kind validation. */
+export function buildImmutableProvenanceMongoUpserts(
+  text: string,
+  insertedAt = new Date().toISOString()
+): AnyBulkWriteOperation<MongoProvenanceRecordDocument>[] {
+  if (!isIsoTimestamp(insertedAt)) {
+    throw new Error("Mongo provenance insertedAt is not a timestamp");
+  }
+  return parseProvenanceRecordsJsonl(text, "captured provenance store").map((record) => ({
+    updateOne: {
+      filter: { _id: provenanceRecordId(record) },
+      update: {
+        $setOnInsert: {
+          record,
+          insertedAt,
+        },
+      },
+      upsert: true,
+    },
+  }));
+}
+
+/**
+ * Convert immutable Mongo child documents back to JSONL and reconcile any
+ * pre-migration bundle field. A same-id/content mismatch fails closed.
+ */
+export function mergeMongoProvenanceDocumentsWithLegacy(
+  documents: readonly Pick<
+    MongoProvenanceRecordDocument,
+    "_id" | "record" | "insertedAt"
+  >[],
+  legacyJsonl: string
+): string {
+  const collectionJsonl = serializeProvenanceRecordsJsonl(
+    validatedMongoProvenanceRecords(documents, "Mongo provenance collection")
+  );
+  return mergeProvenanceRecordsJsonl(collectionJsonl, legacyJsonl);
+}
+
 function copyCommitted(srcName: string, dest: string): void {
   const src = path.join(COMMITTED_ROOT, srcName);
   if (!fs.existsSync(src)) return;
@@ -527,6 +649,7 @@ export function captureBundleFromDisk(): DurableBundle {
     settlements: readIf(process.env.SETTLEMENT_STORE_PATH || path.join(opsDir(), "settlements.jsonl")),
     workingSnapshots: readIf(process.env.SNAPSHOT_STORE_PATH || path.join(opsDir(), "working-snapshots.jsonl")),
     contextSnapshots: readIf(contextSnapshotPath()),
+    provenanceRecords: serializeProvenanceRecordsJsonl(),
     fixturesOverlay: readIf(liveFixturesPath()),
   }, "captured durable ops bundle");
 }
@@ -542,6 +665,7 @@ export function routeDurablePaths(work = durableWorkDir()): void {
   process.env.SETTLEMENT_STORE_PATH = path.join(ops, "settlements.jsonl");
   process.env.LIVE_OOS_ARCHIVE_PATH = path.join(ops, "live-oos-operational.jsonl");
   process.env.PL_CONTEXT_SNAPSHOT_PATH = path.join(ops, "match-context-snapshots.jsonl");
+  process.env.PL_PROVENANCE_DIR = path.join(ops, "provenance");
   assertNotTape(process.env.SNAPSHOT_STORE_PATH);
   assertNotTape(process.env.LIVE_OOS_ARCHIVE_PATH);
   copyCommitted("season-2026-27.json", process.env.PL_SEASON_MANIFEST_PATH);
@@ -559,6 +683,8 @@ export function applyBundleToDisk(bundle: DurableBundle): void {
     readIf(contextFile),
     bundle.contextSnapshots ?? ""
   );
+  // Child evidence is authoritative before any parent job/snapshot bytes are replaced.
+  replaceProvenanceRecordsFromJsonl(bundle.provenanceRecords ?? "");
   writeAuthoritative(predictionJobPath(), bundle.jobs);
   writeAuthoritative(sourceObservationPath(), bundle.sourceObservations);
   writeAuthoritative(scheduleRevisionPath(), bundle.scheduleRevisions);
@@ -600,15 +726,19 @@ interface LoadedMongoBundle {
   jobsCompressed: boolean;
 }
 
-function mongoVersionToken(revision: MongoBundleRevision | null, contextCount: number): string {
-  return JSON.stringify([revision, contextCount]);
+function mongoVersionToken(
+  revision: MongoBundleRevision | null,
+  contextCount: number,
+  provenanceCount: number
+): string {
+  return JSON.stringify([revision, contextCount, provenanceCount]);
 }
 
 async function loadMongoBundleVersion(timeoutMS: number): Promise<string> {
   const db = await getMongoDb();
   if (!db) throw new Error("MongoDB unavailable for durable ops store");
   const boundedTimeout = Math.min(timeoutMS, 4_000);
-  const [doc, contextCount] = await Promise.all([
+  const [doc, contextCount, provenanceCount] = await Promise.all([
     db.collection(OPS_BUNDLE_COLLECTION).findOne(
       { _id: "current" as never },
       { projection: { updatedAt: 1 }, timeoutMS: boundedTimeout }
@@ -617,10 +747,15 @@ async function loadMongoBundleVersion(timeoutMS: number): Promise<string> {
       {},
       { timeoutMS: boundedTimeout }
     ),
+    db.collection(PROVENANCE_RECORD_COLLECTION).countDocuments(
+      {},
+      { timeoutMS: boundedTimeout }
+    ),
   ]);
   return mongoVersionToken(
     parseMongoBundleRevision(doc?.updatedAt, "Mongo durable ops revision probe"),
-    contextCount
+    contextCount,
+    provenanceCount
   );
 }
 
@@ -629,19 +764,29 @@ async function loadMongoBundle(timeoutMS: number): Promise<LoadedMongoBundle> {
   if (!db) throw new Error("MongoDB unavailable for durable ops store");
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMS);
-  // Read in save order: writers insert contexts before removing legacy rows
-  // from the bundle. This ordering avoids a hydrate racing between those two
-  // writes and temporarily observing neither copy.
+  // Read the parent first and insert-only children second. Since writers save
+  // children before the parent CAS, this can observe harmless orphans but can
+  // never observe a new parent without its referenced provenance record.
   try {
     const doc = await db.collection(OPS_BUNDLE_COLLECTION).findOne(
       { _id: "current" as never },
       { timeoutMS, signal: controller.signal }
     );
-    const contextDocuments = await db
-      .collection<MongoContextSnapshotDocument>(CONTEXT_SNAPSHOT_COLLECTION)
-      .find({}, { projection: { snapshot: 1 }, timeoutMS, signal: controller.signal })
-      .sort({ _id: 1 })
-      .toArray();
+    const [contextDocuments, provenanceDocuments] = await Promise.all([
+      db
+        .collection<MongoContextSnapshotDocument>(CONTEXT_SNAPSHOT_COLLECTION)
+        .find({}, { projection: { snapshot: 1 }, timeoutMS, signal: controller.signal })
+        .sort({ _id: 1 })
+        .toArray(),
+      db
+        .collection<MongoProvenanceRecordDocument>(PROVENANCE_RECORD_COLLECTION)
+        .find(
+          {},
+          { projection: { record: 1, insertedAt: 1 }, timeoutMS, signal: controller.signal }
+        )
+        .sort({ _id: 1 })
+        .toArray(),
+    ]);
     const legacyBundle = decodeMongoBundleFromStorage(
       doc?.bundle ?? emptyBundle(),
       "Mongo durable ops bundle"
@@ -650,13 +795,21 @@ async function loadMongoBundle(timeoutMS: number): Promise<LoadedMongoBundle> {
     if (legacyContexts !== undefined && typeof legacyContexts !== "string") {
       throw new Error("legacy ops bundle contextSnapshots must be a string");
     }
+    const legacyProvenance = legacyBundle.provenanceRecords;
+    if (legacyProvenance !== undefined && typeof legacyProvenance !== "string") {
+      throw new Error("legacy ops bundle provenanceRecords must be a string");
+    }
     const revision = parseMongoBundleRevision(
       doc?.updatedAt,
       "Mongo durable ops revision"
     );
     return {
       revision,
-      version: mongoVersionToken(revision, contextDocuments.length),
+      version: mongoVersionToken(
+        revision,
+        contextDocuments.length,
+        provenanceDocuments.length
+      ),
       jobsCompressed: Boolean(
         doc?.bundle &&
           typeof doc.bundle === "object" &&
@@ -668,6 +821,10 @@ async function loadMongoBundle(timeoutMS: number): Promise<LoadedMongoBundle> {
         contextSnapshots: mergeMongoContextDocumentsWithLegacy(
           contextDocuments,
           legacyContexts ?? ""
+        ),
+        provenanceRecords: mergeMongoProvenanceDocumentsWithLegacy(
+          provenanceDocuments,
+          legacyProvenance ?? ""
         ),
       },
     };
@@ -699,6 +856,60 @@ async function saveMongoContexts(
   }
 }
 
+async function saveMongoProvenance(
+  db: Db,
+  text: string,
+  deadline: number
+): Promise<void> {
+  const records = parseProvenanceRecordsJsonl(text, "captured provenance store");
+  if (!records.length) return;
+  const operations = buildImmutableProvenanceMongoUpserts(
+    serializeProvenanceRecordsJsonl(records)
+  );
+  const collection = db.collection<MongoProvenanceRecordDocument>(
+    PROVENANCE_RECORD_COLLECTION
+  );
+  for (let index = 0; index < operations.length; index += 100) {
+    await collection.bulkWrite(operations.slice(index, index + 100), {
+      ordered: false,
+      timeoutMS: remainingTimeoutMs(deadline),
+    });
+  }
+
+  // `$setOnInsert` makes retry idempotent; this read-back prevents it from
+  // silently accepting a pre-existing same-id document with different bytes.
+  for (let index = 0; index < records.length; index += 100) {
+    const expected = records.slice(index, index + 100);
+    const ids = expected.map(provenanceRecordId);
+    const documents = await collection
+      .find(
+        { _id: { $in: ids } },
+        {
+          projection: { record: 1, insertedAt: 1 },
+          timeoutMS: remainingTimeoutMs(deadline),
+        }
+      )
+      .toArray();
+    const stored = validatedMongoProvenanceRecords(
+      documents,
+      "saved Mongo provenance collection"
+    );
+    const storedById = new Map(
+      stored.map((record) => [provenanceRecordId(record), canonicalJson(record)])
+    );
+    for (const record of expected) {
+      const recordId = provenanceRecordId(record);
+      const storedCanonical = storedById.get(recordId);
+      if (!storedCanonical) {
+        throw new Error(`Mongo provenance insert verification missing ${recordId}`);
+      }
+      if (storedCanonical !== canonicalJson(record)) {
+        throw new Error(`Mongo provenance immutable collision for ${recordId}`);
+      }
+    }
+  }
+}
+
 async function saveMongoBundle(
   bundle: DurableBundle,
   expectedRevision: MongoBundleRevision | null,
@@ -713,6 +924,7 @@ async function saveMongoBundle(
   const deadline = Date.now() + timeoutMs;
   const db = await getMongoDb();
   if (!db) throw new Error("MongoDB unavailable for durable ops store");
+  await saveMongoProvenance(db, bundle.provenanceRecords ?? "", deadline);
   await saveMongoContexts(db, bundle.contextSnapshots ?? "", deadline);
   const bundleForMongo = mongoBundleForWrite(bundle, jobsCompressed);
   const revision = nextMongoBundleRevision();
@@ -731,12 +943,18 @@ async function saveMongoBundle(
   if (result.matchedCount + result.upsertedCount !== 1) {
     throw new Error("Durable ops bundle changed after hydration; refusing stale overwrite");
   }
-  const contextCount = await db.collection(CONTEXT_SNAPSHOT_COLLECTION).countDocuments(
-    {},
-    { timeoutMS: remainingTimeoutMs(deadline) }
-  );
+  const [contextCount, provenanceCount] = await Promise.all([
+    db.collection(CONTEXT_SNAPSHOT_COLLECTION).countDocuments(
+      {},
+      { timeoutMS: remainingTimeoutMs(deadline) }
+    ),
+    db.collection(PROVENANCE_RECORD_COLLECTION).countDocuments(
+      {},
+      { timeoutMS: remainingTimeoutMs(deadline) }
+    ),
+  ]);
   return {
-    version: mongoVersionToken(revision, contextCount),
+    version: mongoVersionToken(revision, contextCount, provenanceCount),
     revision,
     jobsCompressed,
   };
@@ -834,6 +1052,7 @@ export interface DurableStorageDiagnostics {
   bundleBytes: number | null;
   fieldBytes: Record<DurableBundleKey, number>;
   contextDocuments: number;
+  provenanceDocuments: number;
 }
 
 /** Server-side byte counts only; never returns durable evidence contents. */
@@ -853,12 +1072,18 @@ export async function durableStorageDiagnostics(): Promise<DurableStorageDiagnos
         bundle.contextSnapshots ?? "",
         "diagnostic context store"
       ).length,
+      provenanceDocuments: parseProvenanceRecordsJsonl(
+        bundle.provenanceRecords ?? "",
+        "diagnostic provenance store"
+      ).length,
     };
   }
   const db = await getMongoDb();
   if (!db) throw new Error("MongoDB unavailable for durable storage diagnostics");
   const fields = Object.fromEntries(
-    BUNDLE_KEYS.filter(key => key !== "contextSnapshots").map(key => [
+    BUNDLE_KEYS.filter(
+      key => key !== "contextSnapshots" && key !== "provenanceRecords"
+    ).map(key => [
       key,
       key === "jobs"
         ? {
@@ -870,7 +1095,7 @@ export async function durableStorageDiagnostics(): Promise<DurableStorageDiagnos
         : { $strLenBytes: { $ifNull: [`$bundle.${key}`, ""] } },
     ])
   );
-  const [rows, contextDocuments] = await Promise.all([
+  const [rows, contextDocuments, provenanceDocuments] = await Promise.all([
     db.collection(OPS_BUNDLE_COLLECTION).aggregate<{
       updatedAt?: unknown;
       bundleBytes?: unknown;
@@ -890,12 +1115,15 @@ export async function durableStorageDiagnostics(): Promise<DurableStorageDiagnos
       { maxTimeMS: 8_000, timeoutMS: 10_000 }
     ).toArray(),
     db.collection(CONTEXT_SNAPSHOT_COLLECTION).countDocuments({}, { timeoutMS: 10_000 }),
+    db.collection(PROVENANCE_RECORD_COLLECTION).countDocuments({}, { timeoutMS: 10_000 }),
   ]);
   const row = rows[0];
   const fieldBytes = Object.fromEntries(
     BUNDLE_KEYS.map(key => [
       key,
-      key === "contextSnapshots" ? 0 : Number(row?.fieldBytes?.[key] ?? 0),
+      key === "contextSnapshots" || key === "provenanceRecords"
+        ? 0
+        : Number(row?.fieldBytes?.[key] ?? 0),
     ])
   ) as Record<DurableBundleKey, number>;
   return {
@@ -906,6 +1134,7 @@ export async function durableStorageDiagnostics(): Promise<DurableStorageDiagnos
     bundleBytes: Number.isFinite(Number(row?.bundleBytes)) ? Number(row?.bundleBytes) : null,
     fieldBytes,
     contextDocuments,
+    provenanceDocuments,
   };
 }
 

@@ -8,8 +8,35 @@ import { jobsForFixture } from "@/lib/competitions/premier-league/ops/job-ledger
 import { listLiveSnapshots } from "@/lib/competitions/premier-league/ops/live-snapshot-reader";
 import { forecastFreshness } from "@/lib/match-forecast/service";
 import { effectiveSnapshotGeneratedAt } from "@/lib/snapshots/types";
+import { inputLineageSummary } from "@/lib/match-forecast/input-lineage";
+import type { PredictionJob } from "@/lib/competitions/premier-league/ops/types";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Public scheduler projection. Failure and blocking reasons can contain raw
+ * provider or persistence diagnostics, so they remain on authenticated ops
+ * surfaces instead of leaking through the public fixture endpoint.
+ */
+function publicSchedulerJob(job: PredictionJob | undefined): Record<string, unknown> | null {
+  if (!job) return null;
+  return {
+    jobId: job.jobId,
+    stage: job.stage,
+    modelVersion: job.modelVersion,
+    kickoffUtc: job.kickoffUtc,
+    scheduledFor: job.scheduledFor,
+    eligibleFrom: job.eligibleFrom,
+    eligibleUntil: job.eligibleUntil,
+    plannedAsOf: job.plannedAsOf,
+    status: job.status,
+    snapshotKey: job.snapshotKey,
+    attemptedAt: job.attemptedAt,
+    completedAt: job.completedAt,
+    retryCount: job.retryCount,
+    updatedAt: job.updatedAt,
+  };
+}
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -44,14 +71,15 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       Object.entries(view.byStage).map(([stage, row]) => [
         stage,
         {
-          schedulerJob:
+          schedulerJob: publicSchedulerJob(
             jobs
               .filter((job) => job.stage === stage)
               .sort((a, b) => {
                 const aCurrent = a.kickoffUtc === currentKickoff ? 1 : 0;
                 const bCurrent = b.kickoffUtc === currentKickoff ? 1 : 0;
                 return bCurrent - aCurrent || b.updatedAt.localeCompare(a.updatedAt);
-              })[0] ?? null,
+              })[0]
+          ),
           predicted: row.snapshot
             ? {
                 home: row.snapshot.homeProbability,
@@ -65,6 +93,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
                 validForCurrentSelection: row.validForCurrentSelection,
                 validityIssues: row.validityIssues,
                 modelVersion: row.snapshot.modelVersion,
+                inputLineage: inputLineageSummary(row.snapshot),
               }
             : null,
           settlement: row.settlement
@@ -88,6 +117,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       kickoffAtFreeze: snapshot.kickoff,
       ...validity,
       modelVersion: snapshot.modelVersion,
+      inputLineage: inputLineageSummary(snapshot),
     })),
   });
 }

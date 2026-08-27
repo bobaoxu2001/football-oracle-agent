@@ -23,7 +23,7 @@ import {
   getCompletedFixture,
   completedFixtureNote,
 } from "@/lib/prediction-engine";
-import { predictPremierLeagueMatch, snapshotPremierLeagueMatch } from "@/lib/prediction-engine/league-engine";
+import { predictPremierLeagueMatch } from "@/lib/prediction-engine/league-engine";
 import { getClub } from "@/lib/competitions/premier-league/clubs";
 import { remainingPremierLeagueFixtures } from "@/lib/competitions/premier-league/season";
 import { ratingsAsOf } from "@/lib/competitions/premier-league/ratings";
@@ -32,7 +32,6 @@ import { loadProductionParams } from "@/lib/competitions/premier-league/model-tr
 import {
   currentHonestyText,
   currentSeasonDisclaimer,
-  isPreseasonBaseline,
   modelInputHonesty,
 } from "@/lib/competitions/premier-league/honesty";
 import { seasonDataVersion } from "@/lib/competitions/premier-league/data-gate";
@@ -979,13 +978,9 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
       fixtureId: scheduled?.id,
       season: PREMIER_LEAGUE_CURRENT_SEASON,
     });
-    snapshotPremierLeagueMatch(homeSlug, awaySlug, {
-      asOf,
-      kickoff: scheduled?.kickoffUtc ?? undefined,
-      fixtureId: scheduled?.id ?? pred.matchId,
-      season: PREMIER_LEAGUE_CURRENT_SEASON,
-      evaluationClass: scheduled ? "LIVE_OOS" : isPreseasonBaseline() ? undefined : "LIVE_OOS",
-    });
+    // Interactive questions are calculations, not production observations.
+    // Only the deterministic operations scheduler may mint a LIVE_OOS row,
+    // because that path first freezes and validates the complete PIT manifest.
     const home = getClub(homeSlug);
     const away = getClub(awaySlug);
     const teamA: TeamRef = { slug: home.slug, name: home.name, flag: "⚽️", elo: pred.eloA };

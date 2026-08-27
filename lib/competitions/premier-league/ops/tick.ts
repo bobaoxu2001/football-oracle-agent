@@ -26,6 +26,7 @@ import {
   releaseObserverLock,
   releaseTickLock,
 } from "./tick-lock";
+import { captureProspectiveProductionEvidence } from "../provenance/production";
 
 export const TICK_CADENCE_MS = 5 * 60 * 1000;
 
@@ -166,6 +167,19 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     state.lastResultSyncOkAt = now;
   }
 
+  // Capture immutable semantic versions before planning/execution. A stage
+  // cutoff is the beginning of its window, so first creating these records
+  // inside the later freeze would make their availability post-cutoff.
+  try {
+    captureProspectiveProductionEvidence({
+      fixtures,
+      observations: collected.observations,
+      capturedAt: now,
+    });
+  } catch (err) {
+    errors.push(`prospective evidence: ${(err as Error).message}`);
+  }
+
   const planned = planPredictionJobs({ fixtures, now });
   refreshJobStatuses(now);
   const exec = executeEligibleJobs({ fixtures, now });
@@ -255,6 +269,20 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     }
     state.lastVerifiedResultAt = now;
     state.lastVerifiedFixtureId = v.fixtureId;
+  }
+
+  // A newly applied result may change the rating state. Capture the resulting
+  // state after the update so only later forecast cutoffs can select it.
+  if (ratingsApplied > 0) {
+    try {
+      captureProspectiveProductionEvidence({
+        fixtures,
+        observations: collected.observations,
+        capturedAt: now,
+      });
+    } catch (err) {
+      errors.push(`post-rating evidence: ${(err as Error).message}`);
+    }
   }
 
   if (errors.length) state.lastError = errors[errors.length - 1];

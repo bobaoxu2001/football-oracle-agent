@@ -16,7 +16,7 @@ import type { PredictionJob, TimedStage } from "./types";
 import { TIMED_STAGES } from "./types";
 import { plannedAsOfIsBeforeKickoff, windowFor, windowState } from "./stage-windows";
 import { getJob, jobIdOf, jobsForFixture, listJobs, updateJob, upsertJobs } from "./job-ledger";
-import { snapshotPremierLeagueMatch } from "@/lib/prediction-engine/league-engine";
+import { snapshotPremierLeagueFromFrozenInputs } from "@/lib/prediction-engine/sealed-snapshot";
 import {
   archiveOperationalLiveOos,
   findScheduledSnapshot,
@@ -28,6 +28,10 @@ import {
   snapshotUniqueKey,
   type PredictionSnapshot,
 } from "@/lib/snapshots/types";
+import {
+  assertForecastInputManifestReferences,
+} from "../provenance/manifest";
+import { resolveProspectiveForecastInput } from "../provenance/production";
 
 export const MAX_JOB_RETRIES = 3;
 
@@ -66,6 +70,11 @@ function assertExactScheduledContextBinding(input: {
         !Array.isArray(snapshot.sourceState.contextUsedInForecastEvidenceIds) ||
         snapshot.sourceState.contextUsedInForecastEvidenceIds.length !== 0)
     );
+  const manifest = snapshot.inputManifest;
+  const manifestRecords = snapshot.inputManifestRecords;
+  if (manifest && manifestRecords) {
+    assertForecastInputManifestReferences(manifest, manifestRecords);
+  }
   if (
     !kickoff ||
     snapshot.provenance.uniqueKey !== forecastSnapshotKey ||
@@ -97,7 +106,16 @@ function assertExactScheduledContextBinding(input: {
     JSON.stringify(snapshot.sourceState.contextUsedInForecastEvidenceIds) !== JSON.stringify(context.usedInForecastEvidenceIds) ||
     snapshot.sourceState.contextLineupStatus !== context.lineup.overall ||
     snapshot.sourceState.contextLineupAvailableAt !== expectedLineupAvailableAt ||
-    championClaimsContextUsage
+    championClaimsContextUsage ||
+    !manifest ||
+    !manifestRecords ||
+    snapshot.inputManifestId !== manifest.manifestId ||
+    manifest.fixtureId !== fixture.id ||
+    manifest.forecastStage !== stage ||
+    manifest.cutoffAt !== plannedAsOf ||
+    manifest.kickoffAtAsKnown !== kickoff ||
+    manifest.modelVersion !== modelVersion ||
+    manifest.generatedAt !== snapshot.sourceState.computedAt
   ) {
     throw new Error(
       `Refusing ${stage}: existing first-write forecast is not bound to an exact, available context snapshot`
@@ -588,6 +606,21 @@ export function freezeScheduledStage(
     archiveOperationalLiveOos([existing]);
     return existing;
   }
+  const resolved = resolveProspectiveForecastInput({
+    fixtureId: fixture.id,
+    stage,
+    cutoffAt: plannedAsOf,
+    generatedAt: computedAt,
+  });
+  if (
+    resolved.references.fixtureRevision.homeSlug !== fixture.homeSlug ||
+    resolved.references.fixtureRevision.awaySlug !== fixture.awaySlug ||
+    resolved.references.fixtureRevision.kickoffAt !== kickoff
+  ) {
+    throw new Error(
+      `Refusing ${stage}: current fixture does not match the cutoff-selected immutable revision`
+    );
+  }
   const context = freezeMatchContext({
     season,
     fixtureId: fixture.id,
@@ -595,24 +628,14 @@ export function freezeScheduledStage(
     awaySlug: fixture.awaySlug,
     kickoffAt: kickoff,
     cutoffAt: plannedAsOf,
-    generatedAt: computedAt,
+    generatedAt: resolved.manifest.generatedAt,
     forecastSnapshotKey,
     // No structured Premier League availability/lineup provider is currently
     // configured. Empty is truthful; present-day news is never backfilled.
     evidence: [],
   }).snapshot;
-  const snap = snapshotPremierLeagueMatch(fixture.homeSlug, fixture.awaySlug, {
-    asOf: plannedAsOf,
-    kickoff,
-    fixtureId: fixture.id,
-    season,
-    predictionStage: stage,
-    evaluationClass: "LIVE_OOS",
-    origin: "scheduled",
-    computedAt,
-    fixtureDataVersion: evidence.fixtureDataVersion,
-    kickoffCertaintyAtFreeze: evidence.kickoffCertainty,
-    fixtureRetrievedAt: evidence.fixtureRetrievedAt,
+  const snap = snapshotPremierLeagueFromFrozenInputs({
+    resolved,
     contextSnapshot: context,
   });
   assertExactScheduledContextBinding({

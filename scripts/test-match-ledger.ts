@@ -633,7 +633,9 @@ async function main() {
     awayExpectedGoals: 0.6,
     scorelineDistribution: {},
     sourceState: {
-      origin: "scheduled",
+      // This row is a settlement fixture, not a scheduler integration test.
+      // Keep it explicitly outside the scheduled-production write contract.
+      origin: "manual",
       computedAt: "2026-08-20T19:05:00.000Z",
       latestEvidenceObservedAt: "2026-08-20T18:00:00.000Z",
     },
@@ -683,22 +685,25 @@ async function main() {
       },
     };
   };
+  const publicSettleSnapshot: PredictionSnapshot = {
+    ...settleSnapshot,
+    // Legacy/manual snapshots derive their generation time from createdAt.
+    // Pin this in-memory read-model fixture before kickoff without pretending
+    // it was emitted by the production scheduler.
+    createdAt: "2026-08-20T19:05:00.000Z",
+  };
   check(
     "public ledger selects a valid PL production LIVE_OOS snapshot",
-    latestPreKickoffSnapshot([settleSnapshot], settleTarget)?.provenance.uniqueKey ===
-      settleSnapshot.provenance.uniqueKey
+    latestPreKickoffSnapshot([publicSettleSnapshot], settleTarget)?.provenance.uniqueKey ===
+      publicSettleSnapshot.provenance.uniqueKey
   );
   check(
     "public ledger rejects a snapshot generated at kickoff",
     latestPreKickoffSnapshot(
       [
         {
-          ...settleSnapshot,
-          sourceState: {
-            ...settleSnapshot.sourceState,
-            origin: "scheduled",
-            computedAt: KICKOFF,
-          },
+          ...publicSettleSnapshot,
+          createdAt: KICKOFF,
         },
       ],
       settleTarget
@@ -707,35 +712,35 @@ async function main() {
   check(
     "public ledger rejects an obsolete frozen kickoff",
     latestPreKickoffSnapshot(
-      [withIdentity(settleSnapshot, { kickoff: "2026-08-22T19:00:00.000Z" })],
+      [withIdentity(publicSettleSnapshot, { kickoff: "2026-08-22T19:00:00.000Z" })],
       settleTarget
     ) === null
   );
   check(
     "public ledger rejects a mislabeled deterministic stage",
     latestPreKickoffSnapshot(
-      [withIdentity(settleSnapshot, { predictionStage: "T2H" })],
+      [withIdentity(publicSettleSnapshot, { predictionStage: "T2H" })],
       settleTarget
     ) === null
   );
   check(
     "public ledger rejects a non-LIVE_OOS evaluation class",
     latestPreKickoffSnapshot(
-      [withIdentity(settleSnapshot, { evaluationClass: "RETROSPECTIVE" })],
+      [withIdentity(publicSettleSnapshot, { evaluationClass: "RETROSPECTIVE" })],
       settleTarget
     ) === null
   );
   check(
     "public ledger rejects a non-PL snapshot with the same fixture id",
     latestPreKickoffSnapshot(
-      [withIdentity(settleSnapshot, { competition: "la-liga" })],
+      [withIdentity(publicSettleSnapshot, { competition: "la-liga" })],
       settleTarget
     ) === null
   );
   check(
     "another competition cannot inherit a PL snapshot through a fixture-id collision",
     latestPreKickoffSnapshot(
-      [settleSnapshot],
+      [publicSettleSnapshot],
       { ...settleTarget, competition: "la-liga" as const }
     ) === null
   );
@@ -749,7 +754,7 @@ async function main() {
 
   // ── API / UI serialization ─────────────────────────────────────────────
   const serialized = serializeMatchForApi(settleTarget, {
-    snapshot: settleSnapshot,
+    snapshot: publicSettleSnapshot,
     settlement: settlements[0] ?? null,
   });
   check("serialized match exposes the id", serialized.canonicalMatchId === TEST_FIXTURE_ID);
@@ -770,7 +775,7 @@ async function main() {
     actualScore: { home: 4, away: 0 },
   };
   const serializedCorruptSettlement = serializeMatchForApi(settleTarget, {
-    snapshot: settleSnapshot,
+    snapshot: publicSettleSnapshot,
     settlement: corruptSettlement,
   });
   check(
@@ -784,7 +789,7 @@ async function main() {
   check(
     "serializer rejects a cross-fixture snapshot and settlement",
     serializeMatchForApi(arsenal, {
-      snapshot: settleSnapshot,
+      snapshot: publicSettleSnapshot,
       settlement: settlements[0] ?? null,
     }).prediction === null
   );

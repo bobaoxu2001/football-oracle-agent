@@ -89,6 +89,21 @@ export interface ExactScoreProbability {
   probability: number;
 }
 
+/** Compact, non-sensitive public projection of forecast input provenance. */
+export interface InputLineageSummary {
+  status: "PIT_VERIFIED" | "LEGACY_UNAVAILABLE" | "PIT_INVALID";
+  manifestId: string | null;
+  manifestPayloadHash: string | null;
+  latestIncludedInputAt: string | null;
+  kickoffAtAsKnown: string | null;
+  fixtureRevisionId: string | null;
+  seasonMembershipSnapshotId: string | null;
+  modelBundleId: string | null;
+  modelBundleHash: string | null;
+  ratingStateHash: string | null;
+  applicationCommitSha: string | null;
+}
+
 export interface ForecastProvenance {
   modelVersion: string;
   modelRole: "production";
@@ -126,6 +141,7 @@ export interface ForecastProvenance {
     informationalOnly: number;
   };
   contextUsedInForecastEvidenceIds: string[];
+  inputLineage: InputLineageSummary;
 }
 
 export interface MatchForecast {
@@ -197,6 +213,7 @@ export interface ForecastTimelinePoint {
   bttsYes: number;
   expectedGoalsTotal: number;
   contextSnapshotId: string | null;
+  inputLineage: InputLineageSummary;
 }
 
 export interface ForecastComparison {

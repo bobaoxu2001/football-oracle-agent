@@ -22,6 +22,11 @@ import {
   legacySnapshotUniqueKey,
   snapshotUniqueKey,
 } from "./types";
+import {
+  assertForecastInputManifestIntegrity,
+  assertForecastInputManifestReferences,
+} from "@/lib/competitions/premier-league/provenance/manifest";
+import { PRODUCTION_MODEL_VERSION } from "@/lib/competitions/premier-league/model-tracks";
 
 export type {
   PredictionSnapshot,
@@ -169,7 +174,42 @@ async function replicateMongo(snap: PredictionSnapshot): Promise<void> {
   }
 }
 
+function assertScheduledProductionManifest(input: CreateSnapshotInput): void {
+  const scheduledProduction =
+    input.competition === "premier-league" &&
+    input.modelVersion === PRODUCTION_MODEL_VERSION &&
+    input.evaluationClass === "LIVE_OOS" &&
+    input.sourceState?.origin === "scheduled";
+  if (!scheduledProduction) return;
+  if (!input.inputManifest || !input.inputManifestRecords || !input.inputManifestId) {
+    throw new Error(
+      "Refusing scheduled production forecast without its complete PIT input manifest"
+    );
+  }
+  assertForecastInputManifestIntegrity(input.inputManifest);
+  assertForecastInputManifestReferences(
+    input.inputManifest,
+    input.inputManifestRecords
+  );
+  const stage = canonicalizePredictionStage(input.predictionStage);
+  const generatedAt = input.sourceState?.computedAt;
+  if (
+    input.inputManifestId !== input.inputManifest.manifestId ||
+    input.fixtureId !== input.inputManifest.fixtureId ||
+    input.season !== input.inputManifest.season ||
+    input.modelVersion !== input.inputManifest.modelVersion ||
+    stage !== input.inputManifest.forecastStage ||
+    input.asOf !== input.inputManifest.cutoffAt ||
+    (input.kickoff ?? null) !== input.inputManifest.kickoffAtAsKnown ||
+    typeof generatedAt !== "string" ||
+    generatedAt !== input.inputManifest.generatedAt
+  ) {
+    throw new Error("Scheduled production forecast does not exactly match its PIT manifest");
+  }
+}
+
 export function createSnapshot(input: CreateSnapshotInput): PredictionSnapshot {
+  assertScheduledProductionManifest(input);
   loadFromDisk();
   const stage = canonicalizePredictionStage(input.predictionStage);
   const keyFields: SnapshotKey = {
@@ -185,7 +225,16 @@ export function createSnapshot(input: CreateSnapshotInput): PredictionSnapshot {
   // Existence is canonical-key only. Legacy 5-part aliases omit predictionStage
   // and must not collapse PRESEASON vs T24H writes into one observation.
   const existing = lookup(state, uniqueKey);
-  if (existing) return cloneFrozen(existing);
+  if (existing) {
+    if (
+      input.sourceState?.origin === "scheduled" &&
+      input.inputManifestId &&
+      existing.inputManifestId !== input.inputManifestId
+    ) {
+      throw new Error(`Immutable scheduled snapshot manifest conflict for ${uniqueKey}`);
+    }
+    return cloneFrozen(existing);
+  }
 
   const snap: PredictionSnapshot = {
     competition: input.competition,
@@ -217,6 +266,11 @@ export function createSnapshot(input: CreateSnapshotInput): PredictionSnapshot {
         input.provenanceNotes ??
         "First write wins. Key = competition+season+fixtureId+modelVersion+predictionStage+asOf. Stored probabilities are never recomputed.",
     },
+    ...(input.inputManifestId ? { inputManifestId: input.inputManifestId } : {}),
+    ...(input.inputManifest ? { inputManifest: structuredClone(input.inputManifest) } : {}),
+    ...(input.inputManifestRecords
+      ? { inputManifestRecords: structuredClone(input.inputManifestRecords) }
+      : {}),
     market: null,
     home: input.home,
     draw: input.draw,
@@ -225,10 +279,16 @@ export function createSnapshot(input: CreateSnapshotInput): PredictionSnapshot {
     awayExpectedGoals: input.awayExpectedGoals,
   };
 
-  indexSnapshot(mem(), snap);
-  appendToDisk(snap);
-  void replicateMongo(snap);
-  return cloneFrozen(snap);
+  // Persist before publishing in process memory. If the append fails, a retry
+  // must not discover and archive a process-local ghost forecast.
+  const frozen = cloneFrozen(snap);
+  appendToDisk(frozen);
+  indexSnapshot(mem(), frozen);
+  // Scheduled production truth is published by the fenced durable ops CAS,
+  // together with its job/archive state. It must not escape through an
+  // independent fire-and-forget replica before that parent commit succeeds.
+  if (input.sourceState?.origin !== "scheduled") void replicateMongo(frozen);
+  return cloneFrozen(frozen);
 }
 
 export function getSnapshotByKey(key: SnapshotKey): PredictionSnapshot | null {

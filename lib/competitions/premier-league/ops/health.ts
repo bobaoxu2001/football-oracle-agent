@@ -35,6 +35,10 @@ import {
 } from "./production-freshness";
 import { listLiveSnapshots } from "./live-snapshot-reader";
 import { forecastFreshness } from "@/lib/match-forecast/service";
+import {
+  preflightProspectiveForecast,
+  type ProspectiveForecastPreflight,
+} from "../provenance/production";
 
 const HOUR = 3_600_000;
 const RESULT_STALE_AFTER_KICKOFF_MS = 6 * HOUR;
@@ -93,6 +97,12 @@ export interface HealthReport {
     lastSuccessAt: string | null;
     tickStale: boolean;
     freshness: OperationalFreshness<"scheduler">;
+  };
+  provenanceCapture: {
+    status: "READY" | "NOT_READY" | "NO_PENDING_JOB";
+    temporalRule: "max(input.availableAt) <= cutoffAt <= generatedAt < kickoffAtAsKnown";
+    nextForecast: ProspectiveForecastPreflight | null;
+    note: string;
   };
   freshness: {
     policyVersion: typeof PRODUCTION_FRESHNESS_POLICY_VERSION;
@@ -169,6 +179,13 @@ export function buildHealthReport(now = new Date()): HealthReport {
   const jobs = listJobs();
   const counts = jobCounts(jobs);
   const nextJob = nextScheduledJob(nowIso);
+  const provenancePreflight = nextJob
+    ? preflightProspectiveForecast({
+        fixtureId: nextJob.fixtureId,
+        stage: nextJob.stage,
+        cutoffAt: nextJob.plannedAsOf,
+      })
+    : null;
   const ledgerMetrics = canonicalLedgerMetrics(PREMIER_LEAGUE_CURRENT_SEASON);
   const verifs = loadVerifications();
   const rConflicts = resultConflicts();
@@ -315,6 +332,12 @@ export function buildHealthReport(now = new Date()): HealthReport {
         : "durable ops state is not hydrated"
     );
   }
+  if (provenancePreflight && !provenancePreflight.ready) {
+    if (overall !== "BLOCKED") overall = "DEGRADED";
+    reasons.push(
+      `next production forecast is not PIT-evidence ready: ${provenancePreflight.reasons.join("; ")}`
+    );
+  }
 
   if (overall === "HEALTHY") {
     reasons.push(
@@ -379,6 +402,18 @@ export function buildHealthReport(now = new Date()): HealthReport {
       lastSuccessAt: tick.lastSuccessAt,
       tickStale,
       freshness: schedulerFreshness,
+    },
+    provenanceCapture: {
+      status: provenancePreflight
+        ? provenancePreflight.ready
+          ? "READY"
+          : "NOT_READY"
+        : "NO_PENDING_JOB",
+      temporalRule:
+        "max(input.availableAt) <= cutoffAt <= generatedAt < kickoffAtAsKnown",
+      nextForecast: provenancePreflight,
+      note:
+        "Resolve-only preflight. It does not generate, complete, backdate, or otherwise mutate the pending production forecast.",
     },
     freshness: {
       policyVersion: PRODUCTION_FRESHNESS_POLICY_VERSION,

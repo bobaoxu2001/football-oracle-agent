@@ -28,6 +28,7 @@ import {
   type PredictionSnapshot,
 } from "@/lib/snapshots/types";
 import { assertForecastInvariants, deriveForecastMath, scoreMatrixFromSnapshot } from "./derive";
+import { inputLineageSummary } from "./input-lineage";
 import type {
   ForecastComparison,
   ContextChangeSummary,
@@ -113,6 +114,7 @@ export function selectProductionSnapshot(
   const kickoffMs = Date.parse(kickoffUtc);
   const eligible = productionSnapshotsForMatch(fixture.id, snapshots).filter(
     (snapshot) =>
+      inputLineageSummary(snapshot).status !== "PIT_INVALID" &&
       snapshotMatchesKickoff(snapshot, kickoffMs) &&
       Boolean(
         validateProductionForecastSnapshot({
@@ -297,6 +299,9 @@ export function buildMatchForecast(
   }
 
   const safeSourceState = sourceStateForApi(snapshot);
+  const inputLineage = inputLineageSummary(snapshot);
+  const recordedLatestIncludedInputAt =
+    inputLineage.latestIncludedInputAt ?? latestIncludedInputAt(snapshot);
   const ratingStateAsOf =
     typeof safeSourceState.ratingStateAsOf === "string"
       ? safeSourceState.ratingStateAsOf
@@ -419,8 +424,8 @@ export function buildMatchForecast(
             ? safeSourceState.fixtureRetrievedAt
             : null,
         ratingStateAsOf,
-        latestIncludedInputAt: latestIncludedInputAt(snapshot),
-        latestIncludedInputStatus: latestIncludedInputAt(snapshot)
+        latestIncludedInputAt: recordedLatestIncludedInputAt,
+        latestIncludedInputStatus: recordedLatestIncludedInputAt
           ? "RECORDED"
           : "UNAVAILABLE",
       },
@@ -460,6 +465,7 @@ export function buildMatchForecast(
           : null,
       contextEvidenceCounts,
       contextUsedInForecastEvidenceIds,
+      inputLineage,
     },
   };
   assertForecastInvariants(forecast);
@@ -537,6 +543,7 @@ export function forecastTimeline(
         bttsYes: forecast.btts.yes,
         expectedGoalsTotal: forecast.expectedGoals.total,
         contextSnapshotId: forecast.provenance.contextSnapshotId,
+        inputLineage: forecast.provenance.inputLineage,
       };
     });
 }
@@ -561,14 +568,19 @@ function timelineSnapshotRows(
         expectedKickoffUtc: kickoffAtFreeze ?? "",
         evaluatedAt: now.toISOString(),
       });
+      const inputLineageInvalid = inputLineageSummary(snapshot).status === "PIT_INVALID";
       return {
         snapshot,
         fixtureAtFreeze: kickoffAtFreeze
           ? { ...fixture, kickoff: kickoffAtFreeze, kickoffUtc: kickoffAtFreeze }
           : fixture,
         validForCurrentKickoff:
-          snapshotMatchesKickoff(snapshot, currentKickoffMs) && Boolean(stageValidation.valid),
-        validityIssues: stageValidation.issues,
+          !inputLineageInvalid &&
+          snapshotMatchesKickoff(snapshot, currentKickoffMs) &&
+          Boolean(stageValidation.valid),
+        validityIssues: inputLineageInvalid
+          ? [...stageValidation.issues, "SNAPSHOT_INPUT_LINEAGE_INVALID"]
+          : stageValidation.issues,
         kickoffAtFreezeMs,
       };
     })

@@ -17,6 +17,8 @@ async function main(): Promise<void> {
   process.env.PL_OPERATIONAL_LIVE_OOS_PATH = operationalArchive;
   process.env.LIVE_OOS_ARCHIVE_PATH = operationalArchive;
   process.env.PL_CONTEXT_SNAPSHOT_PATH = contextStore;
+  process.env.PL_PROVENANCE_DIR = path.join(ops, "provenance");
+  process.env.APPLICATION_COMMIT_SHA = "b".repeat(40);
   process.env.MATCH_AGENT_LLM_ENABLED = "0";
 
   const [
@@ -31,6 +33,8 @@ async function main(): Promise<void> {
     agent,
     model,
     jobs,
+    provenance,
+    sealedSnapshot,
   ] =
     await Promise.all([
       import("@/lib/competitions/premier-league/fixture-store"),
@@ -44,6 +48,8 @@ async function main(): Promise<void> {
       import("@/lib/match-forecast/agent"),
       import("@/lib/competitions/premier-league/model-tracks"),
       import("@/lib/competitions/premier-league/ops/job-ledger"),
+      import("@/lib/competitions/premier-league/provenance/production"),
+      import("@/lib/prediction-engine/sealed-snapshot"),
     ]);
 
   const fixture = liveFixtures().find((item) => item.id === "pl-2026-27-arsenal-chelsea");
@@ -51,6 +57,11 @@ async function main(): Promise<void> {
   const kickoff = fixture.kickoffUtc;
   const t7Cutoff = "2026-08-30T15:30:00.000Z";
   const t7Generated = "2026-08-30T15:30:05.000Z";
+  provenance.captureProspectiveProductionEvidence({
+    fixtures: [fixture],
+    observations: [],
+    capturedAt: "2026-08-20T00:00:00.000Z",
+  });
 
   const t7 = scheduler.freezeScheduledStage(fixture, "T7D", t7Cutoff, t7Generated);
   const t7ContextId = String(t7.sourceState.contextSnapshotId ?? "");
@@ -81,7 +92,12 @@ async function main(): Promise<void> {
   const collisionCutoff = new Date(Date.parse(collisionFixture.kickoffUtc) - 7 * 86_400_000).toISOString();
   const collisionGenerated = new Date(Date.parse(collisionCutoff) + 5_000).toISOString();
   const contextBeforeCollision = fs.readFileSync(contextStore, "utf8");
-  const contextlessFirstWrite = engine.snapshotPremierLeagueMatch(
+  provenance.captureProspectiveProductionEvidence({
+    fixtures: [collisionFixture],
+    observations: [],
+    capturedAt: "2026-08-20T00:00:00.000Z",
+  });
+  const contextlessManualFirstWrite = engine.snapshotPremierLeagueMatch(
     collisionFixture.homeSlug,
     collisionFixture.awaySlug,
     {
@@ -91,13 +107,18 @@ async function main(): Promise<void> {
       season: collisionFixture.season,
       predictionStage: "T7D",
       evaluationClass: "LIVE_OOS",
-      origin: "scheduled",
+      origin: "manual",
       computedAt: collisionGenerated,
       fixtureDataVersion: collisionFixture.sourceId ?? null,
       kickoffCertaintyAtFreeze: collisionFixture.kickoffCertainty ?? null,
       fixtureRetrievedAt: collisionFixture.retrievedAt ?? null,
     }
   );
+  // Manufacture the exact immutable shape of a pre-4A.3 scheduled row. New
+  // scheduled writes cannot omit a PIT manifest; this archived clone exists
+  // only to prove that the scheduler fails closed on legacy evidence.
+  const contextlessFirstWrite = structuredClone(contextlessManualFirstWrite);
+  contextlessFirstWrite.sourceState.origin = "scheduled";
   assert.equal(contextlessFirstWrite.sourceState.contextSnapshotId, null);
   archive.archiveOperationalLiveOos([contextlessFirstWrite]);
   const archiveWithLegacyCollision = fs.readFileSync(operationalArchive, "utf8");
@@ -143,6 +164,17 @@ async function main(): Promise<void> {
   const usedCollisionGenerated = new Date(
     Date.parse(usedCollisionCutoff) + 5_000
   ).toISOString();
+  provenance.captureProspectiveProductionEvidence({
+    fixtures: [usedCollisionFixture],
+    observations: [],
+    capturedAt: "2026-08-20T00:00:00.000Z",
+  });
+  const usedCollisionResolved = provenance.resolveProspectiveForecastInput({
+    fixtureId: usedCollisionFixture.id,
+    stage: "T7D",
+    cutoffAt: usedCollisionCutoff,
+    generatedAt: usedCollisionGenerated,
+  });
   const usedCollisionKey = snapshots.snapshotUniqueKey({
     competition: "premier-league",
     season: usedCollisionFixture.season,
@@ -216,6 +248,9 @@ async function main(): Promise<void> {
       contextInformationalEvidenceCount: 0,
       contextUsedInForecastEvidenceIds: usedCollisionContext.usedInForecastEvidenceIds,
     },
+    inputManifestId: usedCollisionResolved.manifest.manifestId,
+    inputManifest: usedCollisionResolved.manifest,
+    inputManifestRecords: usedCollisionResolved.references,
   });
   archive.archiveOperationalLiveOos([usedCollisionSnapshot]);
   const usedCollisionArchiveBytes = fs.readFileSync(operationalArchive, "utf8");
@@ -319,18 +354,14 @@ async function main(): Promise<void> {
       },
     ],
   }).snapshot;
-  const t24 = engine.snapshotPremierLeagueMatch(fixture.homeSlug, fixture.awaySlug, {
-    asOf: t24Cutoff,
-    kickoff,
+  const t24Resolved = provenance.resolveProspectiveForecastInput({
     fixtureId: fixture.id,
-    season: fixture.season,
-    predictionStage: "T24H",
-    evaluationClass: "LIVE_OOS",
-    origin: "scheduled",
-    computedAt: t24Generated,
-    fixtureDataVersion: fixture.sourceId ?? null,
-    kickoffCertaintyAtFreeze: fixture.kickoffCertainty ?? null,
-    fixtureRetrievedAt: fixture.retrievedAt ?? null,
+    stage: "T24H",
+    cutoffAt: t24Cutoff,
+    generatedAt: t24Generated,
+  });
+  const t24 = sealedSnapshot.snapshotPremierLeagueFromFrozenInputs({
+    resolved: t24Resolved,
     contextSnapshot: t24Context,
   });
   archive.archiveOperationalLiveOos([t24]);

@@ -1,4 +1,12 @@
 import type { CompetitionId } from "@/lib/competitions/types";
+import type {
+  ForecastInputManifest,
+  ManifestReferenceSet,
+} from "@/lib/competitions/premier-league/provenance/types";
+import {
+  assertForecastInputManifestIntegrity,
+  assertForecastInputManifestReferences,
+} from "@/lib/competitions/premier-league/provenance/manifest";
 
 /**
  * Stable prediction-stage enum.
@@ -86,6 +94,18 @@ export interface PredictionSnapshot {
     uniqueKey: string;
     notes: string;
   };
+  /**
+   * Prospective Phase 4A.3 lineage. Older immutable rows intentionally omit
+   * these fields and remain LEGACY_UNAVAILABLE on read.
+   *
+   * The complete compact manifest and its small frozen semantic records are
+   * embedded with the forecast so no replica can expose probabilities while
+   * losing the evidence needed to reconstruct them. The content-addressed
+   * provenance tape remains the canonical cross-forecast registry.
+   */
+  inputManifestId?: string;
+  inputManifest?: ForecastInputManifest;
+  inputManifestRecords?: ManifestReferenceSet;
   /** Reserved: market snapshot can be attached later without a redesign. */
   market?: {
     capturedAt: string;
@@ -135,8 +155,58 @@ export const SNAPSHOT_MODEL_INPUT_TIMESTAMP_FIELDS = [
  * relabelling it unavailable.
  */
 export function effectiveSnapshotLatestIncludedInputAt(
-  snapshot: Pick<PredictionSnapshot, "sourceState">
+  snapshot: Pick<PredictionSnapshot, "sourceState"> &
+    Partial<
+      Pick<
+        PredictionSnapshot,
+        | "fixtureId"
+        | "season"
+        | "modelVersion"
+        | "predictionStage"
+        | "asOf"
+        | "dataCutoff"
+        | "kickoff"
+        | "inputManifestId"
+        | "inputManifest"
+        | "inputManifestRecords"
+      >
+    >
 ): string | null {
+  if (snapshot.inputManifest) {
+    const manifest = snapshot.inputManifest;
+    try {
+      if (!snapshot.inputManifestRecords) {
+        throw new Error("missing immutable manifest references");
+      }
+      assertForecastInputManifestIntegrity(manifest);
+      assertForecastInputManifestReferences(manifest, snapshot.inputManifestRecords);
+      if (
+        snapshot.inputManifestId !== manifest.manifestId ||
+        manifest.fixtureId !== snapshot.fixtureId ||
+        manifest.season !== snapshot.season ||
+        manifest.modelVersion !== snapshot.modelVersion ||
+        manifest.forecastStage !==
+          canonicalizePredictionStage(snapshot.predictionStage) ||
+        manifest.cutoffAt !== snapshot.asOf ||
+        snapshot.dataCutoff !== snapshot.asOf ||
+        manifest.kickoffAtAsKnown !== snapshot.kickoff ||
+        manifest.generatedAt !== snapshot.sourceState?.computedAt
+      ) {
+        throw new Error("manifest does not bind to the immutable snapshot");
+      }
+    } catch {
+      // A present but corrupt/mismatched manifest must make the snapshot
+      // temporally invalid. Falling back to legacy timestamps could allow it
+      // to displace a valid production forecast.
+      return "invalid:input-manifest";
+    }
+    const recorded = manifest.latestIncludedInputAt;
+    if (typeof recorded !== "string") return "invalid:manifest.latestIncludedInputAt";
+    return recorded;
+  }
+  if (snapshot.inputManifestId || snapshot.inputManifestRecords) {
+    return "invalid:input-manifest";
+  }
   let latest: { value: string; time: number } | null = null;
   for (const field of SNAPSHOT_MODEL_INPUT_TIMESTAMP_FIELDS) {
     const recorded = snapshot.sourceState?.[field];
@@ -171,6 +241,9 @@ export interface CreateSnapshotInput {
   modelParameters?: Record<string, unknown>;
   sourceState?: Record<string, unknown>;
   provenanceNotes?: string;
+  inputManifestId?: string;
+  inputManifest?: ForecastInputManifest;
+  inputManifestRecords?: ManifestReferenceSet;
 }
 
 /** Current identity: includes predictionStage. */

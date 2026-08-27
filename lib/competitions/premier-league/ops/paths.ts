@@ -74,3 +74,36 @@ export function clubSeasonsPath(): string {
 export function fixtureRevisionsPath(): string {
   return env("PL_FIXTURE_REVISIONS_PATH", path.join(ROOT, "fixture-revisions.jsonl"));
 }
+
+/** Phase 4A.3 append-only, content-addressed forecast-input evidence. */
+export function provenanceDir(): string {
+  return env("PL_PROVENANCE_DIR", path.join(opsDir(), "provenance"));
+}
+
+export function provenanceFixtureRevisionPath(): string {
+  return env("PL_PIT_FIXTURE_REVISION_PATH", path.join(provenanceDir(), "fixture-revisions.jsonl"));
+}
+
+export function provenanceResultRevisionPath(): string {
+  return env("PL_PIT_RESULT_REVISION_PATH", path.join(provenanceDir(), "result-revisions.jsonl"));
+}
+
+export function provenanceResultCorrectionPath(): string {
+  return env("PL_PIT_RESULT_CORRECTION_PATH", path.join(provenanceDir(), "result-corrections.jsonl"));
+}
+
+export function provenanceSeasonMembershipPath(): string {
+  return env("PL_PIT_MEMBERSHIP_PATH", path.join(provenanceDir(), "season-membership.jsonl"));
+}
+
+export function provenanceRatingStatePath(): string {
+  return env("PL_PIT_RATING_STATE_PATH", path.join(provenanceDir(), "rating-states.jsonl"));
+}
+
+export function provenanceModelBundlePath(): string {
+  return env("PL_PIT_MODEL_BUNDLE_PATH", path.join(provenanceDir(), "model-bundles.jsonl"));
+}
+
+export function provenanceManifestPath(): string {
+  return env("PL_PIT_MANIFEST_PATH", path.join(provenanceDir(), "forecast-input-manifests.jsonl"));
+}

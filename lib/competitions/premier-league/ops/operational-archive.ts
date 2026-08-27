@@ -19,32 +19,40 @@ function dest(): string {
   return file;
 }
 
-function existingKeys(file: string): Set<string> {
-  const keys = new Set<string>();
-  if (!fs.existsSync(file)) return keys;
+function existingRows(file: string): Map<string, string> {
+  const rows = new Map<string, string>();
+  if (!fs.existsSync(file)) return rows;
   for (const line of fs.readFileSync(file, "utf8").split("\n")) {
     if (!line.trim()) continue;
     try {
       const s = JSON.parse(line) as PredictionSnapshot;
-      keys.add(s.provenance?.uniqueKey || snapshotUniqueKey(s));
+      const key = s.provenance?.uniqueKey || snapshotUniqueKey(s);
+      if (!rows.has(key)) rows.set(key, JSON.stringify(s));
     } catch {
       /* skip */
     }
   }
-  return keys;
+  return rows;
 }
 
 export function archiveOperationalLiveOos(snaps: PredictionSnapshot[]): { appended: number } {
   const file = dest();
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  const existing = existingKeys(file);
+  const existing = existingRows(file);
   const lines: string[] = [];
   for (const s of snaps) {
     if (s.evaluationClass !== "LIVE_OOS") continue;
     const key = s.provenance?.uniqueKey || snapshotUniqueKey(s);
-    if (existing.has(key)) continue;
-    existing.add(key);
-    lines.push(JSON.stringify(s));
+    const candidate = JSON.stringify(s);
+    const prior = existing.get(key);
+    if (prior !== undefined) {
+      if (prior !== candidate) {
+        throw new Error(`Immutable operational snapshot conflict for ${key}`);
+      }
+      continue;
+    }
+    existing.set(key, candidate);
+    lines.push(candidate);
   }
   if (lines.length) fs.appendFileSync(file, `${lines.join("\n")}\n`, "utf8");
   return { appended: lines.length };

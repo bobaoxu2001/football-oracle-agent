@@ -96,6 +96,37 @@ function check(name: string, cond: boolean, detail = "") {
 const near = (a: number, b: number, eps = 1e-9) => Math.abs(a - b) <= eps;
 const sums1 = (h: number, d: number, a: number) => near(h + d + a, 1, 1e-9);
 
+/**
+ * These historical/manual fixtures are read-model tests, not scheduler writes.
+ * Give createSnapshot the fixture's explicit test clock so its immutable
+ * createdAt remains a truthful generation timestamp without claiming the
+ * scheduled-production origin (which now requires a complete PIT manifest).
+ */
+function atManualGenerationTime<T>(iso: string, work: () => T): T {
+  const RealDate = globalThis.Date;
+  const fixedMs = RealDate.parse(iso);
+  const FixedDate = new Proxy(RealDate, {
+    construct(target, args) {
+      return Reflect.construct(target, args.length ? args : [fixedMs], target);
+    },
+    apply(target, thisArg, args) {
+      return args.length
+        ? Reflect.apply(target, thisArg, args)
+        : new target(fixedMs).toString();
+    },
+    get(target, property, receiver) {
+      if (property === "now") return () => fixedMs;
+      return Reflect.get(target, property, receiver);
+    },
+  }) as DateConstructor;
+  globalThis.Date = FixedDate;
+  try {
+    return work();
+  } finally {
+    globalThis.Date = RealDate;
+  }
+}
+
 // ── Fixture helpers ───────────────────────────────────────────────────────
 const COVENTRY_KICKOFF = "2026-08-21T19:00:00.000Z";
 const RESULT_KNOWN = "2026-08-21T21:00:00.000Z";
@@ -460,15 +491,17 @@ const PAIR_FIXTURE = "pl-2026-27-shadowpairing-fixture";
 
 async function main() {
   // ── Baseline immutability (HARD GATE) ───────────────────────────────────
-  const baselineSnap = snapshotPremierLeagueMatch("aston-villa", "arsenal", {
-    asOf: NEXT_ASOF,
-    kickoff: NEXT_KICKOFF,
-    fixtureId: PAIR_FIXTURE,
-    predictionStage: "T24H",
-    evaluationClass: "LIVE_OOS",
-    origin: "scheduled",
-    computedAt: NEXT_ASOF,
-  });
+  const baselineSnap = atManualGenerationTime(NEXT_ASOF, () =>
+    snapshotPremierLeagueMatch("aston-villa", "arsenal", {
+      asOf: NEXT_ASOF,
+      kickoff: NEXT_KICKOFF,
+      fixtureId: PAIR_FIXTURE,
+      predictionStage: "T24H",
+      evaluationClass: "LIVE_OOS",
+      origin: "manual",
+      computedAt: NEXT_ASOF,
+    })
+  );
   const baselineHomeProb = baselineSnap.homeProbability;
   const baselineKey = baselineSnap.provenance.uniqueKey;
   check("baseline snapshot uses the production version", baselineSnap.modelVersion === PRODUCTION_MODEL_VERSION);
@@ -815,7 +848,7 @@ async function main() {
     evaluationClass?: "LIVE_OOS" | "BACKTEST";
     latestIncludedInputAt?: string | null;
   }) {
-    return createSnapshot({
+    return atManualGenerationTime(input.computedAt, () => createSnapshot({
       fixtureId: input.fixtureId,
       competition: "premier-league",
       season: "2026-27",
@@ -833,11 +866,11 @@ async function main() {
       awayExpectedGoals: 1,
       scorelineDistribution: {},
       sourceState: {
-        origin: "scheduled",
+        origin: input.modelVersion === PRODUCTION_MODEL_VERSION ? "manual" : "scheduled",
         computedAt: input.computedAt,
         latestEvidenceObservedAt: input.latestIncludedInputAt ?? null,
       },
-    });
+    }));
   }
 
   function comparisonPair(input: {
@@ -1063,15 +1096,17 @@ async function main() {
   const REHEARSE_ID = "pl-2026-27-shadowrehearse-fixture";
   const rehearseKick = "2026-09-12T15:00:00.000Z";
   const rehearseAsOf = "2026-09-11T15:00:00.000Z";
-  const rehearseBaseline = snapshotPremierLeagueMatch("chelsea", "fulham", {
-    asOf: rehearseAsOf,
-    kickoff: rehearseKick,
-    fixtureId: REHEARSE_ID,
-    predictionStage: "T24H",
-    evaluationClass: "LIVE_OOS",
-    origin: "scheduled",
-    computedAt: rehearseAsOf,
-  });
+  const rehearseBaseline = atManualGenerationTime(rehearseAsOf, () =>
+    snapshotPremierLeagueMatch("chelsea", "fulham", {
+      asOf: rehearseAsOf,
+      kickoff: rehearseKick,
+      fixtureId: REHEARSE_ID,
+      predictionStage: "T24H",
+      evaluationClass: "LIVE_OOS",
+      origin: "manual",
+      computedAt: rehearseAsOf,
+    })
+  );
   archiveOperationalLiveOos([rehearseBaseline]);
   upsertJob(
     succeededJob({
@@ -1176,15 +1211,17 @@ async function main() {
 
   const missedKickoff = "2026-08-10T15:00:00.000Z";
   const missedAsOf = "2026-08-09T15:00:00.000Z";
-  const missedBaseline = snapshotPremierLeagueMatch("chelsea", "fulham", {
-    asOf: missedAsOf,
-    kickoff: missedKickoff,
-    fixtureId: "pl-2026-27-shadowmissed-fixture",
-    predictionStage: "T24H",
-    evaluationClass: "LIVE_OOS",
-    origin: "scheduled",
-    computedAt: missedAsOf,
-  });
+  const missedBaseline = atManualGenerationTime(missedAsOf, () =>
+    snapshotPremierLeagueMatch("chelsea", "fulham", {
+      asOf: missedAsOf,
+      kickoff: missedKickoff,
+      fixtureId: "pl-2026-27-shadowmissed-fixture",
+      predictionStage: "T24H",
+      evaluationClass: "LIVE_OOS",
+      origin: "manual",
+      computedAt: missedAsOf,
+    })
+  );
   const missedJob = succeededJob({
     fixtureId: "pl-2026-27-shadowmissed-fixture",
     kickoff: missedKickoff,

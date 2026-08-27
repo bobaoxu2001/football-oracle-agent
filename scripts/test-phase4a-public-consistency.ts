@@ -282,6 +282,30 @@ async function main(): Promise<void> {
           Array.isArray(row.validityIssues)
       )
     );
+    for (const stageRow of Object.values(payload.stages) as Array<{
+      schedulerJob?: Record<string, unknown> | null;
+    }>) {
+      if (!stageRow.schedulerJob) continue;
+      for (const privateField of [
+        "failureReason",
+        "failureClass",
+        "blockedReason",
+        "cutoffFixtureRetrievedAt",
+        "cutoffFixtureDataVersion",
+      ]) {
+        assert.equal(privateField in stageRow.schedulerJob, false, privateField);
+      }
+    }
+    const fixtureJson = JSON.stringify(payload);
+    for (const privateField of [
+      '"inputManifest"',
+      '"inputManifestRecords"',
+      '"sourceObservations"',
+      '"ratingEvents"',
+      '"parameterPayload"',
+    ]) {
+      assert.equal(fixtureJson.includes(privateField), false, privateField);
+    }
   });
 
   await check("all count-bearing pages are wired to the canonical contract", () => {

@@ -49,6 +49,9 @@ export default async function MatchRoomPage({ params }: Props) {
           </div>
           <h1 className="mt-6 text-balance text-center text-3xl font-black tracking-tight sm:text-5xl">{match.home.name} <span className="text-muted-foreground">vs</span> {match.away.name}</h1>
           <p className="mt-3 text-center text-sm text-muted-foreground">Production forecast frozen {formatTimestamp(forecast.cutoffAt)} · {forecast.modelVersion}</p>
+          <div className="mt-3 flex justify-center">
+            <LineageBadge status={forecast.provenance.inputLineage.status} />
+          </div>
           {!freshness.meetsStagePolicy ? <p className="mx-auto mt-4 flex max-w-2xl items-start justify-center gap-2 rounded-xl border border-amber-300/20 bg-amber-300/[0.06] p-3 text-xs text-amber-100"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {freshnessExplanation(freshness)}</p> : null}
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
             {outcomes.map((outcome) => (
@@ -173,6 +176,15 @@ export default async function MatchRoomPage({ params }: Props) {
             <AuditLine label="Fixture forecast stage" value={`${formatStatus(freshness.status)} · selected ${freshness.selectedStage ?? "none"} · latest required ${freshness.latestRequiredStage ?? "baseline"}`} />
             <AuditLine label="Forecast cutoff age (diagnostic only)" value={freshness.selectedSnapshot ? `${freshness.selectedSnapshot.cutoffAgeHours.toFixed(1)} hours at page render` : "unavailable"} />
             <AuditLine label="Latest included model input" value={data.audit.dataFreshness.latestIncludedInputAt ?? "not prospectively recorded"} />
+            <AuditLine label="Input lineage" value={lineageLabel(data.audit.inputLineage.status)} />
+            <AuditLine label="Input manifest" value={data.audit.inputLineage.manifestId ?? "not recorded"} mono={Boolean(data.audit.inputLineage.manifestId)} />
+            <AuditLine label="Manifest payload hash" value={data.audit.inputLineage.manifestPayloadHash ?? "not recorded"} mono={Boolean(data.audit.inputLineage.manifestPayloadHash)} />
+            <AuditLine label="Kickoff as known" value={data.audit.inputLineage.kickoffAtAsKnown ?? "not recorded in a PIT manifest"} />
+            <AuditLine label="Fixture revision" value={data.audit.inputLineage.fixtureRevisionId ?? "not recorded"} mono={Boolean(data.audit.inputLineage.fixtureRevisionId)} />
+            <AuditLine label="Season membership snapshot" value={data.audit.inputLineage.seasonMembershipSnapshotId ?? "not recorded"} mono={Boolean(data.audit.inputLineage.seasonMembershipSnapshotId)} />
+            <AuditLine label="Model bundle" value={data.audit.inputLineage.modelBundleId ?? "not recorded"} mono={Boolean(data.audit.inputLineage.modelBundleId)} />
+            <AuditLine label="Rating state hash" value={data.audit.inputLineage.ratingStateHash ?? "not recorded"} mono={Boolean(data.audit.inputLineage.ratingStateHash)} />
+            <AuditLine label="Application commit" value={data.audit.inputLineage.applicationCommitSha ?? "not recorded"} mono={Boolean(data.audit.inputLineage.applicationCommitSha)} />
             <AuditLine label="Rating state cutoff" value={data.audit.dataFreshness.ratingStateAsOf} />
             <AuditLine label="Model" value={`${data.audit.modelVersion} · production`} />
             <AuditLine label="Score artifact" value={data.audit.scoreDistributionArtifact} />
@@ -184,6 +196,8 @@ export default async function MatchRoomPage({ params }: Props) {
             <AuditLine label="Context feature usage" value={`${data.audit.contextEvidenceCounts.usedInForecast} model-used · ${data.audit.contextEvidenceCounts.informationalOnly} informational-only`} />
           </div>
           <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4 text-xs text-muted-foreground"><p className="font-semibold text-foreground">Production inputs</p><ul className="mt-2 list-disc space-y-1 pl-5">{data.audit.inputsUsed.map((input) => <li key={input}>{input}</li>)}</ul>{data.audit.reconstructionNote ? <p className="mt-3 text-amber-100/90">{data.audit.reconstructionNote}</p> : null}</div>
+          {data.audit.inputLineage.status === "LEGACY_UNAVAILABLE" ? <p className="mt-4 text-xs text-amber-100/90">This immutable forecast predates prospective input-manifest capture. Missing IDs, hashes and availability timestamps remain unavailable; current state was not used to reconstruct them.</p> : null}
+          {data.audit.inputLineage.status === "PIT_INVALID" ? <p className="mt-4 text-xs text-red-200">A manifest reference is present but its compact integrity evidence is incomplete or inconsistent. This is not labelled PIT verified.</p> : null}
           <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-neon" /> Current news, market prices, tactical profiles and shadow-model outputs are not production inputs. Only the selected forecast context is constrained to its cutoff; separately labelled latest context is prospective and never backfilled.</p>
         </details>
       </div>
@@ -196,7 +210,7 @@ function formatTimestamp(value: string) { return new Intl.DateTimeFormat("en-GB"
 function BigStat({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] leading-tight text-muted-foreground">{label}</p><p className="mt-2 text-3xl font-black tabular-nums">{value}</p></div>; }
 function MarketStat({ label, value }: { label: string; value: number }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-black tabular-nums">{pct(value)}</p></div>; }
 function ProbabilityPair({ label, leftLabel, left, rightLabel, right }: { label: string; leftLabel: string; left: number; rightLabel: string; right: number }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-xs font-semibold">{label}</p><div className="mt-3 grid grid-cols-2 gap-2"><div><p className="text-[10px] text-muted-foreground">{leftLabel}</p><p className="text-2xl font-black tabular-nums">{pct(left)}</p></div><div><p className="text-[10px] text-muted-foreground">{rightLabel}</p><p className="text-2xl font-black tabular-nums">{pct(right)}</p></div></div></div>; }
-function TimelineRow({ point, home, away }: { point: MatchIntelligence["timeline"][number]; home: string; away: string }) { return <div className="mt-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="flex flex-wrap items-center gap-2 font-semibold text-foreground"><span>{point.predictionStage} · {formatTimestamp(point.cutoffAt)}</span>{point.validForCurrentKickoff ? null : <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-200">Excluded from current forecast</span>}</p><p className="mt-1 break-all text-muted-foreground">{point.forecastId}</p><p className="mt-1 text-[10px] text-muted-foreground">Context: {point.contextSnapshotId ?? "not recorded"}</p>{point.validForCurrentKickoff ? null : <p className="mt-1 text-amber-200/80">{point.validityIssues.length ? `Stage validity: ${point.validityIssues.join(", ")}. ` : point.kickoffAtFreeze ? `Frozen for ${formatTimestamp(point.kickoffAtFreeze)}. ` : ""}Retained for audit history and excluded from the selected forecast.</p>}</div><p className="tabular-nums text-muted-foreground">{home} {pct(point.result.homeWin)} · Draw {pct(point.result.draw)} · {away} {pct(point.result.awayWin)}</p></div>; }
+function TimelineRow({ point, home, away }: { point: MatchIntelligence["timeline"][number]; home: string; away: string }) { return <div className="mt-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="flex flex-wrap items-center gap-2 font-semibold text-foreground"><span>{point.predictionStage} · {formatTimestamp(point.cutoffAt)}</span><LineageBadge status={point.inputLineage.status} compact />{point.validForCurrentKickoff ? null : <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-200">Excluded from current forecast</span>}</p><p className="mt-1 break-all text-muted-foreground">{point.forecastId}</p><p className="mt-1 text-[10px] text-muted-foreground">Context: {point.contextSnapshotId ?? "not recorded"}</p>{point.inputLineage.manifestId ? <p className="mt-1 break-all text-[10px] text-muted-foreground">Manifest: {point.inputLineage.manifestId}</p> : null}{point.validForCurrentKickoff ? null : <p className="mt-1 text-amber-200/80">{point.validityIssues.length ? `Stage validity: ${point.validityIssues.join(", ")}. ` : point.kickoffAtFreeze ? `Frozen for ${formatTimestamp(point.kickoffAtFreeze)}. ` : ""}Retained for audit history and excluded from the selected forecast.</p>}</div><p className="tabular-nums text-muted-foreground">{home} {pct(point.result.homeWin)} · Draw {pct(point.result.draw)} · {away} {pct(point.result.awayWin)}</p></div>; }
 function ContextStat({ label, value, note }: { label: string; value: string; note: string }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p><p className="mt-2 text-lg font-black">{value}</p><p className="mt-1 text-[11px] text-muted-foreground">{note}</p></div>; }
 function contextAvailabilityLabel(data: MatchIntelligence) { const availability = data.context.atForecast.availability; if (!availability) return "NOT RECORDED"; const total = availability.home.entities.length + availability.away.entities.length; return total ? `${total} player record${total === 1 ? "" : "s"}` : "NO EVIDENCE"; }
 function contextChangeValue(value: unknown): string {
@@ -211,6 +225,19 @@ function contextChangeValue(value: unknown): string {
 }
 function contextChangeLabel(change: MatchIntelligence["contextComparison"] extends infer T ? NonNullable<T> extends { changes: Array<infer C> } ? C : never : never) { const subject = change.entityId ?? change.teamSlug ?? "match"; return `${change.type.replaceAll("_", " ")} · ${subject}${change.before !== null || change.after !== null ? ` · ${contextChangeValue(change.before)} → ${contextChangeValue(change.after)}` : ""}`; }
 function formatStatus(value: string) { return value.replaceAll("_", " "); }
+function lineageLabel(status: MatchIntelligence["audit"]["inputLineage"]["status"]) {
+  if (status === "PIT_VERIFIED") return "PIT input lineage verified";
+  if (status === "PIT_INVALID") return "PIT input lineage invalid";
+  return "Legacy input lineage unavailable";
+}
+function LineageBadge({ status, compact = false }: { status: MatchIntelligence["audit"]["inputLineage"]["status"]; compact?: boolean }) {
+  const tone = status === "PIT_VERIFIED"
+    ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-100"
+    : status === "PIT_INVALID"
+      ? "border-red-400/30 bg-red-400/10 text-red-100"
+      : "border-amber-400/30 bg-amber-400/10 text-amber-100";
+  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 font-bold uppercase tracking-wide ${compact ? "text-[9px]" : "text-[10px]"} ${tone}`}>{lineageLabel(status)}</span>;
+}
 function freshnessExplanation(freshness: MatchIntelligence["freshness"]) {
   if (freshness.status === "MISSED_STAGE") {
     return `Fixture forecast coverage is degraded: ${freshness.missedStages.join(", ") || freshness.latestRequiredStage || "a required stage"} was missed and will not be backfilled. The latest valid immutable forecast remains visible. Scheduler liveness is a separate operational status.`;

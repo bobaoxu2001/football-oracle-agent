@@ -15,12 +15,7 @@ import type { Fixture } from "@/lib/identity/types";
 import { canonicalizeFixtureStatus } from "./ingest";
 import { applyFixturePatch, liveFixtures } from "./fixture-store";
 import { canSettle, settleFixture, type SettlementRecord } from "./settlement";
-import { snapshotPremierLeagueMatch } from "@/lib/prediction-engine/league-engine";
-import { upcomingLiveFixtures } from "./data-gate";
-import { PREMIER_LEAGUE_CURRENT_SEASON } from "./config";
 import { PRODUCTION_MODEL_VERSION } from "./model-tracks";
-import { stageFromTiming } from "./stages";
-import { isBeforeKickoff } from "./timezone";
 
 export interface ResultIngest {
   fixtureId: string;
@@ -61,24 +56,10 @@ export function freezeUpcomingForecasts(options: {
   asOf?: string;
   limit?: number;
 } = {}): number {
-  const asOf = options.asOf ?? new Date().toISOString();
-  const upcoming = upcomingLiveFixtures(new Date(asOf));
-  const take = options.limit ?? upcoming.length;
-  let n = 0;
-  for (const f of upcoming.slice(0, take)) {
-    const kick = f.kickoffUtc ?? f.kickoff ?? null;
-    if (kick && !isBeforeKickoff(asOf, kick)) continue;
-    snapshotPremierLeagueMatch(f.homeSlug, f.awaySlug, {
-      asOf,
-      kickoff: kick ?? undefined,
-      fixtureId: f.id,
-      season: f.season ?? PREMIER_LEAGUE_CURRENT_SEASON,
-      predictionStage: stageFromTiming(asOf, kick),
-      evaluationClass: "LIVE_OOS",
-    });
-    n += 1;
-  }
-  return n;
+  void options;
+  throw new Error(
+    "Manual LIVE_OOS freezing is disabled. Use the guarded operations scheduler so every production forecast is bound to a PIT-verified input manifest."
+  );
 }
 
 export function productionModelVersion(): string {
