@@ -94,7 +94,7 @@ export default async function HealthPage() {
 
       <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
         <h2 className="mb-2 font-semibold">Reasons</h2>
-        <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+        <ul className="min-w-0 list-disc space-y-1 break-all pl-5 text-muted-foreground">
           {h.reasons.map((r) => (
             <li key={r}>{r}</li>
           ))}
@@ -168,7 +168,7 @@ export default async function HealthPage() {
 
       <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
         <h2 className="mb-3 font-semibold">Prospective PIT evidence capture</h2>
-        <ul className="space-y-1 text-muted-foreground">
+        <ul className="min-w-0 space-y-1 break-all text-muted-foreground">
           <li>Status: <span className={tone(h.provenanceCapture.status)}>{h.provenanceCapture.status}</span></li>
           <li>Invariant: <span className="font-mono text-[11px]">{h.provenanceCapture.temporalRule}</span></li>
           {h.provenanceCapture.nextForecast ? <>
