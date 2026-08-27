@@ -6,18 +6,21 @@ import { listLatestConsensus, loadMarketState } from "@/lib/competitions/premier
 import { buildMarketHealthReport } from "@/lib/competitions/premier-league/market/health";
 import { productionMarketBenchmarkReport } from "@/lib/competitions/premier-league/market/benchmark-report";
 import { marketQualityFlags } from "@/lib/competitions/premier-league/market/benchmark";
+import { sanitizePublicMarketHealthReport } from "@/lib/competitions/premier-league/ops/public-health";
+import { recordInternalOperationalError } from "@/lib/competitions/premier-league/ops/public-errors";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     await hydrateDurableOps();
-    const [health, state, consensus, benchmark] = await Promise.all([
+    const [internalHealth, state, consensus, benchmark] = await Promise.all([
       buildMarketHealthReport(),
       loadMarketState(),
       listLatestConsensus(),
       productionMarketBenchmarkReport(),
     ]);
+    const health = sanitizePublicMarketHealthReport(internalHealth);
     const fixtures = liveFixtures();
 
     const rows = consensus
@@ -64,7 +67,7 @@ export async function GET() {
       fixtures: rows,
     });
   } catch (err) {
-    console.warn("[market] public summary unavailable:", (err as Error).message);
+    recordInternalOperationalError("api.market-summary", err);
     return NextResponse.json(
       {
         error: "market_summary_unavailable",

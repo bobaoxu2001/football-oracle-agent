@@ -28,6 +28,7 @@ import {
   applyVerifiedRatingUpdate,
   ratingEventsAsOf,
 } from "@/lib/competitions/premier-league/ops/rating-events";
+import type { SourceObservation } from "@/lib/competitions/premier-league/ops/types";
 import {
   clearJobsForTests,
   getJob,
@@ -41,6 +42,7 @@ import {
   planPredictionJobs,
   refreshJobStatuses,
 } from "@/lib/competitions/premier-league/ops/scheduler";
+import { runLiveOpsTick } from "@/lib/competitions/premier-league/ops/tick";
 import {
   STAGE_WINDOWS,
   windowFor,
@@ -95,6 +97,43 @@ function fixture(input: {
   };
 }
 
+function resultObservation(
+  row: Fixture,
+  retrievedAt: string
+): SourceObservation {
+  assert.equal(row.status, "FINISHED");
+  assert.notEqual(row.homeGoals, null);
+  assert.notEqual(row.awayGoals, null);
+  return {
+    observationId: `phase4a-result::${row.id}::${retrievedAt}`,
+    kind: "result",
+    source: "phase4a-test-result",
+    sourceFixtureId: row.id,
+    fixtureId: row.id,
+    retrievedAt,
+    sourceUpdatedAt: null,
+    raw: {
+      fixtureId: row.id,
+      status: row.status,
+      homeGoals: row.homeGoals,
+      awayGoals: row.awayGoals,
+    },
+    normalized: {
+      homeSlug: row.homeSlug,
+      awaySlug: row.awaySlug,
+      kickoffUtc: row.kickoffUtc ?? null,
+      kickoffLocal: row.kickoffLocal ?? null,
+      scheduledDate: row.scheduledDate ?? row.date,
+      kickoffCertainty: row.kickoffCertainty ?? null,
+      status: "FINISHED",
+      homeGoals: row.homeGoals,
+      awayGoals: row.awayGoals,
+      sourceUpdatedAt: null,
+    },
+    verificationStatus: "VERIFIED_FINAL",
+  };
+}
+
 function cloneSnapshot(
   source: PredictionSnapshot,
   input: Partial<PredictionSnapshot> & Pick<PredictionSnapshot, "fixtureId" | "asOf" | "kickoff" | "predictionStage">
@@ -143,7 +182,7 @@ function cloneSnapshot(
   };
 }
 
-function main(): void {
+async function main(): Promise<void> {
   assert.equal(sha256(TAPE), TAPE_SHA);
   assert.equal(fs.readFileSync(TAPE, "utf8").trim().split("\n").length, 380);
   clearLiveOpsForTests();
@@ -221,9 +260,12 @@ function main(): void {
   );
 
   const rollingEvidenceCapturedAt = "2026-08-21T21:31:00.000Z";
+  const knownObservation = resultObservation(known, appliedKnown.appliedAt);
+  const lateObservation = resultObservation(lateKnown, appliedLate.appliedAt);
+  const futureObservation = resultObservation(futureResult, appliedFuture.appliedAt);
   captureProspectiveProductionEvidence({
-    fixtures: [rolling],
-    observations: [],
+    fixtures: [rolling, known],
+    observations: [knownObservation],
     capturedAt: rollingEvidenceCapturedAt,
   });
 
@@ -258,14 +300,18 @@ function main(): void {
   assert.equal(frozen.sourceState.computedAt, t7.plannedAsOf);
   assert.equal(frozen.sourceState.fixtureRetrievedAt, rollingEvidenceCapturedAt);
   assert.equal(frozen.sourceState.kickoffCertaintyAtFreeze, "DEFAULT");
-  assert.deepEqual(frozen.sourceState.ratingEventIds, [appliedKnown.eventId]);
   assert.equal(frozen.sourceState.ratingEventsUsed, 1);
+  const frozenVerificationEventIds =
+    frozen.inputManifest?.ratingEvents.map(
+      (event) => event.ratingUpdateInputs?.verificationEventId
+    ) ?? [];
+  assert.deepEqual(frozenVerificationEventIds, [appliedKnown.eventId]);
   assert.equal(
-    (frozen.sourceState.ratingEventIds as string[]).includes(appliedLate.eventId),
+    frozenVerificationEventIds.includes(appliedLate.eventId),
     false
   );
   assert.equal(
-    (frozen.sourceState.ratingEventIds as string[]).includes(appliedFuture.eventId),
+    frozenVerificationEventIds.includes(appliedFuture.eventId),
     false
   );
   assert.ok(Date.parse(String(frozen.sourceState.computedAt)) >= Date.parse(frozen.asOf));
@@ -344,8 +390,8 @@ function main(): void {
   const graceWindow = windowFor("T7D", graceFixture.kickoffUtc!);
   const graceEvidenceCapturedAt = "2026-09-01T00:00:00.000Z";
   captureProspectiveProductionEvidence({
-    fixtures: [graceFixture],
-    observations: [],
+    fixtures: [graceFixture, known, lateKnown, futureResult],
+    observations: [knownObservation, lateObservation, futureObservation],
     capturedAt: graceEvidenceCapturedAt,
   });
   planPredictionJobs({ fixtures: [graceFixture], now: "2026-09-01T00:00:00.000Z" });
@@ -545,9 +591,67 @@ function main(): void {
   assert.ok(Date.parse(currentForecast.generatedAt) >= Date.parse(currentForecast.cutoffAt));
   assert.ok(Date.parse(currentForecast.generatedAt) < Date.parse(currentForecast.kickoffUtc));
 
+  // Missing prospective evidence is a publication gate. The job stays
+  // ELIGIBLE for the next healthy tick; no production freeze is attempted.
+  const evidenceGateTarget = fixture({
+    id: "phase4a-evidence-gate-target",
+    homeSlug: "arsenal",
+    awaySlug: "chelsea",
+    kickoffUtc: "2026-11-10T19:00:00.000Z",
+    retrievedAt: "2026-10-20T00:00:00.000Z",
+  });
+  const evidenceGateWindow = windowFor("T7D", evidenceGateTarget.kickoffUtc!);
+  planPredictionJobs({ fixtures: [evidenceGateTarget], now: evidenceGateWindow.plannedAsOf });
+  refreshJobStatuses(evidenceGateWindow.plannedAsOf);
+  const evidenceGateJobId = jobIdOf(
+    evidenceGateTarget.id,
+    "T7D",
+    evidenceGateTarget.kickoffUtc!
+  );
+  assert.equal(getJob(evidenceGateJobId)?.status, "ELIGIBLE");
+  const missingEvidenceResult = fixture({
+    id: "phase4a-unprovenanced-result",
+    homeSlug: "bournemouth",
+    awaySlug: "brentford",
+    kickoffUtc: "2026-11-01T15:00:00.000Z",
+    retrievedAt: "2026-10-20T00:00:00.000Z",
+    certainty: "CONFIRMED",
+    status: "FINISHED",
+    homeGoals: 1,
+    awayGoals: 0,
+  });
+  applyVerifiedRatingUpdate({
+    fixture: missingEvidenceResult,
+    appliedAt: "2026-11-01T18:00:00.000Z",
+  });
+  const snapshotsBeforeEvidenceFailure = listSnapshots().length;
+  const gatedTick = await runLiveOpsTick({
+    now: evidenceGateWindow.plannedAsOf,
+    fixtures: [evidenceGateTarget],
+    sources: [],
+    persistFixtures: false,
+    persistObservations: false,
+    persistFixturePatches: false,
+    skipNetwork: true,
+    skipShadow: true,
+    skipObservers: true,
+  });
+  assert.equal(gatedTick.jobsSucceeded, 0);
+  assert.equal(gatedTick.jobsFailed, 0);
+  assert.equal(listSnapshots().length, snapshotsBeforeEvidenceFailure);
+  assert.equal(getJob(evidenceGateJobId)?.status, "ELIGIBLE");
+  assert.ok(
+    gatedTick.errors.includes(
+      "prospective evidence: No immutable verified result revision for phase4a-unprovenanced-result"
+    )
+  );
+
   assert.equal(sha256(TAPE), TAPE_SHA);
   assert.equal(fs.readFileSync(TAPE, "utf8").trim().split("\n").length, 380);
   console.log("Phase 4A rolling gates: passed");
 }
 
-main();
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

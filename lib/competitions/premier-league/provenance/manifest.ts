@@ -1,3 +1,11 @@
+import type { Fixture } from "@/lib/identity/types";
+import { completedPremierLeagueFixtures } from "../data";
+import {
+  applyFixtureToRatings,
+  applySeasonBoundary,
+  emptyRatingState,
+  ratingOf,
+} from "../ratings";
 import {
   assertCanonicalTimestamp,
   canonicalJson,
@@ -29,6 +37,8 @@ import {
   type ProvenanceRecord,
   type RatingEventReference,
   type RatingEventReferenceInput,
+  type RatingResultLineageStatus,
+  type RatingUpdateInputs,
   type ResultCorrectionInput,
   type ResultCorrectionLink,
   type ResultRevisionInput,
@@ -37,6 +47,7 @@ import {
   type SeasonMembershipSnapshotInput,
   type SourceObservationReference,
   type SourceObservationReferenceInput,
+  type VerifiedSeasonMembershipSnapshot,
 } from "./types";
 
 function commitSha(value: unknown, label: string): string {
@@ -362,6 +373,55 @@ export function buildSeasonMembershipSnapshot(
     sourceObservations.map((source) => source.availableAt),
     "membership source availability"
   );
+  const hasVerificationProof =
+    input.verificationStatus !== undefined ||
+    input.verifiedAt !== undefined ||
+    input.verifiedAgainst !== undefined ||
+    input.verificationArtifact !== undefined;
+  let verificationProof:
+    | Pick<
+        VerifiedSeasonMembershipSnapshot,
+        | "verificationStatus"
+        | "verifiedAt"
+        | "verifiedAgainst"
+        | "verificationArtifact"
+      >
+    | {
+        verificationStatus: "SOURCE_CONFLICT" | "PROVISIONAL" | "STALE";
+        verifiedAt: string;
+        verifiedAgainst: readonly string[];
+        verificationArtifact: string;
+      }
+    | undefined;
+  if (hasVerificationProof) {
+    if (
+      input.verificationStatus !== "VERIFIED" &&
+      input.verificationStatus !== "SOURCE_CONFLICT" &&
+      input.verificationStatus !== "PROVISIONAL" &&
+      input.verificationStatus !== "STALE"
+    ) {
+      throw new Error("membership.verificationStatus is invalid");
+    }
+    const verifiedAt = normalizeTimestamp(input.verifiedAt, "membership.verifiedAt");
+    assertNoLater(
+      verifiedAt,
+      availableAt,
+      "membership.verifiedAt must not be after availableAt"
+    );
+    const verifiedAgainst = uniqueSortedStrings(
+      input.verifiedAgainst ?? [],
+      "membership.verifiedAgainst"
+    );
+    verificationProof = {
+      verificationStatus: input.verificationStatus,
+      verifiedAt,
+      verifiedAgainst,
+      verificationArtifact: requireNonEmpty(
+        input.verificationArtifact,
+        "membership.verificationArtifact"
+      ),
+    };
+  }
   const membershipPayloadHash = canonicalSha256({
     competition: "premier-league",
     season,
@@ -376,6 +436,7 @@ export function buildSeasonMembershipSnapshot(
     availableAt,
     sourceObservations,
     membershipPayloadHash,
+    ...(verificationProof ?? {}),
   };
   return cloneFrozen({
     ...identity,
@@ -388,10 +449,31 @@ export function assertSeasonMembershipIntegrity(record: SeasonMembershipSnapshot
     season: record.season,
     teamSlugs: record.teamSlugs,
     sourceObservations: record.sourceObservations,
+    verificationStatus: record.verificationStatus,
+    verifiedAt: record.verifiedAt,
+    verifiedAgainst: record.verifiedAgainst,
+    verificationArtifact: record.verificationArtifact,
   });
   if (canonicalJson(rebuilt) !== canonicalJson(record)) {
     throw new Error(
       `season membership integrity mismatch: ${record.seasonMembershipSnapshotId}`
+    );
+  }
+}
+
+/** Legacy membership rows remain readable, but only complete VERIFIED proof is publishable. */
+export function assertVerifiedSeasonMembershipSnapshot(
+  record: SeasonMembershipSnapshot
+): asserts record is VerifiedSeasonMembershipSnapshot {
+  assertSeasonMembershipIntegrity(record);
+  if (
+    record.verificationStatus !== "VERIFIED" ||
+    !record.verifiedAt ||
+    !record.verifiedAgainst?.length ||
+    !record.verificationArtifact
+  ) {
+    throw new Error(
+      `season membership lacks complete VERIFIED proof: ${record.seasonMembershipSnapshotId}`
     );
   }
 }
@@ -405,7 +487,7 @@ function normalizeRatingEvent(
   const availableAt = normalizeTimestamp(event.availableAt, `${label}.availableAt`);
   assertBefore(fixtureKickoff, appliedAt, `${label}.fixtureKickoff must be before appliedAt`);
   assertNoLater(appliedAt, availableAt, `${label}.appliedAt must not be after availableAt`);
-  return cloneFrozen({
+  const base = {
     ratingEventId: requireNonEmpty(event.ratingEventId, `${label}.ratingEventId`),
     fixtureId: requireNonEmpty(event.fixtureId, `${label}.fixtureId`),
     fixtureKickoff,
@@ -413,7 +495,136 @@ function normalizeRatingEvent(
     availableAt,
     payloadHash: normalizeSha256(event.payloadHash, `${label}.payloadHash`),
     resultRevisionId: nullableNonEmpty(event.resultRevisionId, `${label}.resultRevisionId`),
+  };
+  const hasProspectiveLineage =
+    event.resultPayloadHash !== undefined ||
+    event.resultAvailableAt !== undefined ||
+    event.fixtureRevisionId !== undefined ||
+    event.fixturePayloadHash !== undefined ||
+    event.ratingUpdateInputs !== undefined;
+  if (!hasProspectiveLineage) return cloneFrozen(base);
+  if (!base.resultRevisionId) {
+    throw new Error(`${label}.resultRevisionId is required for prospective rating lineage`);
+  }
+  const resultAvailableAt = normalizeTimestamp(
+    event.resultAvailableAt,
+    `${label}.resultAvailableAt`
+  );
+  assertNoLater(
+    resultAvailableAt,
+    availableAt,
+    `${label}.resultAvailableAt must not be after rating event availableAt`
+  );
+  const ratingUpdateInputs = normalizeRatingUpdateInputs(
+    event.ratingUpdateInputs,
+    `${label}.ratingUpdateInputs`
+  );
+  if (ratingUpdateInputs.homeSlug === ratingUpdateInputs.awaySlug) {
+    throw new Error(`${label}.ratingUpdateInputs teams must differ`);
+  }
+  return cloneFrozen({
+    ...base,
+    resultPayloadHash: normalizeSha256(
+      event.resultPayloadHash,
+      `${label}.resultPayloadHash`
+    ),
+    resultAvailableAt,
+    fixtureRevisionId: requireNonEmpty(
+      event.fixtureRevisionId,
+      `${label}.fixtureRevisionId`
+    ),
+    fixturePayloadHash: normalizeSha256(
+      event.fixturePayloadHash,
+      `${label}.fixturePayloadHash`
+    ),
+    ratingUpdateInputs,
   });
+}
+
+function finiteNumber(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${label} must be finite`);
+  }
+  return Object.is(value, -0) ? 0 : value;
+}
+
+function nonNegativeInteger(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throw new Error(`${label} must be a non-negative integer`);
+  }
+  return value;
+}
+
+function normalizeRatingUpdateInputs(
+  value: RatingUpdateInputs | undefined,
+  label: string
+): RatingUpdateInputs {
+  if (!value || typeof value !== "object") throw new Error(`${label} is required`);
+  if (value.venue !== "home" && value.venue !== "neutral") {
+    throw new Error(`${label}.venue must be home or neutral`);
+  }
+  return cloneFrozen({
+    homeSlug: requireNonEmpty(value.homeSlug, `${label}.homeSlug`),
+    awaySlug: requireNonEmpty(value.awaySlug, `${label}.awaySlug`),
+    homeScore: nonNegativeInteger(value.homeScore, `${label}.homeScore`),
+    awayScore: nonNegativeInteger(value.awayScore, `${label}.awayScore`),
+    venue: value.venue,
+    preHome: finiteNumber(value.preHome, `${label}.preHome`),
+    preAway: finiteNumber(value.preAway, `${label}.preAway`),
+    preHomeMatches: nonNegativeInteger(
+      value.preHomeMatches,
+      `${label}.preHomeMatches`
+    ),
+    preAwayMatches: nonNegativeInteger(
+      value.preAwayMatches,
+      `${label}.preAwayMatches`
+    ),
+    postHome: finiteNumber(value.postHome, `${label}.postHome`),
+    postAway: finiteNumber(value.postAway, `${label}.postAway`),
+    postHomeMatches: nonNegativeInteger(
+      value.postHomeMatches,
+      `${label}.postHomeMatches`
+    ),
+    postAwayMatches: nonNegativeInteger(
+      value.postAwayMatches,
+      `${label}.postAwayMatches`
+    ),
+    formulaVersion: requireNonEmpty(value.formulaVersion, `${label}.formulaVersion`),
+    modelVersion: requireNonEmpty(value.modelVersion, `${label}.modelVersion`),
+    verificationEventId: requireNonEmpty(
+      value.verificationEventId,
+      `${label}.verificationEventId`
+    ),
+  });
+}
+
+function verifiedRatingEventPayload(event: RatingEventReference): CanonicalJsonValue {
+  if (
+    !event.resultRevisionId ||
+    !event.resultPayloadHash ||
+    !event.resultAvailableAt ||
+    !event.fixtureRevisionId ||
+    !event.fixturePayloadHash ||
+    !event.ratingUpdateInputs
+  ) {
+    throw new Error(`rating event ${event.ratingEventId} has incomplete result lineage`);
+  }
+  return normalizeCanonicalJson(
+    {
+      ratingEventId: event.ratingEventId,
+      fixtureId: event.fixtureId,
+      fixtureKickoff: event.fixtureKickoff,
+      appliedAt: event.appliedAt,
+      availableAt: event.availableAt,
+      resultRevisionId: event.resultRevisionId,
+      resultPayloadHash: event.resultPayloadHash,
+      resultAvailableAt: event.resultAvailableAt,
+      fixtureRevisionId: event.fixtureRevisionId,
+      fixturePayloadHash: event.fixturePayloadHash,
+      ratingUpdateInputs: event.ratingUpdateInputs,
+    },
+    "verified rating event payload"
+  );
 }
 
 export function buildRatingEventReference(
@@ -427,6 +638,46 @@ export function buildRatingEventReference(
     availableAt: input.availableAt ?? input.appliedAt,
     payloadHash: canonicalSha256(input.payload),
     resultRevisionId: input.resultRevisionId ?? null,
+    ...(input.resultPayloadHash
+      ? {
+          resultPayloadHash: input.resultPayloadHash,
+          resultAvailableAt: input.resultAvailableAt,
+          fixtureRevisionId: input.fixtureRevisionId,
+          fixturePayloadHash: input.fixturePayloadHash,
+          ratingUpdateInputs: input.ratingUpdateInputs,
+        }
+      : {}),
+  });
+}
+
+export function buildVerifiedRatingEventReference(input: Omit<
+  RatingEventReferenceInput,
+  "payload" | "resultRevisionId"
+> & {
+  resultRevisionId: string;
+  resultPayloadHash: ResultRevisionRecord["resultPayloadHash"];
+  resultAvailableAt: string;
+  fixtureRevisionId: string;
+  fixturePayloadHash: FixtureRevisionRecord["fixturePayloadHash"];
+  ratingUpdateInputs: RatingUpdateInputs;
+}): RatingEventReference {
+  const draft = normalizeRatingEvent({
+    ratingEventId: input.ratingEventId,
+    fixtureId: input.fixtureId,
+    fixtureKickoff: input.fixtureKickoff,
+    appliedAt: input.appliedAt,
+    availableAt: input.availableAt ?? input.appliedAt,
+    payloadHash: canonicalSha256({ placeholder: true }),
+    resultRevisionId: input.resultRevisionId,
+    resultPayloadHash: input.resultPayloadHash,
+    resultAvailableAt: input.resultAvailableAt,
+    fixtureRevisionId: input.fixtureRevisionId,
+    fixturePayloadHash: input.fixturePayloadHash,
+    ratingUpdateInputs: input.ratingUpdateInputs,
+  });
+  return normalizeRatingEvent({
+    ...draft,
+    payloadHash: canonicalSha256(verifiedRatingEventPayload(draft)),
   });
 }
 
@@ -506,7 +757,7 @@ export function buildFrozenRatingState(
     );
   }
   const ratingStateHash = canonicalSha256(state);
-  const identity = {
+  const baseIdentity = {
     recordKind: "RATING_STATE" as const,
     schemaVersion: PROVENANCE_SCHEMA_VERSION,
     competition: "premier-league" as const,
@@ -523,9 +774,56 @@ export function buildFrozenRatingState(
     state,
     ratingStateHash,
   };
+  if (input.ratingResultLineageStatus === "VERIFIED") {
+    for (const event of ratingEvents) {
+      const expectedPayloadHash = canonicalSha256(verifiedRatingEventPayload(event));
+      if (event.payloadHash !== expectedPayloadHash) {
+        throw new Error(`rating event ${event.ratingEventId} payload hash mismatch`);
+      }
+    }
+    const orderedRatingEventIds = ratingEvents.map((event) => event.ratingEventId);
+    const orderedResultRevisionIds = ratingEvents.map((event) => {
+      if (!event.resultRevisionId) {
+        throw new Error(`rating event ${event.ratingEventId} lacks a result revision`);
+      }
+      return event.resultRevisionId;
+    });
+    if (
+      input.orderedRatingEventIds &&
+      canonicalJson(input.orderedRatingEventIds) !== canonicalJson(orderedRatingEventIds)
+    ) {
+      throw new Error("rating state orderedRatingEventIds mismatch");
+    }
+    if (
+      input.orderedResultRevisionIds &&
+      canonicalJson(input.orderedResultRevisionIds) !== canonicalJson(orderedResultRevisionIds)
+    ) {
+      throw new Error("rating state orderedResultRevisionIds mismatch");
+    }
+    if (new Set(orderedResultRevisionIds).size !== orderedResultRevisionIds.length) {
+      throw new Error("rating state applies a result revision more than once");
+    }
+    const verifiedIdentity = {
+      ...baseIdentity,
+      ratingResultLineageStatus: "VERIFIED" as const,
+      orderedRatingEventIds,
+      orderedResultRevisionIds,
+      featureCodeVersion: requireNonEmpty(
+        input.featureCodeVersion,
+        "ratingState.featureCodeVersion"
+      ),
+      codeCommitSha: commitSha(input.codeCommitSha, "ratingState.codeCommitSha"),
+    };
+    const ratingStateContentHash = canonicalSha256(verifiedIdentity);
+    const contentBoundIdentity = { ...verifiedIdentity, ratingStateContentHash };
+    return cloneFrozen({
+      ...contentBoundIdentity,
+      ratingStateId: contentAddress("pl-rating-state", contentBoundIdentity),
+    });
+  }
   return cloneFrozen({
-    ...identity,
-    ratingStateId: contentAddress("pl-rating-state", identity),
+    ...baseIdentity,
+    ratingStateId: contentAddress("pl-rating-state", baseIdentity),
   });
 }
 
@@ -539,9 +837,242 @@ export function assertFrozenRatingStateIntegrity(record: FrozenRatingStateSnapsh
     seasonMembershipSnapshotId: record.seasonMembershipSnapshotId,
     ratingEvents: record.ratingEvents,
     state: record.state,
+    ratingResultLineageStatus: record.ratingResultLineageStatus,
+    orderedRatingEventIds: record.orderedRatingEventIds,
+    orderedResultRevisionIds: record.orderedResultRevisionIds,
+    featureCodeVersion: record.featureCodeVersion,
+    codeCommitSha: record.codeCommitSha,
   });
   if (canonicalJson(rebuilt) !== canonicalJson(record)) {
     throw new Error(`rating state integrity mismatch: ${record.ratingStateId}`);
+  }
+}
+
+export function ratingResultLineageStatus(
+  record: FrozenRatingStateSnapshot
+): RatingResultLineageStatus {
+  return record.ratingResultLineageStatus === "VERIFIED"
+    ? "VERIFIED"
+    : "LEGACY_LINEAGE_INCOMPLETE";
+}
+
+/**
+ * Resolve and validate every enhanced rating event against its exact immutable
+ * fixture and result records. This is the manifest-completeness gate, not a
+ * best-effort classifier.
+ */
+export function assertVerifiedRatingStateLineage(input: {
+  ratingState: FrozenRatingStateSnapshot;
+  resultRevisions: readonly ResultRevisionRecord[];
+  fixtureRevisions: readonly FixtureRevisionRecord[];
+  seasonMembership?: SeasonMembershipSnapshot;
+  cutoffAt?: string;
+}): void {
+  const state = input.ratingState;
+  assertFrozenRatingStateIntegrity(state);
+  if (
+    state.ratingResultLineageStatus !== "VERIFIED" ||
+    !state.orderedRatingEventIds ||
+    !state.orderedResultRevisionIds ||
+    !state.featureCodeVersion ||
+    !state.codeCommitSha ||
+    !state.ratingStateContentHash
+  ) {
+    throw new Error("rating state result lineage is incomplete");
+  }
+  const resultById = new Map<string, ResultRevisionRecord>();
+  for (const result of input.resultRevisions) {
+    assertResultRevisionIntegrity(result);
+    if (resultById.has(result.resultRevisionId)) {
+      throw new Error(`duplicate result revision reference: ${result.resultRevisionId}`);
+    }
+    resultById.set(result.resultRevisionId, result);
+  }
+  const fixtureById = new Map<string, FixtureRevisionRecord>();
+  for (const fixture of input.fixtureRevisions) {
+    assertFixtureRevisionIntegrity(fixture);
+    if (fixtureById.has(fixture.fixtureRevisionId)) {
+      throw new Error(`duplicate fixture revision reference: ${fixture.fixtureRevisionId}`);
+    }
+    fixtureById.set(fixture.fixtureRevisionId, fixture);
+  }
+  const expectedEventIds = state.ratingEvents.map((event) => event.ratingEventId);
+  const expectedResultIds = state.ratingEvents.map((event) => event.resultRevisionId);
+  if (canonicalJson(state.orderedRatingEventIds) !== canonicalJson(expectedEventIds)) {
+    throw new Error("rating state ordered event lineage is inconsistent");
+  }
+  if (canonicalJson(state.orderedResultRevisionIds) !== canonicalJson(expectedResultIds)) {
+    throw new Error("rating state ordered result lineage is inconsistent");
+  }
+  if (resultById.size !== state.ratingEvents.length) {
+    throw new Error("rating state does not provide exactly one result revision per event");
+  }
+  if (fixtureById.size !== state.ratingEvents.length) {
+    throw new Error("rating state does not provide exactly one fixture revision per event");
+  }
+  const cutoffAt = input.cutoffAt
+    ? normalizeTimestamp(input.cutoffAt, "rating lineage cutoffAt")
+    : state.asOf;
+  for (const event of state.ratingEvents) {
+    if (
+      !event.resultRevisionId ||
+      !event.resultPayloadHash ||
+      !event.resultAvailableAt ||
+      !event.fixtureRevisionId ||
+      !event.fixturePayloadHash ||
+      !event.ratingUpdateInputs
+    ) {
+      throw new Error(`rating event ${event.ratingEventId} has incomplete result lineage`);
+    }
+    const result = resultById.get(event.resultRevisionId);
+    const fixture = fixtureById.get(event.fixtureRevisionId);
+    if (!result) throw new Error(`missing result revision ${event.resultRevisionId}`);
+    if (!fixture) throw new Error(`missing fixture revision ${event.fixtureRevisionId}`);
+    if (
+      result.fixtureId !== event.fixtureId ||
+      fixture.fixtureId !== event.fixtureId ||
+      result.season !== state.season ||
+      fixture.season !== state.season
+    ) {
+      throw new Error(`rating event ${event.ratingEventId} record identity mismatch`);
+    }
+    if (
+      result.status !== "FINISHED" ||
+      result.homeScore === null ||
+      result.awayScore === null
+    ) {
+      throw new Error(`rating event ${event.ratingEventId} does not reference a final score`);
+    }
+    if (
+      result.resultPayloadHash !== event.resultPayloadHash ||
+      result.availableAt !== event.resultAvailableAt ||
+      fixture.fixturePayloadHash !== event.fixturePayloadHash ||
+      fixture.kickoffAt !== event.fixtureKickoff
+    ) {
+      throw new Error(`rating event ${event.ratingEventId} immutable record mismatch`);
+    }
+    const update = event.ratingUpdateInputs;
+    if (
+      update.homeSlug !== fixture.homeSlug ||
+      update.awaySlug !== fixture.awaySlug ||
+      update.homeScore !== result.homeScore ||
+      update.awayScore !== result.awayScore ||
+      update.formulaVersion !== state.formulaVersion ||
+      update.modelVersion !== state.modelVersion
+    ) {
+      throw new Error(`rating event ${event.ratingEventId} update inputs mismatch`);
+    }
+    if (event.payloadHash !== canonicalSha256(verifiedRatingEventPayload(event))) {
+      throw new Error(`rating event ${event.ratingEventId} content hash mismatch`);
+    }
+    assertNoLater(result.availableAt, event.availableAt, "result available after rating event");
+    assertNoLater(fixture.availableAt, event.availableAt, "fixture available after rating event");
+    assertNoLater(event.availableAt, cutoffAt, "rating event available after cutoff");
+    assertBefore(event.fixtureKickoff, cutoffAt, "rating fixture kickoff is not before cutoff");
+  }
+  // Phase 4A4 prospective events use the pl-rating-event content-addressed
+  // identity. Earlier enhanced fixtures used caller-owned IDs and remain
+  // readable without being rewritten; production resolution rejects them via
+  // the exact expected-event-set gate.
+  const requiresProspectiveReplay = state.ratingEvents.every((event) =>
+    event.ratingEventId.startsWith("pl-rating-event:")
+  );
+  if (input.seasonMembership && requiresProspectiveReplay) {
+    const membership = input.seasonMembership;
+    assertSeasonMembershipIntegrity(membership);
+    if (
+      membership.season !== state.season ||
+      membership.seasonMembershipSnapshotId !==
+        state.seasonMembershipSnapshotId ||
+      canonicalJson(membership.teamSlugs) !== canonicalJson(state.state.clubSlugs)
+    ) {
+      throw new Error("rating replay membership does not match the frozen state");
+    }
+    const replay = emptyRatingState();
+    for (const historical of completedPremierLeagueFixtures()
+      .filter((fixture) => fixture.season < state.season)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))) {
+      applyFixtureToRatings(replay, historical);
+    }
+    applySeasonBoundary(
+      replay,
+      state.season,
+      [...membership.teamSlugs],
+      state.asOf.slice(0, 10),
+      { useChampionshipFeeder: true }
+    );
+    for (const event of state.ratingEvents) {
+      const result = resultById.get(String(event.resultRevisionId))!;
+      const fixtureRevision = fixtureById.get(String(event.fixtureRevisionId))!;
+      const update = event.ratingUpdateInputs!;
+      const expectedEventId = contentAddress("pl-rating-event", {
+        fixtureId: fixtureRevision.fixtureId,
+        fixtureRevisionId: fixtureRevision.fixtureRevisionId,
+        resultRevisionId: result.resultRevisionId,
+        verificationEventId: update.verificationEventId,
+        formulaVersion: state.formulaVersion,
+        modelVersion: state.modelVersion,
+      });
+      if (event.ratingEventId !== expectedEventId) {
+        throw new Error(`rating event ${event.ratingEventId} identity mismatch`);
+      }
+      if (
+        !membership.teamSlugs.includes(update.homeSlug) ||
+        !membership.teamSlugs.includes(update.awaySlug) ||
+        update.preHome !== ratingOf(replay, update.homeSlug) ||
+        update.preAway !== ratingOf(replay, update.awaySlug) ||
+        update.preHomeMatches !== (replay.matchesPlayedSeason[update.homeSlug] ?? 0) ||
+        update.preAwayMatches !== (replay.matchesPlayedSeason[update.awaySlug] ?? 0)
+      ) {
+        throw new Error(`rating event ${event.ratingEventId} pre-state transition mismatch`);
+      }
+      const venue: "home" | "neutral" =
+        fixtureRevision.venue === "neutral" ? "neutral" : "home";
+      if (update.venue !== venue) {
+        throw new Error(`rating event ${event.ratingEventId} venue transition mismatch`);
+      }
+      const replayFixture: Fixture = {
+        id: fixtureRevision.fixtureId,
+        competition: "premier-league",
+        season: fixtureRevision.season,
+        date: fixtureRevision.kickoffAt.slice(0, 10),
+        kickoffUtc: fixtureRevision.kickoffAt,
+        homeSlug: fixtureRevision.homeSlug,
+        awaySlug: fixtureRevision.awaySlug,
+        homeGoals: result.homeScore,
+        awayGoals: result.awayScore,
+        status: "FINISHED",
+        venue,
+      };
+      applyFixtureToRatings(replay, replayFixture);
+      if (
+        update.postHome !== ratingOf(replay, update.homeSlug) ||
+        update.postAway !== ratingOf(replay, update.awaySlug) ||
+        update.postHomeMatches !== (replay.matchesPlayedSeason[update.homeSlug] ?? 0) ||
+        update.postAwayMatches !== (replay.matchesPlayedSeason[update.awaySlug] ?? 0)
+      ) {
+        throw new Error(`rating event ${event.ratingEventId} post-state transition mismatch`);
+      }
+    }
+    const replayedState: FrozenRatingStatePayload = {
+      season: state.season,
+      clubSlugs: membership.teamSlugs,
+      ratings: Object.fromEntries(
+        membership.teamSlugs.map((slug) => [slug, ratingOf(replay, slug)])
+      ),
+      matchesPlayedSeason: Object.fromEntries(
+        membership.teamSlugs.map((slug) => [
+          slug,
+          replay.matchesPlayedSeason[slug] ?? 0,
+        ])
+      ),
+    };
+    if (
+      canonicalJson(replayedState) !== canonicalJson(state.state) ||
+      canonicalSha256(replayedState) !== state.ratingStateHash
+    ) {
+      throw new Error("rating replay final state does not match the frozen state");
+    }
   }
 }
 
@@ -619,6 +1150,7 @@ export function buildForecastInputManifest(
 ): ForecastInputManifest {
   assertFixtureRevisionIntegrity(input.fixtureRevision);
   assertSeasonMembershipIntegrity(input.seasonMembership);
+  assertVerifiedSeasonMembershipSnapshot(input.seasonMembership);
   assertFrozenRatingStateIntegrity(input.ratingState);
   assertImmutableModelBundleIntegrity(input.modelBundle);
 
@@ -661,12 +1193,36 @@ export function buildForecastInputManifest(
   if (ratingState.modelVersion !== model.modelVersion) {
     throw new Error("rating state and model bundle versions disagree");
   }
+  if (
+    ratingState.featureCodeVersion !== model.featureCodeVersion ||
+    ratingState.codeCommitSha !== model.codeCommitSha
+  ) {
+    throw new Error("rating state is incompatible with the model bundle code/features");
+  }
+  const ratingResultRevisions = input.ratingResultRevisions ?? [];
+  const ratingFixtureRevisions = input.ratingFixtureRevisions ?? [];
+  const applicationCommitSha = commitSha(
+    input.applicationCommitSha,
+    "manifest.applicationCommitSha"
+  );
+  if (applicationCommitSha !== model.codeCommitSha) {
+    throw new Error("manifest application commit does not match the model bundle");
+  }
+  assertVerifiedRatingStateLineage({
+    ratingState,
+    resultRevisions: ratingResultRevisions,
+    fixtureRevisions: ratingFixtureRevisions,
+    seasonMembership: membership,
+    cutoffAt,
+  });
   assertNoLater(ratingState.asOf, cutoffAt, "ratingState.asOf must not be after cutoffAt");
   assertBefore(model.trainingCutoff, cutoffAt, "model trainingCutoff must be before cutoffAt");
 
   const sourceObservations = uniqueSourceReferences([
     fixture.sourceObservation,
     ...membership.sourceObservations,
+    ...ratingResultRevisions.map((result) => result.sourceObservation),
+    ...ratingFixtureRevisions.map((ratingFixture) => ratingFixture.sourceObservation),
     ...(input.sourceObservations ?? []),
   ]);
   const ratingEvents = uniqueRatingEvents(ratingState.ratingEvents);
@@ -677,6 +1233,8 @@ export function buildForecastInputManifest(
     model.availableAt,
     ...sourceObservations.map((source) => source.availableAt),
     ...ratingEvents.map((event) => event.availableAt),
+    ...ratingResultRevisions.map((result) => result.availableAt),
+    ...ratingFixtureRevisions.map((ratingFixture) => ratingFixture.availableAt),
   ];
   for (const [index, availableAt] of availability.entries()) {
     assertInputAtCutoff(availableAt, cutoffAt, `manifest input[${index}]`);
@@ -710,13 +1268,12 @@ export function buildForecastInputManifest(
     modelTrainingCutoff: model.trainingCutoff,
     featureSchemaVersion: model.featureSchemaVersion,
     featureCodeVersion: model.featureCodeVersion,
-    applicationCommitSha: commitSha(
-      input.applicationCommitSha,
-      "manifest.applicationCommitSha"
-    ),
+    applicationCommitSha,
     ratingStateId: ratingState.ratingStateId,
     ratingStateHash: ratingState.ratingStateHash,
     ratingStateAvailableAt: ratingState.availableAt,
+    ratingResultLineageStatus: "VERIFIED",
+    ratingResultRevisionIds: [...(ratingState.orderedResultRevisionIds ?? [])],
     sourceObservations,
     ratingEvents,
     latestIncludedInputAt,
@@ -755,6 +1312,17 @@ export function assertForecastInputManifestIntegrity(manifest: ForecastInputMani
   );
   requireNonEmpty(manifest.modelBundleId, "manifest.modelBundleId");
   requireNonEmpty(manifest.ratingStateId, "manifest.ratingStateId");
+  if (manifest.ratingResultLineageStatus !== "VERIFIED") {
+    throw new Error("manifest rating result lineage must be VERIFIED");
+  }
+  if (
+    !Array.isArray(manifest.ratingResultRevisionIds) ||
+    manifest.ratingResultRevisionIds.length !== manifest.ratingEvents.length ||
+    new Set(manifest.ratingResultRevisionIds).size !==
+      manifest.ratingResultRevisionIds.length
+  ) {
+    throw new Error("manifest rating result revision lineage is incomplete");
+  }
   commitSha(manifest.applicationCommitSha, "manifest.applicationCommitSha");
   normalizeSha256(manifest.fixtureRevisionHash, "manifest.fixtureRevisionHash");
   normalizeSha256(manifest.membershipPayloadHash, "manifest.membershipPayloadHash");
@@ -780,6 +1348,18 @@ export function assertForecastInputManifestIntegrity(manifest: ForecastInputMani
   );
   const sourceObservations = uniqueSourceReferences(manifest.sourceObservations);
   const ratingEvents = uniqueRatingEvents(manifest.ratingEvents);
+  const eventResultRevisionIds = ratingEvents.map((event) => {
+    if (!event.resultRevisionId) {
+      throw new Error(`manifest rating event ${event.ratingEventId} lacks result lineage`);
+    }
+    return event.resultRevisionId;
+  });
+  if (
+    canonicalJson(manifest.ratingResultRevisionIds) !==
+    canonicalJson(eventResultRevisionIds)
+  ) {
+    throw new Error("manifest rating result revision IDs do not match its events");
+  }
   const availability = [
     assertCanonicalTimestamp(
       manifest.fixtureRevisionAvailableAt,
@@ -826,8 +1406,16 @@ export function assertForecastInputManifestReferences(
   assertForecastInputManifestIntegrity(manifest);
   assertFixtureRevisionIntegrity(references.fixtureRevision);
   assertSeasonMembershipIntegrity(references.seasonMembership);
+  assertVerifiedSeasonMembershipSnapshot(references.seasonMembership);
   assertFrozenRatingStateIntegrity(references.ratingState);
   assertImmutableModelBundleIntegrity(references.modelBundle);
+  assertVerifiedRatingStateLineage({
+    ratingState: references.ratingState,
+    resultRevisions: references.ratingResultRevisions ?? [],
+    fixtureRevisions: references.ratingFixtureRevisions ?? [],
+    seasonMembership: references.seasonMembership,
+    cutoffAt: manifest.cutoffAt,
+  });
   const expected = buildForecastInputManifest({
     fixtureId: manifest.fixtureId,
     season: manifest.season,
@@ -840,6 +1428,8 @@ export function assertForecastInputManifestReferences(
     seasonMembership: references.seasonMembership,
     ratingState: references.ratingState,
     modelBundle: references.modelBundle,
+    ratingResultRevisions: references.ratingResultRevisions,
+    ratingFixtureRevisions: references.ratingFixtureRevisions,
     sourceObservations: manifest.sourceObservations,
   });
   if (canonicalJson(expected) !== canonicalJson(manifest)) {

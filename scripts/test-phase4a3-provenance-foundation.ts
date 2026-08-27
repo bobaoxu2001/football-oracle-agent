@@ -11,7 +11,7 @@ import {
   buildForecastInputManifest,
   buildFrozenRatingState,
   buildImmutableModelBundle,
-  buildRatingEventReference,
+  buildVerifiedRatingEventReference,
   buildResultCorrection,
   buildResultRevision,
   buildSeasonMembershipSnapshot,
@@ -71,15 +71,72 @@ const membership = buildSeasonMembershipSnapshot({
   season: "2026-27",
   teamSlugs: ["manchester-city", "crystal-palace"],
   sourceObservations: [membershipSource],
+  verificationStatus: "VERIFIED",
+  verifiedAt: "2026-08-27T18:00:00.000Z",
+  verifiedAgainst: ["independent-membership-audit"],
+  verificationArtifact: "phase4a3-membership-audit",
 });
 
-const ratingEvent = buildRatingEventReference({
-  ratingEventId: "rating-apply::pl-2026-27-arsenal-chelsea",
-  fixtureId: "pl-2026-27-arsenal-chelsea",
+const ratingFixtureSource = buildSourceObservationReference({
+  sourceType: "fixture",
+  sourceId: "fixture-provider",
+  observationId: "fixture-provider::prior::v1",
+  availableAt: "2026-08-21T18:00:00.000Z",
+  payload: { status: "FINISHED" },
+});
+const ratingFixture = buildFixtureRevision({
+  season: "2026-27",
+  fixtureId: "pl-2026-27-prior-cp-mci",
+  homeSlug: "crystal-palace",
+  awaySlug: "manchester-city",
+  kickoffAt: "2026-08-21T19:00:00.000Z",
+  status: "FINISHED",
+  venue: "home",
+  sourceObservation: ratingFixtureSource,
+});
+const ratingResultSource = buildSourceObservationReference({
+  sourceType: "result",
+  sourceId: "result-provider",
+  observationId: "result-provider::prior::v1",
+  availableAt: "2026-08-21T21:00:00.000Z",
+  payload: { status: "FINISHED", homeScore: 1, awayScore: 0 },
+});
+const ratingResult = buildResultRevision({
+  season: "2026-27",
+  fixtureId: ratingFixture.fixtureId,
+  status: "FINISHED",
+  homeScore: 1,
+  awayScore: 0,
+  sourceObservation: ratingResultSource,
+});
+const ratingEvent = buildVerifiedRatingEventReference({
+  ratingEventId: "rating-apply::pl-2026-27-prior-cp-mci",
+  fixtureId: ratingFixture.fixtureId,
   fixtureKickoff: "2026-08-21T19:00:00.000Z",
   appliedAt: "2026-08-21T21:10:00.000Z",
-  payload: { preHome: 1610, preAway: 1580, postHome: 1615, postAway: 1575 },
-  resultRevisionId: null,
+  resultRevisionId: ratingResult.resultRevisionId,
+  resultPayloadHash: ratingResult.resultPayloadHash,
+  resultAvailableAt: ratingResult.availableAt,
+  fixtureRevisionId: ratingFixture.fixtureRevisionId,
+  fixturePayloadHash: ratingFixture.fixturePayloadHash,
+  ratingUpdateInputs: {
+    homeSlug: ratingFixture.homeSlug,
+    awaySlug: ratingFixture.awaySlug,
+    homeScore: 1,
+    awayScore: 0,
+    venue: "home",
+    preHome: 1505,
+    preAway: 1655,
+    preHomeMatches: 0,
+    preAwayMatches: 0,
+    postHome: 1510,
+    postAway: 1660,
+    postHomeMatches: 1,
+    postAwayMatches: 1,
+    formulaVersion: "elo-pl-live-v0.2.0",
+    modelVersion: "pl-live-v0.2.0",
+    verificationEventId: "verified::pl-2026-27-prior-cp-mci",
+  },
 });
 
 const ratingState = buildFrozenRatingState({
@@ -96,6 +153,9 @@ const ratingState = buildFrozenRatingState({
     ratings: { "manchester-city": 1660, "crystal-palace": 1510 },
     matchesPlayedSeason: { "crystal-palace": 1, "manchester-city": 1 },
   },
+  ratingResultLineageStatus: "VERIFIED",
+  featureCodeVersion: "sealed-pl-v1",
+  codeCommitSha: commit,
 });
 
 const model = buildImmutableModelBundle({
@@ -122,6 +182,8 @@ const manifest = buildForecastInputManifest({
   seasonMembership: membership,
   ratingState,
   modelBundle: model,
+  ratingResultRevisions: [ratingResult],
+  ratingFixtureRevisions: [ratingFixture],
 });
 
 test("canonical JSON and hashes ignore object insertion order", () => {
@@ -172,6 +234,10 @@ test("membership normalizes team and source ordering", () => {
     season: membership.season,
     teamSlugs: ["crystal-palace", "manchester-city"],
     sourceObservations: [membershipSource],
+    verificationStatus: membership.verificationStatus,
+    verifiedAt: membership.verifiedAt,
+    verifiedAgainst: membership.verifiedAgainst,
+    verificationArtifact: membership.verificationArtifact,
   });
   assert.equal(again.seasonMembershipSnapshotId, membership.seasonMembershipSnapshotId);
   assert.deepEqual(again.teamSlugs, ["crystal-palace", "manchester-city"]);
@@ -192,6 +258,9 @@ test("rating state hash covers the exact normalized state", () => {
       ratings: { "crystal-palace": 1510, "manchester-city": 1660 },
       matchesPlayedSeason: { "manchester-city": 1, "crystal-palace": 1 },
     },
+    ratingResultLineageStatus: "VERIFIED",
+    featureCodeVersion: model.featureCodeVersion,
+    codeCommitSha: commit,
   });
   assert.equal(again.ratingStateId, ratingState.ratingStateId);
   assert.equal(again.ratingStateHash, ratingState.ratingStateHash);
@@ -225,6 +294,8 @@ test("manifest validates exact immutable references", () => {
       seasonMembership: membership,
       ratingState,
       modelBundle: model,
+      ratingResultRevisions: [ratingResult],
+      ratingFixtureRevisions: [ratingFixture],
     })
   );
 });
@@ -251,6 +322,8 @@ test("future source input is rejected", () => {
         seasonMembership: membership,
         ratingState,
         modelBundle: model,
+        ratingResultRevisions: [ratingResult],
+        ratingFixtureRevisions: [ratingFixture],
         sourceObservations: [future],
       }),
     /after forecast cutoffAt/

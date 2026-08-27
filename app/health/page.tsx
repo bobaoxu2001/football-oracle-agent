@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { buildHealthReport } from "@/lib/competitions/premier-league/ops/health";
-import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
+import { buildPublicHealthResponse } from "@/lib/competitions/premier-league/ops/public-health";
 
 export const dynamic = "force-dynamic";
 
@@ -16,23 +15,16 @@ function tone(state: string): string {
   return "text-rose-300";
 }
 
-async function MarketHealthSection() {
-  let m: Awaited<ReturnType<typeof import("@/lib/competitions/premier-league/market/health").buildMarketHealthReport>> | null =
-    null;
-  try {
-    const { buildMarketHealthReport } = await import("@/lib/competitions/premier-league/market/health");
-    m = await buildMarketHealthReport();
-  } catch {
-    m = null;
-  }
+type PublicHealthResponse = Awaited<ReturnType<typeof buildPublicHealthResponse>>;
+
+function MarketHealthSection({ m }: { m: PublicHealthResponse["market"] }) {
   return (
     <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
       <h2 className="mb-3 font-semibold">Market data (observational)</h2>
       <p className="mb-3 text-xs text-muted-foreground">
         Separate from forecast health. Missing odds cannot block predictions.
       </p>
-      {m ? (
-        <ul className="space-y-1 text-muted-foreground">
+      <ul className="space-y-1 text-muted-foreground">
           <li>
             Market health: <span className={tone(m.overall)}>{m.overall}</span>
           </li>
@@ -45,10 +37,7 @@ async function MarketHealthSection() {
           <li>Quota remaining: {dash(m.quotaRemaining)} · last cost {dash(m.lastRequestCost)}</li>
           <li>Observations: {dash(m.observationsStored)} · consensus {dash(m.consensusStored)} · bookmakers {dash(m.bookmakersObserved)}</li>
           <li>Next poll: {dash(m.nextScheduledPoll)}</li>
-        </ul>
-      ) : (
-        <p className="text-muted-foreground">Market health unavailable.</p>
-      )}
+      </ul>
     </section>
   );
 }
@@ -59,8 +48,7 @@ function dash(v: string | number | null | undefined): string {
 }
 
 export default async function HealthPage() {
-  await hydrateDurableOps();
-  const h = buildHealthReport();
+  const h = await buildPublicHealthResponse();
 
   return (
     <div className="container py-8 md:py-12">
@@ -264,7 +252,7 @@ export default async function HealthPage() {
         </ul>
       </section>
 
-      <MarketHealthSection />
+      <MarketHealthSection m={h.market} />
 
       {h.conflicts.length > 0 && (
         <section className="mx-auto mb-6 max-w-3xl rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5 text-sm">

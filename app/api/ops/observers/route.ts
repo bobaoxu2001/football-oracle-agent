@@ -4,6 +4,11 @@ import {
   runGuardedLiveOpsObservers,
 } from "@/lib/competitions/premier-league/ops/tick";
 import { authorizeOpsTick } from "@/lib/competitions/premier-league/ops/tick-auth";
+import {
+  publicFailureBody,
+  recordInternalOperationalError,
+  sanitizePublicOperationalPayload,
+} from "@/lib/competitions/premier-league/ops/public-errors";
 
 export const dynamic = "force-dynamic";
 // Observers are isolated from the 60-second production forecast tick. The
@@ -22,12 +27,13 @@ export async function GET(req: NextRequest) {
   }
   try {
     const result = await runGuardedLiveOpsObservers();
-    return NextResponse.json(result, {
+    return NextResponse.json(sanitizePublicOperationalPayload(result), {
       status: result.skipped ? 409 : liveOpsObserversDegraded(result) ? 503 : 200,
     });
   } catch (err) {
+    recordInternalOperationalError("api.ops-observers", err);
     return NextResponse.json(
-      { error: "observers_failed", message: (err as Error).message },
+      publicFailureBody("observers_failed", err),
       { status: 500 }
     );
   }

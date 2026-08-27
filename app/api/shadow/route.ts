@@ -7,6 +7,12 @@ import { listCanonicalMatches } from "@/lib/match-ledger/store";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 import { productionModelVersion } from "@/lib/competitions/premier-league/shadow/track";
 import { canonicalLedgerMetrics } from "@/lib/competitions/premier-league/ledger-metrics";
+import {
+  publicFailureBody,
+  recordInternalOperationalError,
+  sanitizePublicOperationalPayload,
+  sanitizePublicShadowReport,
+} from "@/lib/competitions/premier-league/ops/public-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -43,17 +49,17 @@ export async function GET(req: Request) {
         ledgerMatches,
         season,
       });
-      return NextResponse.json({
+      return NextResponse.json(sanitizePublicOperationalPayload({
         servingModelVersion: productionModelVersion(),
         ledgerMetrics,
         experimental: comparison.shadow.modelVersion,
         disclaimer:
           "The shadow model is a challenger under evaluation. It is never served as the product's prediction and a probability difference is not evidence that either model is better.",
         comparison,
-      });
+      }));
     }
 
-    const report = shadowEvaluationReport(season);
+    const report = sanitizePublicShadowReport(shadowEvaluationReport(season));
     return NextResponse.json({
       servingModelVersion: productionModelVersion(),
       ledgerMetrics,
@@ -62,8 +68,9 @@ export async function GET(req: Request) {
       ...report,
     });
   } catch (err) {
+    recordInternalOperationalError("api.shadow", err);
     return NextResponse.json(
-      { error: "shadow_report_failed", message: (err as Error).message },
+      publicFailureBody("shadow_report_failed", err),
       { status: 500 }
     );
   }

@@ -4,6 +4,7 @@ import { shadowEvaluationReport } from "@/lib/competitions/premier-league/shadow
 import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 import { canonicalLedgerMetrics } from "@/lib/competitions/premier-league/ledger-metrics";
+import { sanitizePublicShadowReport } from "@/lib/competitions/premier-league/ops/public-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,9 @@ export const metadata: Metadata = {
 
 export default async function ShadowPage() {
   await hydrateDurableOps();
-  const report = shadowEvaluationReport(PREMIER_LEAGUE_CURRENT_SEASON);
+  const report = sanitizePublicShadowReport(
+    shadowEvaluationReport(PREMIER_LEAGUE_CURRENT_SEASON)
+  );
   const ledgerMetrics = canonicalLedgerMetrics(PREMIER_LEAGUE_CURRENT_SEASON);
 
   return (

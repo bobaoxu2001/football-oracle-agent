@@ -91,6 +91,21 @@ export interface SeasonMembershipSnapshot {
   readonly availableAt: string;
   readonly sourceObservations: readonly SourceObservationReference[];
   readonly membershipPayloadHash: Sha256Hash;
+  /**
+   * Additive Phase 4A4 verification proof. Legacy snapshots intentionally omit
+   * these fields and remain integrity-readable, but are not production-ready.
+   */
+  readonly verificationStatus?: "VERIFIED" | "SOURCE_CONFLICT" | "PROVISIONAL" | "STALE";
+  readonly verifiedAt?: string;
+  readonly verifiedAgainst?: readonly string[];
+  readonly verificationArtifact?: string;
+}
+
+export interface VerifiedSeasonMembershipSnapshot extends SeasonMembershipSnapshot {
+  readonly verificationStatus: "VERIFIED";
+  readonly verifiedAt: string;
+  readonly verifiedAgainst: readonly string[];
+  readonly verificationArtifact: string;
 }
 
 export interface RatingEventReference {
@@ -102,7 +117,40 @@ export interface RatingEventReference {
   readonly payloadHash: Sha256Hash;
   /** Null is an honest legacy boundary; never manufacture a result revision. */
   readonly resultRevisionId: string | null;
+  /**
+   * Phase 4A4 prospective lineage. These fields are absent on legacy events;
+   * their absence must never be interpreted as verified result lineage.
+   */
+  readonly resultPayloadHash?: Sha256Hash;
+  readonly resultAvailableAt?: string;
+  readonly fixtureRevisionId?: string;
+  readonly fixturePayloadHash?: Sha256Hash;
+  readonly ratingUpdateInputs?: RatingUpdateInputs;
 }
+
+export interface RatingUpdateInputs {
+  readonly homeSlug: string;
+  readonly awaySlug: string;
+  readonly homeScore: number;
+  readonly awayScore: number;
+  readonly venue: "home" | "neutral";
+  readonly preHome: number;
+  readonly preAway: number;
+  readonly preHomeMatches: number;
+  readonly preAwayMatches: number;
+  readonly postHome: number;
+  readonly postAway: number;
+  readonly postHomeMatches: number;
+  readonly postAwayMatches: number;
+  readonly formulaVersion: string;
+  readonly modelVersion: string;
+  /** The append-only operational verification event that admitted this fixture. */
+  readonly verificationEventId: string;
+}
+
+export type RatingResultLineageStatus =
+  | "VERIFIED"
+  | "LEGACY_LINEAGE_INCOMPLETE";
 
 export interface FrozenRatingStatePayload {
   readonly season: string;
@@ -125,6 +173,16 @@ export interface FrozenRatingStateSnapshot {
   readonly ratingEvents: readonly RatingEventReference[];
   readonly state: FrozenRatingStatePayload;
   readonly ratingStateHash: Sha256Hash;
+  /**
+   * Additive Phase 4A4 fields. Old immutable states omit them and are
+   * classified as LEGACY_LINEAGE_INCOMPLETE without being rewritten.
+   */
+  readonly ratingResultLineageStatus?: RatingResultLineageStatus;
+  readonly orderedRatingEventIds?: readonly string[];
+  readonly orderedResultRevisionIds?: readonly string[];
+  readonly featureCodeVersion?: string;
+  readonly codeCommitSha?: string;
+  readonly ratingStateContentHash?: Sha256Hash;
 }
 
 export interface ImmutableModelBundle {
@@ -173,6 +231,8 @@ export interface ForecastInputManifest {
   readonly ratingStateId: string;
   readonly ratingStateHash: Sha256Hash;
   readonly ratingStateAvailableAt: string;
+  readonly ratingResultLineageStatus?: "VERIFIED";
+  readonly ratingResultRevisionIds?: readonly string[];
   readonly sourceObservations: readonly SourceObservationReference[];
   readonly ratingEvents: readonly RatingEventReference[];
   readonly latestIncludedInputAt: string;
@@ -236,6 +296,10 @@ export interface SeasonMembershipSnapshotInput {
   season: string;
   teamSlugs: readonly string[];
   sourceObservations: readonly SourceObservationReference[];
+  verificationStatus?: "VERIFIED" | "SOURCE_CONFLICT" | "PROVISIONAL" | "STALE";
+  verifiedAt?: string;
+  verifiedAgainst?: readonly string[];
+  verificationArtifact?: string;
 }
 
 export interface RatingEventReferenceInput {
@@ -246,6 +310,11 @@ export interface RatingEventReferenceInput {
   availableAt?: string;
   payload: unknown;
   resultRevisionId?: string | null;
+  resultPayloadHash?: Sha256Hash;
+  resultAvailableAt?: string;
+  fixtureRevisionId?: string;
+  fixturePayloadHash?: Sha256Hash;
+  ratingUpdateInputs?: RatingUpdateInputs;
 }
 
 export interface FrozenRatingStateSnapshotInput {
@@ -257,6 +326,11 @@ export interface FrozenRatingStateSnapshotInput {
   seasonMembershipSnapshotId: string;
   ratingEvents: readonly RatingEventReference[];
   state: FrozenRatingStatePayload;
+  ratingResultLineageStatus?: RatingResultLineageStatus;
+  orderedRatingEventIds?: readonly string[];
+  orderedResultRevisionIds?: readonly string[];
+  featureCodeVersion?: string;
+  codeCommitSha?: string;
 }
 
 export interface ImmutableModelBundleInput {
@@ -283,6 +357,9 @@ export interface ForecastInputManifestInput {
   seasonMembership: SeasonMembershipSnapshot;
   ratingState: FrozenRatingStateSnapshot;
   modelBundle: ImmutableModelBundle;
+  /** Exact child records traversed by every prospective rating event. */
+  ratingResultRevisions?: readonly ResultRevisionRecord[];
+  ratingFixtureRevisions?: readonly FixtureRevisionRecord[];
   /** Additional immutable observations directly consumed by feature assembly. */
   sourceObservations?: readonly SourceObservationReference[];
 }
@@ -292,4 +369,7 @@ export interface ManifestReferenceSet {
   seasonMembership: SeasonMembershipSnapshot;
   ratingState: FrozenRatingStateSnapshot;
   modelBundle: ImmutableModelBundle;
+  /** Optional in the TypeScript shape only for legacy serialized snapshots. */
+  ratingResultRevisions?: readonly ResultRevisionRecord[];
+  ratingFixtureRevisions?: readonly FixtureRevisionRecord[];
 }

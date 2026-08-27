@@ -170,6 +170,7 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
   // Capture immutable semantic versions before planning/execution. A stage
   // cutoff is the beginning of its window, so first creating these records
   // inside the later freeze would make their availability post-cutoff.
+  let prospectiveEvidenceReady = true;
   try {
     captureProspectiveProductionEvidence({
       fixtures,
@@ -177,12 +178,17 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
       capturedAt: now,
     });
   } catch (err) {
+    prospectiveEvidenceReady = false;
     errors.push(`prospective evidence: ${(err as Error).message}`);
   }
 
   const planned = planPredictionJobs({ fixtures, now });
   refreshJobStatuses(now);
-  const exec = executeEligibleJobs({ fixtures, now });
+  // A missing/incompatible immutable evidence chain is a publication gate.
+  // Keep eligible jobs untouched so the next healthy tick can retry them.
+  const exec = prospectiveEvidenceReady
+    ? executeEligibleJobs({ fixtures, now })
+    : { attempted: 0, succeeded: 0, failed: 0, skipped: 0 };
 
   // Shadow (challenger) freeze — strictly after the baseline has been frozen,
   // inside the same lease because it writes snapshots. Additive only: it mints

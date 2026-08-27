@@ -6,7 +6,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import type { Fixture } from "@/lib/identity/types";
+import type { CompetitionSeason, Fixture } from "@/lib/identity/types";
 import { canonicalizeFixtureStatus } from "../ingest";
 import { liveCompetitionSeason } from "../fixture-store";
 import { loadProductionParams, PRODUCTION_MODEL_VERSION } from "../model-tracks";
@@ -25,18 +25,19 @@ import {
 import {
   buildFixtureRevision,
   buildForecastInputManifest,
-  buildFrozenRatingState,
   buildImmutableModelBundle,
-  buildRatingEventReference,
   buildResultCorrection,
   buildResultRevision,
   buildSeasonMembershipSnapshot,
   buildSourceObservationReference,
   assertForecastInputManifestReferences,
+  assertVerifiedSeasonMembershipSnapshot,
+  assertVerifiedRatingStateLineage,
 } from "./manifest";
 import {
   canonicalJson,
   canonicalSha256,
+  latestTimestamp,
   normalizeTimestamp,
 } from "./canonical";
 import {
@@ -58,6 +59,11 @@ import type {
   SeasonMembershipSnapshot,
   SourceObservationReference,
 } from "./types";
+import {
+  compareRatingStates,
+  ratingReplayMatchesExactly,
+  recomputeProspectiveRatingState,
+} from "./rating-lineage";
 import {
   predictPremierLeagueFromFrozenInputs,
   SEALED_PREMIER_LEAGUE_SCHEMA_VERSION,
@@ -128,6 +134,36 @@ function latestRatingState(
         a.ratingStateId.localeCompare(b.ratingStateId)
     )
     .at(-1) ?? null;
+}
+
+function exactRatingLineageReferences(
+  ratingState: FrozenRatingStateSnapshot,
+  cutoffAt: string,
+  seasonMembership?: SeasonMembershipSnapshot
+): Pick<ManifestReferenceSet, "ratingResultRevisions" | "ratingFixtureRevisions"> {
+  const ratingResultRevisions = (ratingState.orderedResultRevisionIds ?? []).map(
+    (resultRevisionId) => {
+      const record = resultStore().get(resultRevisionId);
+      if (!record) throw new Error(`Missing immutable result revision ${resultRevisionId}`);
+      return record;
+    }
+  );
+  const ratingFixtureRevisions = ratingState.ratingEvents.map((event) => {
+    if (!event.fixtureRevisionId) {
+      throw new Error(`Rating event ${event.ratingEventId} lacks a fixture revision`);
+    }
+    const record = fixtureStore().get(event.fixtureRevisionId);
+    if (!record) throw new Error(`Missing immutable fixture revision ${event.fixtureRevisionId}`);
+    return record;
+  });
+  assertVerifiedRatingStateLineage({
+    ratingState,
+    resultRevisions: ratingResultRevisions,
+    fixtureRevisions: ratingFixtureRevisions,
+    seasonMembership,
+    cutoffAt,
+  });
+  return { ratingResultRevisions, ratingFixtureRevisions };
 }
 
 /** Production fails closed without an independently inspectable 40-hex SHA. */
@@ -346,11 +382,44 @@ function captureResultRevisions(
   return inserted;
 }
 
-function captureMembership(capturedAt: string): SeasonMembershipSnapshot {
-  const season = liveCompetitionSeason();
-  if (!season || season.clubIds.length !== season.expectedClubCount) {
-    throw new Error("Cannot capture PIT membership without a complete verified season field");
+/**
+ * Membership is an authority boundary, not a row-count heuristic. A complete
+ * 20-club array can still be provisional, stale, or in source conflict, so
+ * production requires the season's explicit independent-verification evidence.
+ */
+export function assertProductionMembershipCaptureReady(
+  season: CompetitionSeason | null
+): asserts season is CompetitionSeason {
+  const uniqueClubIds = new Set(
+    season?.clubIds.filter((clubId) => clubId.trim().length > 0) ?? []
+  );
+  const verifiedAgainst =
+    season?.verifiedAgainst?.filter((source) => source.trim().length > 0) ?? [];
+  if (
+    !season ||
+    season.competition !== "premier-league" ||
+    season.verificationStatus !== "VERIFIED" ||
+    !Number.isInteger(season.expectedClubCount) ||
+    season.expectedClubCount <= 0 ||
+    season.clubIds.length !== season.expectedClubCount ||
+    uniqueClubIds.size !== season.expectedClubCount ||
+    !Number.isFinite(Date.parse(season.verifiedAt)) ||
+    verifiedAgainst.length === 0 ||
+    !season.verificationArtifact?.trim() ||
+    !season.source.trim() ||
+    !season.dataVersion.trim()
+  ) {
+    throw new Error(
+      "Cannot capture PIT membership without a complete independently verified season field"
+    );
   }
+}
+
+function captureMembership(
+  capturedAt: string,
+  season: CompetitionSeason
+): SeasonMembershipSnapshot {
+  assertProductionMembershipCaptureReady(season);
   const payload = {
     competition: season.competition,
     season: season.season,
@@ -359,6 +428,9 @@ function captureMembership(capturedAt: string): SeasonMembershipSnapshot {
     source: season.source,
     dataVersion: season.dataVersion,
     verificationStatus: season.verificationStatus,
+    verifiedAt: season.verifiedAt,
+    verifiedAgainst: [...(season.verifiedAgainst ?? [])].sort(),
+    verificationArtifact: season.verificationArtifact,
   };
   const source = sourceReference({
     sourceType: "season-membership",
@@ -371,6 +443,11 @@ function captureMembership(capturedAt: string): SeasonMembershipSnapshot {
   const store = membershipStore();
   const same = store.list().find(
     (row) =>
+      row.verificationStatus === "VERIFIED" &&
+      row.verifiedAt === season.verifiedAt &&
+      canonicalJson(row.verifiedAgainst ?? []) ===
+        canonicalJson([...(season.verifiedAgainst ?? [])].sort()) &&
+      row.verificationArtifact === season.verificationArtifact &&
       row.membershipPayloadHash === canonicalSha256({
         competition: "premier-league",
         season: season.season,
@@ -383,6 +460,10 @@ function captureMembership(capturedAt: string): SeasonMembershipSnapshot {
       season: season.season,
       teamSlugs: season.clubIds,
       sourceObservations: [source],
+      verificationStatus: season.verificationStatus,
+      verifiedAt: season.verifiedAt,
+      verifiedAgainst: season.verifiedAgainst,
+      verificationArtifact: season.verificationArtifact,
     })
   ).record;
 }
@@ -424,73 +505,76 @@ function captureModelBundle(capturedAt: string): ImmutableModelBundle {
   ).record;
 }
 
-function ratingEventResultRevision(event: { fixtureId: string; appliedAt: string }): string | null {
-  return resultStore()
-    .list()
-    .filter(
-      (row) =>
-        row.fixtureId === event.fixtureId &&
-        row.status === "FINISHED" &&
-        Date.parse(row.availableAt) <= Date.parse(event.appliedAt)
-    )
-    .sort((a, b) => a.availableAt.localeCompare(b.availableAt))
-    .at(-1)?.resultRevisionId ?? null;
-}
-
 function captureRatingState(
   capturedAt: string,
-  membership: SeasonMembershipSnapshot
-): FrozenRatingStateSnapshot {
-  const state = liveRatingsAsOf(capturedAt);
-  if (state.season !== membership.season) {
+  membership: SeasonMembershipSnapshot,
+  modelBundle: ImmutableModelBundle
+): {
+  ratingState: FrozenRatingStateSnapshot;
+  comparison: ReturnType<typeof compareRatingStates>;
+} {
+  const recomputed = recomputeProspectiveRatingState({
+    computedAt: capturedAt,
+    membership,
+    modelVersion: modelBundle.modelVersion,
+    formulaVersion: RATING_FORMULA_VERSION,
+    featureCodeVersion: modelBundle.featureCodeVersion,
+    codeCommitSha: modelBundle.codeCommitSha,
+    resultRevisions: resultStore().list(),
+    correctionLinks: correctionStore().list(),
+    fixtureRevisions: fixtureStore().list(),
+    verificationEvents: liveRatingEventsAsOf(capturedAt),
+  });
+  const production = liveRatingsAsOf(capturedAt);
+  if (production.season !== membership.season) {
     throw new Error("Resolved rating state does not match the captured membership season");
   }
-  const events = liveRatingEventsAsOf(capturedAt).map((event) =>
-    buildRatingEventReference({
-      ratingEventId: event.eventId,
-      fixtureId: event.fixtureId,
-      fixtureKickoff: event.kickoffUtc,
-      appliedAt: event.appliedAt,
-      availableAt: event.appliedAt,
-      payload: event,
-      resultRevisionId: ratingEventResultRevision(event),
-    })
-  );
-  const store = ratingStore();
-  const candidate = buildFrozenRatingState({
+  const productionProjection = {
     season: membership.season,
-    asOf: capturedAt,
-    availableAt: capturedAt,
-    modelVersion: PRODUCTION_MODEL_VERSION,
-    formulaVersion: RATING_FORMULA_VERSION,
-    seasonMembershipSnapshotId: membership.seasonMembershipSnapshotId,
-    ratingEvents: events,
-    state: {
-      season: membership.season,
-      // The legacy rating engine retains relegated clubs in its working map.
-      // They are not semantic inputs to a current-season fixture, so freeze
-      // the exact current membership projection consumed by the predictor.
-      clubSlugs: membership.teamSlugs,
-      ratings: Object.fromEntries(
-        membership.teamSlugs.map((slug) => [slug, state.ratings[slug] ?? 1500])
-      ),
-      matchesPlayedSeason: Object.fromEntries(
-        membership.teamSlugs.map((slug) => [
-          slug,
-          state.matchesPlayedSeason[slug] ?? 0,
-        ])
-      ),
-    },
-  });
-  const eventIds = canonicalJson(candidate.ratingEvents.map((event) => event.ratingEventId));
+    clubSlugs: membership.teamSlugs,
+    ratings: Object.fromEntries(
+      membership.teamSlugs.map((slug) => [slug, production.ratings[slug] ?? 1500])
+    ),
+    matchesPlayedSeason: Object.fromEntries(
+      membership.teamSlugs.map((slug) => [
+        slug,
+        production.matchesPlayedSeason[slug] ?? 0,
+      ])
+    ),
+  };
+  // Both paths use the same formula and ordering; any numerical difference is
+  // unexplained and blocks publication rather than being hidden by tolerance.
+  const comparison = compareRatingStates(
+    recomputed.ratingState.state,
+    productionProjection,
+    0
+  );
+  if (!ratingReplayMatchesExactly(comparison)) {
+    throw new Error(
+      `Prospective immutable rating replay differs from production state ` +
+        `(max=${comparison.maxAbsoluteRatingDifference}, teams=${comparison.differingTeamCount}, ` +
+        `semanticHashMatch=${
+          comparison.recomputedStateHash === comparison.productionStateHash
+        })`
+    );
+  }
+  const store = ratingStore();
+  const candidate = recomputed.ratingState;
+  const revisionIds = canonicalJson(candidate.orderedResultRevisionIds ?? []);
+  const eventIds = canonicalJson(candidate.orderedRatingEventIds ?? []);
   const same = store.list().find(
     (row) =>
+      row.ratingResultLineageStatus === "VERIFIED" &&
       row.ratingStateHash === candidate.ratingStateHash &&
       row.seasonMembershipSnapshotId === membership.seasonMembershipSnapshotId &&
-      row.modelVersion === PRODUCTION_MODEL_VERSION &&
-      canonicalJson(row.ratingEvents.map((event) => event.ratingEventId)) === eventIds
+      row.modelVersion === modelBundle.modelVersion &&
+      row.formulaVersion === RATING_FORMULA_VERSION &&
+      row.featureCodeVersion === modelBundle.featureCodeVersion &&
+      row.codeCommitSha === modelBundle.codeCommitSha &&
+      canonicalJson(row.orderedResultRevisionIds ?? []) === revisionIds &&
+      canonicalJson(row.orderedRatingEventIds ?? []) === eventIds
   );
-  return same ?? store.insert(candidate).record;
+  return { ratingState: same ?? store.insert(candidate).record, comparison };
 }
 
 export interface ProspectiveCaptureSummary {
@@ -501,6 +585,11 @@ export interface ProspectiveCaptureSummary {
   seasonMembershipSnapshotId: string;
   ratingStateId: string;
   ratingStateHash: string;
+  ratingResultLineageStatus: "VERIFIED";
+  ratingResultRevisionIds: readonly string[];
+  maxAbsoluteRatingDifference: number;
+  meanAbsoluteRatingDifference: number;
+  differingTeamCount: number;
   modelBundleId: string;
   modelBundleHash: string;
   applicationCommitSha: string;
@@ -513,6 +602,11 @@ export function captureProspectiveProductionEvidence(input: {
   capturedAt: string;
 }): ProspectiveCaptureSummary {
   const capturedAt = normalizeTimestamp(input.capturedAt, "capturedAt");
+  // Check the membership authority before appending any fixture/result evidence
+  // so an unverified season cannot leave a partially captured production tick.
+  const season = liveCompetitionSeason();
+  assertProductionMembershipCaptureReady(season);
+  const membership = captureMembership(capturedAt, season);
   const fixtureStoreBefore = fixtureStore().size;
   for (const fixture of input.fixtures) {
     captureFixtureRevision(fixture, input.observations, capturedAt);
@@ -523,9 +617,9 @@ export function captureProspectiveProductionEvidence(input: {
     input.observations,
     capturedAt
   );
-  const membership = captureMembership(capturedAt);
   const modelBundle = captureModelBundle(capturedAt);
-  const ratingState = captureRatingState(capturedAt, membership);
+  const capturedRating = captureRatingState(capturedAt, membership, modelBundle);
+  const ratingState = capturedRating.ratingState;
   return {
     capturedAt,
     fixturesConsidered: input.fixtures.length,
@@ -534,6 +628,13 @@ export function captureProspectiveProductionEvidence(input: {
     seasonMembershipSnapshotId: membership.seasonMembershipSnapshotId,
     ratingStateId: ratingState.ratingStateId,
     ratingStateHash: ratingState.ratingStateHash,
+    ratingResultLineageStatus: "VERIFIED",
+    ratingResultRevisionIds: [...(ratingState.orderedResultRevisionIds ?? [])],
+    maxAbsoluteRatingDifference:
+      capturedRating.comparison.maxAbsoluteRatingDifference,
+    meanAbsoluteRatingDifference:
+      capturedRating.comparison.meanAbsoluteRatingDifference,
+    differingTeamCount: capturedRating.comparison.differingTeamCount,
     modelBundleId: modelBundle.modelBundleId,
     modelBundleHash: modelBundle.modelBundleHash,
     applicationCommitSha: modelBundle.codeCommitSha,
@@ -562,16 +663,26 @@ function resolveReferenceSet(input: {
       membershipStore()
         .list()
         .filter(
-          (row) =>
-            row.season === fixtureRevision.season &&
-            row.teamSlugs.includes(fixtureRevision.homeSlug) &&
-            row.teamSlugs.includes(fixtureRevision.awaySlug)
+          (row) => {
+            try {
+              assertVerifiedSeasonMembershipSnapshot(row);
+              return (
+                row.season === fixtureRevision.season &&
+                row.teamSlugs.includes(fixtureRevision.homeSlug) &&
+                row.teamSlugs.includes(fixtureRevision.awaySlug)
+              );
+            } catch {
+              return false;
+            }
+          }
         ),
       cutoffAt
     )
   );
   if (!seasonMembership) {
-    throw new Error(`No immutable season-membership snapshot is available at cutoff`);
+    throw new Error(
+      `No immutable season-membership snapshot with VERIFIED proof is available at cutoff`
+    );
   }
   const modelBundle = latestByAvailableAt(
     atOrBefore(
@@ -589,26 +700,94 @@ function resolveReferenceSet(input: {
       `No immutable model bundle for commit ${commitSha} is available at cutoff`
     );
   }
-  const ratingState = latestRatingState(
-    atOrBefore(
-      ratingStore()
-        .list()
-        .filter(
-          (row) =>
-            row.season === fixtureRevision.season &&
-            row.modelVersion === modelVersion &&
-            row.seasonMembershipSnapshotId ===
-              seasonMembership.seasonMembershipSnapshotId &&
-            row.state.clubSlugs.includes(fixtureRevision.homeSlug) &&
-            row.state.clubSlugs.includes(fixtureRevision.awaySlug)
-        ),
-      cutoffAt
+  const baseCompatibleRatingStates = atOrBefore(
+    ratingStore()
+      .list()
+      .filter(
+        (row) =>
+          row.season === fixtureRevision.season &&
+          row.modelVersion === modelVersion &&
+          row.formulaVersion === RATING_FORMULA_VERSION &&
+          row.seasonMembershipSnapshotId ===
+            seasonMembership.seasonMembershipSnapshotId &&
+          row.state.clubSlugs.includes(fixtureRevision.homeSlug) &&
+          row.state.clubSlugs.includes(fixtureRevision.awaySlug) &&
+          row.ratingResultLineageStatus === "VERIFIED" &&
+          row.featureCodeVersion === modelBundle.featureCodeVersion &&
+          row.codeCommitSha === modelBundle.codeCommitSha &&
+          Date.parse(row.asOf) <= Date.parse(cutoffAt)
+      ),
+    cutoffAt
+  );
+  const prospectiveRatingStates = baseCompatibleRatingStates.filter((row) =>
+    row.ratingEvents.every((event) =>
+      event.ratingEventId.startsWith("pl-rating-event:")
     )
   );
-  if (!ratingState) {
-    throw new Error(`No immutable rating-state snapshot is available at cutoff`);
+  let identityCompatibleRatingStates: FrozenRatingStateSnapshot[] = [];
+  if (prospectiveRatingStates.length) {
+    const expectedAtCutoff = recomputeProspectiveRatingState({
+      computedAt: cutoffAt,
+      membership: seasonMembership,
+      modelVersion: modelBundle.modelVersion,
+      formulaVersion: RATING_FORMULA_VERSION,
+      featureCodeVersion: modelBundle.featureCodeVersion,
+      codeCommitSha: modelBundle.codeCommitSha,
+      resultRevisions: resultStore().list(),
+      correctionLinks: correctionStore().list(),
+      fixtureRevisions: fixtureStore().list(),
+      verificationEvents: liveRatingEventsAsOf(cutoffAt),
+    }).ratingState;
+    const expectedResultIds = canonicalJson(
+      expectedAtCutoff.orderedResultRevisionIds ?? []
+    );
+    const expectedEventIds = canonicalJson(
+      expectedAtCutoff.orderedRatingEventIds ?? []
+    );
+    const expectedFixtureRevisionIds = canonicalJson(
+      expectedAtCutoff.ratingEvents.map((event) => event.fixtureRevisionId)
+    );
+    identityCompatibleRatingStates = prospectiveRatingStates.filter(
+      (row) =>
+        row.ratingStateHash === expectedAtCutoff.ratingStateHash &&
+        canonicalJson(row.orderedResultRevisionIds ?? []) === expectedResultIds &&
+        canonicalJson(row.orderedRatingEventIds ?? []) === expectedEventIds &&
+        canonicalJson(row.ratingEvents.map((event) => event.fixtureRevisionId)) ===
+          expectedFixtureRevisionIds
+    );
+  } else if (
+    process.env.PL_ALLOW_LEGACY_TEST_RATING_STATE === "1" &&
+    process.env.NODE_ENV !== "production" &&
+    process.env.VERCEL !== "1"
+  ) {
+    // Explicit test-only compatibility for pre-Phase-4A4 synthetic fixtures.
+    // Hosted production never sets this flag and therefore fails closed.
+    identityCompatibleRatingStates = baseCompatibleRatingStates;
   }
-  return { fixtureRevision, seasonMembership, ratingState, modelBundle };
+  const compatibleRatingStates = identityCompatibleRatingStates.filter((row) => {
+    try {
+      exactRatingLineageReferences(row, cutoffAt, seasonMembership);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  const ratingState = latestRatingState(compatibleRatingStates);
+  if (!ratingState) {
+    throw new Error(`No compatible VERIFIED rating-state snapshot is available at cutoff`);
+  }
+  const ratingLineage = exactRatingLineageReferences(
+    ratingState,
+    cutoffAt,
+    seasonMembership
+  );
+  return {
+    fixtureRevision,
+    seasonMembership,
+    ratingState,
+    modelBundle,
+    ...ratingLineage,
+  };
 }
 
 export interface ResolvedProspectiveForecastInput {
@@ -626,9 +805,23 @@ function exactReferencesForManifest(
   );
   const ratingState = ratingStore().get(manifest.ratingStateId);
   const modelBundle = bundleStore().get(manifest.modelBundleId);
-  return fixtureRevision && seasonMembership && ratingState && modelBundle
-    ? { fixtureRevision, seasonMembership, ratingState, modelBundle }
-    : null;
+  if (!fixtureRevision || !seasonMembership || !ratingState || !modelBundle) return null;
+  try {
+    assertVerifiedSeasonMembershipSnapshot(seasonMembership);
+    return {
+      fixtureRevision,
+      seasonMembership,
+      ratingState,
+      modelBundle,
+      ...exactRatingLineageReferences(
+        ratingState,
+        manifest.cutoffAt,
+        seasonMembership
+      ),
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Resolve, validate and persist the manifest before a production snapshot is written. */
@@ -723,9 +916,13 @@ export interface ProspectiveForecastPreflight {
   reasons: string[];
   fixtureRevisionId: string | null;
   seasonMembershipSnapshotId: string | null;
+  ratingStateId: string | null;
   ratingStateHash: string | null;
+  ratingResultLineageStatus: "VERIFIED" | null;
+  ratingResultRevisionIds: readonly string[];
   modelBundleId: string | null;
   applicationCommitSha: string | null;
+  latestIncludedInputAt: string | null;
 }
 
 /** Resolve-only readiness check; never mints a manifest or forecast. */
@@ -739,6 +936,15 @@ export function preflightProspectiveForecast(input: {
     if (Date.parse(references.fixtureRevision.kickoffAt) <= Date.parse(input.cutoffAt)) {
       throw new Error("Frozen kickoff is not after the planned cutoff");
     }
+    const latestIncludedInputAt = latestTimestamp([
+      references.fixtureRevision.availableAt,
+      references.seasonMembership.availableAt,
+      references.ratingState.availableAt,
+      references.modelBundle.availableAt,
+      ...(references.ratingResultRevisions ?? []).map((row) => row.availableAt),
+      ...(references.ratingFixtureRevisions ?? []).map((row) => row.availableAt),
+      ...references.ratingState.ratingEvents.map((row) => row.availableAt),
+    ]);
     return {
       ready: true,
       fixtureId: input.fixtureId,
@@ -748,9 +954,15 @@ export function preflightProspectiveForecast(input: {
       fixtureRevisionId: references.fixtureRevision.fixtureRevisionId,
       seasonMembershipSnapshotId:
         references.seasonMembership.seasonMembershipSnapshotId,
+      ratingStateId: references.ratingState.ratingStateId,
       ratingStateHash: references.ratingState.ratingStateHash,
+      ratingResultLineageStatus: "VERIFIED",
+      ratingResultRevisionIds: [
+        ...(references.ratingState.orderedResultRevisionIds ?? []),
+      ],
       modelBundleId: references.modelBundle.modelBundleId,
       applicationCommitSha: references.modelBundle.codeCommitSha,
+      latestIncludedInputAt,
     };
   } catch (error) {
     return {
@@ -761,9 +973,13 @@ export function preflightProspectiveForecast(input: {
       reasons: [error instanceof Error ? error.message : String(error)],
       fixtureRevisionId: null,
       seasonMembershipSnapshotId: null,
+      ratingStateId: null,
       ratingStateHash: null,
+      ratingResultLineageStatus: null,
+      ratingResultRevisionIds: [],
       modelBundleId: null,
       applicationCommitSha: null,
+      latestIncludedInputAt: null,
     };
   }
 }

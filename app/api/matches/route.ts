@@ -4,6 +4,11 @@ import { BIG_FIVE_CURRENT_SEASON } from "@/lib/competitions/big-five/configs";
 import { matchHistoryView } from "@/lib/match-ledger/views";
 import { loadLedgerState } from "@/lib/match-ledger/scheduler";
 import { FOOTBALL_DATA_CAPABILITY } from "@/lib/match-ledger/providers/football-data";
+import {
+  publicFailureBody,
+  publicOperationalErrorText,
+  recordInternalOperationalError,
+} from "@/lib/competitions/premier-league/ops/public-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +34,14 @@ export async function GET(req: Request) {
     }
 
     const state = await loadLedgerState();
+    const publicState = {
+      ...state,
+      lastError: state.lastError ? publicOperationalErrorText(state.lastError) : null,
+    };
 
     if (requested !== null && isBigFiveCompetitionId(requested)) {
       const view = await matchHistoryView(requested, season);
-      return NextResponse.json({ ...view, season, ledgerState: state });
+      return NextResponse.json({ ...view, season, ledgerState: publicState });
     }
 
     const competitions = await Promise.all(
@@ -51,7 +60,7 @@ export async function GET(req: Request) {
       season,
       source: FOOTBALL_DATA_CAPABILITY.source,
       capability: FOOTBALL_DATA_CAPABILITY,
-      ledgerState: state,
+      ledgerState: publicState,
       totalCompleted: competitions.reduce((s, c) => s + c.completedMatches, 0),
       competitions,
       note:
@@ -59,8 +68,9 @@ export async function GET(req: Request) {
         "contributes only the matches that actually finished.",
     });
   } catch (err) {
+    recordInternalOperationalError("api.matches", err);
     return NextResponse.json(
-      { error: "matches_failed", message: (err as Error).message },
+      publicFailureBody("matches_failed", err),
       { status: 500 }
     );
   }

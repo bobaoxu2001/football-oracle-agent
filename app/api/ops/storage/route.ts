@@ -5,6 +5,11 @@ import {
 } from "@/lib/competitions/premier-league/ops/durable-store";
 import { authorizeOpsTick } from "@/lib/competitions/premier-league/ops/tick-auth";
 import { acquireTickLock, releaseTickLock } from "@/lib/competitions/premier-league/ops/tick-lock";
+import {
+  publicFailureBody,
+  recordInternalOperationalError,
+  sanitizePublicOperationalPayload,
+} from "@/lib/competitions/premier-league/ops/public-errors";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,10 +23,13 @@ export async function GET(req: NextRequest) {
     );
   }
   try {
-    return NextResponse.json(await durableStorageDiagnostics());
-  } catch (err) {
     return NextResponse.json(
-      { error: "storage_diagnostics_failed", message: (err as Error).message },
+      sanitizePublicOperationalPayload(await durableStorageDiagnostics())
+    );
+  } catch (err) {
+    recordInternalOperationalError("api.ops-storage-diagnostics", err);
+    return NextResponse.json(
+      publicFailureBody("storage_diagnostics_failed", err),
       { status: 500 }
     );
   }
@@ -47,10 +55,13 @@ export async function POST(req: NextRequest) {
       );
     }
     leaseId = lock.leaseId;
-    return NextResponse.json(await migrateMongoJobsToCompressedStorage(deadline));
-  } catch (err) {
     return NextResponse.json(
-      { error: "storage_migration_failed", message: (err as Error).message },
+      sanitizePublicOperationalPayload(await migrateMongoJobsToCompressedStorage(deadline))
+    );
+  } catch (err) {
+    recordInternalOperationalError("api.ops-storage-migration", err);
+    return NextResponse.json(
+      publicFailureBody("storage_migration_failed", err),
       { status: 500 }
     );
   } finally {

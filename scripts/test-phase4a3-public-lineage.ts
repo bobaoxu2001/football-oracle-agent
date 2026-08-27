@@ -20,7 +20,8 @@ import {
   buildForecastInputManifest,
   buildFrozenRatingState,
   buildImmutableModelBundle,
-  buildRatingEventReference,
+  buildResultRevision,
+  buildVerifiedRatingEventReference,
   buildSeasonMembershipSnapshot,
   buildSourceObservationReference,
 } from "@/lib/competitions/premier-league/provenance/manifest";
@@ -159,14 +160,76 @@ function manifestFor(
     season: snapshot.season,
     teamSlugs: ["arsenal", "chelsea"],
     sourceObservations: [membershipSource],
+    verificationStatus: "VERIFIED",
+    verifiedAt: "2026-06-15T00:00:00.000Z",
+    verifiedAgainst: ["independent-membership-audit"],
+    verificationArtifact: "phase4a3-membership-audit",
   });
-  const ratingEvent = buildRatingEventReference({
+  const ratingFixtureSource = buildSourceObservationReference({
+    sourceType: "fixture",
+    sourceId: "private-prior-fixture-source",
+    sourceVersion: `test-${suffix}`,
+    observationId: `private-prior-fixture-observation:${suffix}`,
+    availableAt: "2026-08-01T00:00:00.000Z",
+    retrievedAt: "2026-08-01T00:00:00.000Z",
+    payload: { fixtureId: "private-prior-fixture", status: "FINISHED" },
+  });
+  const ratingFixtureRevision = buildFixtureRevision({
+    season: snapshot.season,
+    fixtureId: "private-prior-fixture",
+    homeSlug: "arsenal",
+    awaySlug: "chelsea",
+    kickoffAt: "2026-09-01T15:00:00.000Z",
+    status: "FINISHED",
+    venue: "home",
+    sourceObservation: ratingFixtureSource,
+  });
+  const ratingResultSource = buildSourceObservationReference({
+    sourceType: "result",
+    sourceId: "private-prior-result-source",
+    sourceVersion: `test-${suffix}`,
+    observationId: `private-prior-result-observation:${suffix}`,
+    availableAt: "2026-09-01T16:59:00.000Z",
+    retrievedAt: "2026-09-01T16:59:00.000Z",
+    payload: { fixtureId: "private-prior-fixture", homeScore: 1, awayScore: 0 },
+  });
+  const ratingResultRevision = buildResultRevision({
+    season: snapshot.season,
+    fixtureId: "private-prior-fixture",
+    status: "FINISHED",
+    homeScore: 1,
+    awayScore: 0,
+    sourceObservation: ratingResultSource,
+  });
+  const ratingEvent = buildVerifiedRatingEventReference({
     ratingEventId: `${PRIVATE_RATING}:${suffix}`,
     fixtureId: "private-prior-fixture",
     fixtureKickoff: "2026-09-01T15:00:00.000Z",
     appliedAt: "2026-09-01T17:00:00.000Z",
     availableAt: "2026-09-01T17:00:00.000Z",
-    payload: { private: PRIVATE_RATING },
+    resultRevisionId: ratingResultRevision.resultRevisionId,
+    resultPayloadHash: ratingResultRevision.resultPayloadHash,
+    resultAvailableAt: ratingResultRevision.availableAt,
+    fixtureRevisionId: ratingFixtureRevision.fixtureRevisionId,
+    fixturePayloadHash: ratingFixtureRevision.fixturePayloadHash,
+    ratingUpdateInputs: {
+      homeSlug: "arsenal",
+      awaySlug: "chelsea",
+      homeScore: 1,
+      awayScore: 0,
+      venue: "home",
+      preHome: 1590,
+      preAway: 1510,
+      preHomeMatches: 0,
+      preAwayMatches: 0,
+      postHome: 1600,
+      postAway: 1500,
+      postHomeMatches: 1,
+      postAwayMatches: 1,
+      formulaVersion: PRIVATE_RATING_STATE,
+      modelVersion: PRODUCTION_MODEL_VERSION,
+      verificationEventId: `${PRIVATE_RATING}:verified:${suffix}`,
+    },
   });
   const ratingState = buildFrozenRatingState({
     season: snapshot.season,
@@ -182,6 +245,9 @@ function manifestFor(
       ratings: { arsenal: 1600, chelsea: 1500 },
       matchesPlayedSeason: { arsenal: 1, chelsea: 1 },
     },
+    ratingResultLineageStatus: "VERIFIED",
+    featureCodeVersion: "pl-feature-code-v1",
+    codeCommitSha: COMMIT,
   });
   const modelBundle = buildImmutableModelBundle({
     modelId: "football-oracle-premier-league",
@@ -199,6 +265,8 @@ function manifestFor(
     seasonMembership,
     ratingState,
     modelBundle,
+    ratingResultRevisions: [ratingResultRevision],
+    ratingFixtureRevisions: [ratingFixtureRevision],
   };
   const valid = buildForecastInputManifest({
     fixtureId: snapshot.fixtureId,

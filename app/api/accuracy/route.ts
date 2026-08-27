@@ -9,6 +9,7 @@ import {
 } from "@/lib/competitions/premier-league/live-ledger";
 import { shadowEvaluationReport } from "@/lib/competitions/premier-league/shadow/report";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
+import { sanitizePublicShadowReport } from "@/lib/competitions/premier-league/ops/public-errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +26,9 @@ export async function GET() {
   const production = publicLivePerformanceReport(
     livePerformanceReport("LIVE_OOS", PREMIER_LEAGUE_CURRENT_SEASON)
   );
-  const shadow = shadowEvaluationReport(PREMIER_LEAGUE_CURRENT_SEASON);
+  const shadow = sanitizePublicShadowReport(
+    shadowEvaluationReport(PREMIER_LEAGUE_CURRENT_SEASON)
+  );
   const track = computeTrackRecord();
   const dc = loadDcReport();
   return NextResponse.json(

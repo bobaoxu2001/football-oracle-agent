@@ -287,7 +287,9 @@ const t24Now = new Date(Date.parse(confFx.kickoffUtc!) - 24 * 3600_000).toISOStr
 captureProspectiveProductionEvidence({
   fixtures: [confFx],
   observations: [],
-  capturedAt: "2026-08-16T00:00:00.000Z",
+  // The production season's independent membership verification completed at
+  // 05:34Z; a prospective evidence capture cannot precede that authority.
+  capturedAt: "2026-08-16T06:00:00.000Z",
 });
 planPredictionJobs({ fixtures: [confFx], now: t24Now });
 refreshJobStatuses(t24Now);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hydrateDurableOps } from "@/lib/competitions/premier-league/ops/durable-store";
 import { productionMarketBenchmarkReport } from "@/lib/competitions/premier-league/market/benchmark-report";
+import { recordInternalOperationalError } from "@/lib/competitions/premier-league/ops/public-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export async function GET() {
     await hydrateDurableOps();
     return NextResponse.json(await productionMarketBenchmarkReport());
   } catch (err) {
-    console.warn("[market-benchmark] report unavailable:", (err as Error).message);
+    recordInternalOperationalError("api.market-benchmark", err);
     return NextResponse.json(
       {
         error: "market_benchmark_unavailable",

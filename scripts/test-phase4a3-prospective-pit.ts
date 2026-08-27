@@ -15,6 +15,9 @@ process.env.SNAPSHOT_STORE_PATH = SNAPSHOT_PATH;
 process.env.LIVE_OOS_ARCHIVE_PATH = path.join(TEMP, "live-oos-archive.jsonl");
 process.env.PL_OPERATIONAL_LIVE_OOS_PATH = path.join(TEMP, "live-oos-operational.jsonl");
 process.env.APPLICATION_COMMIT_SHA = COMMIT_SHA;
+// This Phase 4A.3 suite intentionally exercises its pre-Phase-4A4 synthetic
+// rating records. New production records must use content-addressed replay IDs.
+process.env.PL_ALLOW_LEGACY_TEST_RATING_STATE = "1";
 delete process.env.MONGODB_URI;
 
 import {
@@ -23,6 +26,7 @@ import {
   buildFrozenRatingState,
   buildImmutableModelBundle,
   buildRatingEventReference,
+  buildVerifiedRatingEventReference,
   buildResultCorrection,
   buildResultRevision,
   buildSeasonMembershipSnapshot,
@@ -39,6 +43,7 @@ import {
 } from "@/lib/competitions/premier-league/provenance/durable";
 import {
   replayForecastInputManifest,
+  preflightProspectiveForecast,
   resolveProspectiveForecastInput,
 } from "@/lib/competitions/premier-league/provenance/production";
 import { provenanceManifestPath } from "@/lib/competitions/premier-league/ops/paths";
@@ -106,6 +111,15 @@ const membership = buildSeasonMembershipSnapshot({
   season: SEASON,
   teamSlugs: ["chelsea", "arsenal"],
   sourceObservations: [membershipSource],
+  verificationStatus: "VERIFIED",
+  verifiedAt: "2026-08-01T09:00:00.000Z",
+  verifiedAgainst: ["independent-membership-audit"],
+  verificationArtifact: "phase4a3-membership-audit",
+});
+const legacyUnverifiedMembership = buildSeasonMembershipSnapshot({
+  season: SEASON,
+  teamSlugs: ["chelsea", "arsenal"],
+  sourceObservations: [membershipSource],
 });
 
 const futureMembershipSource = source({
@@ -119,6 +133,10 @@ const futureMembership = buildSeasonMembershipSnapshot({
   season: SEASON,
   teamSlugs: ["liverpool", "chelsea", "arsenal"],
   sourceObservations: [futureMembershipSource],
+  verificationStatus: "VERIFIED",
+  verifiedAt: AFTER_CUTOFF,
+  verifiedAgainst: ["independent-membership-audit"],
+  verificationArtifact: "phase4a3-membership-audit-v2",
 });
 
 const fixtureSource = source({
@@ -166,6 +184,27 @@ const resultSource = source({
   availableAt: "2026-09-05T18:00:00.000Z",
   payload: { fixtureId: PRIOR_FIXTURE_ID, homeScore: 2, awayScore: 0 },
 });
+const priorFixtureSource = source({
+  type: "fixture",
+  id: "fixture-feed",
+  observation: `${PRIOR_FIXTURE_ID}:fixture:v1`,
+  availableAt: "2026-08-20T10:00:00.000Z",
+  payload: {
+    fixtureId: PRIOR_FIXTURE_ID,
+    kickoffAt: "2026-09-05T15:00:00.000Z",
+    status: "FINISHED",
+  },
+});
+const priorFixtureRevision = buildFixtureRevision({
+  season: SEASON,
+  fixtureId: PRIOR_FIXTURE_ID,
+  homeSlug: "arsenal",
+  awaySlug: "chelsea",
+  kickoffAt: "2026-09-05T15:00:00.000Z",
+  status: "FINISHED",
+  venue: "home",
+  sourceObservation: priorFixtureSource,
+});
 const resultRevision = buildResultRevision({
   season: SEASON,
   fixtureId: PRIOR_FIXTURE_ID,
@@ -199,14 +238,35 @@ const resultCorrection = buildResultCorrection({
   availableAt: AFTER_CUTOFF,
 });
 
-const ratingEvent = buildRatingEventReference({
+const ratingEvent = buildVerifiedRatingEventReference({
   ratingEventId: `${PRIOR_FIXTURE_ID}:rating:v1`,
   fixtureId: PRIOR_FIXTURE_ID,
   fixtureKickoff: "2026-09-05T15:00:00.000Z",
   appliedAt: "2026-09-05T18:01:00.000Z",
   availableAt: "2026-09-05T18:01:00.000Z",
-  payload: { resultRevisionId: resultRevision.resultRevisionId, delta: 12 },
   resultRevisionId: resultRevision.resultRevisionId,
+  resultPayloadHash: resultRevision.resultPayloadHash,
+  resultAvailableAt: resultRevision.availableAt,
+  fixtureRevisionId: priorFixtureRevision.fixtureRevisionId,
+  fixturePayloadHash: priorFixtureRevision.fixturePayloadHash,
+  ratingUpdateInputs: {
+    homeSlug: "arsenal",
+    awaySlug: "chelsea",
+    homeScore: 2,
+    awayScore: 0,
+    venue: "home",
+    preHome: 1600,
+    preAway: 1560,
+    preHomeMatches: 2,
+    preAwayMatches: 2,
+    postHome: 1612,
+    postAway: 1548,
+    postHomeMatches: 3,
+    postAwayMatches: 3,
+    formulaVersion: "elo-pl-live-v0.2.0",
+    modelVersion: PRODUCTION_MODEL_VERSION,
+    verificationEventId: `${PRIOR_FIXTURE_ID}:verified:v1`,
+  },
 });
 const futureRatingEvent = buildRatingEventReference({
   ratingEventId: `${PRIOR_FIXTURE_ID}:rating:v2`,
@@ -223,7 +283,7 @@ const ratingState = buildFrozenRatingState({
   asOf: CUTOFF,
   availableAt: "2026-09-05T18:01:00.000Z",
   modelVersion: PRODUCTION_MODEL_VERSION,
-  formulaVersion: "elo-v1",
+  formulaVersion: "elo-pl-live-v0.2.0",
   seasonMembershipSnapshotId: membership.seasonMembershipSnapshotId,
   ratingEvents: [ratingEvent],
   state: {
@@ -232,6 +292,22 @@ const ratingState = buildFrozenRatingState({
     ratings: { arsenal: 1612, chelsea: 1548 },
     matchesPlayedSeason: { arsenal: 3, chelsea: 3 },
   },
+  ratingResultLineageStatus: "VERIFIED",
+  featureCodeVersion: "pl-sealed-predictor-v1+elo-pl-live-v0.2.0",
+  codeCommitSha: COMMIT_SHA,
+});
+const legacyMembershipRatingState = buildFrozenRatingState({
+  season: SEASON,
+  asOf: CUTOFF,
+  availableAt: "2026-09-05T18:01:00.000Z",
+  modelVersion: PRODUCTION_MODEL_VERSION,
+  formulaVersion: "elo-pl-live-v0.2.0",
+  seasonMembershipSnapshotId: legacyUnverifiedMembership.seasonMembershipSnapshotId,
+  ratingEvents: [ratingEvent],
+  state: ratingState.state,
+  ratingResultLineageStatus: "VERIFIED",
+  featureCodeVersion: "pl-sealed-predictor-v1+elo-pl-live-v0.2.0",
+  codeCommitSha: COMMIT_SHA,
 });
 
 const modelParameters = {
@@ -259,7 +335,7 @@ function makeModelBundle(
     trainingCutoff: "2025-05-31T23:59:59.999Z",
     parameterPayload: parameters,
     featureSchemaVersion: "pl-features-v0.2.0",
-    featureCodeVersion: "pl-sealed-predictor-v1+elo-v1",
+    featureCodeVersion: "pl-sealed-predictor-v1+elo-pl-live-v0.2.0",
     createdAt: "2026-08-15T00:00:00.000Z",
     availableAt: "2026-08-15T00:00:00.000Z",
     codeCommitSha: commitSha,
@@ -272,6 +348,8 @@ const baseReferences: ManifestReferenceSet = {
   seasonMembership: membership,
   ratingState,
   modelBundle,
+  ratingResultRevisions: [resultRevision],
+  ratingFixtureRevisions: [priorFixtureRevision],
 };
 
 function manifestFrom(
@@ -329,7 +407,7 @@ function main(): void {
           asOf: CUTOFF,
           availableAt: CUTOFF,
           modelVersion: PRODUCTION_MODEL_VERSION,
-          formulaVersion: "elo-v1",
+          formulaVersion: "elo-pl-live-v0.2.0",
           seasonMembershipSnapshotId: membership.seasonMembershipSnapshotId,
           ratingEvents: [ratingEvent, futureRatingEvent],
           state: ratingState.state,
@@ -344,7 +422,7 @@ function main(): void {
       asOf: CUTOFF,
       availableAt: "2026-09-05T18:01:00.000Z",
       modelVersion: PRODUCTION_MODEL_VERSION,
-      formulaVersion: "elo-v1",
+      formulaVersion: "elo-pl-live-v0.2.0",
       seasonMembershipSnapshotId: futureMembership.seasonMembershipSnapshotId,
       ratingEvents: [ratingEvent],
       state: {
@@ -353,6 +431,9 @@ function main(): void {
         ratings: { arsenal: 1612, chelsea: 1548, liverpool: 1580 },
         matchesPlayedSeason: { arsenal: 3, chelsea: 3, liverpool: 3 },
       },
+      ratingResultLineageStatus: "VERIFIED",
+      featureCodeVersion: modelBundle.featureCodeVersion,
+      codeCommitSha: COMMIT_SHA,
     });
     assert.throws(
       () =>
@@ -379,15 +460,43 @@ function main(): void {
     );
   });
 
+  check("Q5b a legacy membership without verification proof cannot enter a manifest", () => {
+    assert.throws(
+      () =>
+        manifestFrom({
+          ...baseReferences,
+          seasonMembership: legacyUnverifiedMembership,
+          ratingState: legacyMembershipRatingState,
+        }),
+      /lacks complete VERIFIED proof/
+    );
+  });
+
   check("Q6 duplicate retry creates neither duplicate manifest nor snapshot", () => {
     const inserted = insertProvenanceRecords([
       fixtureRevision,
+      priorFixtureRevision,
       membership,
       resultRevision,
       ratingState,
+      legacyUnverifiedMembership,
+      legacyMembershipRatingState,
       modelBundle,
     ]);
-    assert.equal(inserted.inserted.length, 5);
+    assert.equal(inserted.inserted.length, 8);
+
+    const manifestRowsBeforePreflight = lines(provenanceManifestPath()).length;
+    const preflight = preflightProspectiveForecast({
+      fixtureId: FIXTURE_ID,
+      stage: "T24H",
+      cutoffAt: CUTOFF,
+    });
+    assert.equal(preflight.ready, true);
+    assert.equal(preflight.seasonMembershipSnapshotId, membership.seasonMembershipSnapshotId);
+    assert.equal(preflight.ratingStateId, ratingState.ratingStateId);
+    assert.equal(preflight.ratingResultLineageStatus, "VERIFIED");
+    assert.deepEqual(preflight.ratingResultRevisionIds, [resultRevision.resultRevisionId]);
+    assert.equal(lines(provenanceManifestPath()).length, manifestRowsBeforePreflight);
 
     resolved = resolveProspectiveForecastInput({
       fixtureId: FIXTURE_ID,
@@ -483,7 +592,7 @@ function main(): void {
       asOf: "2026-09-09T16:00:00.000Z",
       availableAt: "2026-09-09T16:00:00.000Z",
       modelVersion: PRODUCTION_MODEL_VERSION,
-      formulaVersion: "elo-v1",
+      formulaVersion: "elo-pl-live-v0.2.0",
       seasonMembershipSnapshotId: membership.seasonMembershipSnapshotId,
       ratingEvents: [ratingEvent, futureRatingEvent],
       state: {
@@ -635,7 +744,7 @@ function main(): void {
       asOf: CUTOFF,
       availableAt: "2026-09-05T18:01:00.000Z",
       modelVersion: PRODUCTION_MODEL_VERSION,
-      formulaVersion: "elo-v1",
+      formulaVersion: "elo-pl-live-v0.2.0",
       seasonMembershipSnapshotId: membership.seasonMembershipSnapshotId,
       ratingEvents: [ratingEvent],
       state: {
@@ -644,6 +753,9 @@ function main(): void {
         ratings: { chelsea: 1548, arsenal: 1612 },
         matchesPlayedSeason: { chelsea: 3, arsenal: 3 },
       },
+      ratingResultLineageStatus: "VERIFIED",
+      featureCodeVersion: modelBundle.featureCodeVersion,
+      codeCommitSha: COMMIT_SHA,
     });
     assert.equal(ratingAgain.ratingStateHash, ratingState.ratingStateHash);
     assert.equal(ratingAgain.ratingStateId, ratingState.ratingStateId);
@@ -664,30 +776,87 @@ function main(): void {
 
   check("same-timestamp post-result rating state wins deterministically", () => {
     const tiedAt = "2026-09-08T18:00:00.000Z";
-    const sameTickEvent = buildRatingEventReference({
+    const sameTickFixtureSource = source({
+      type: "fixture",
+      id: "fixture-feed",
+      observation: "phase4a3-same-tick-result:fixture:v1",
+      availableAt: "2026-09-08T14:00:00.000Z",
+      payload: { fixtureId: "phase4a3-same-tick-result", status: "FINISHED" },
+    });
+    const sameTickFixture = buildFixtureRevision({
+      season: SEASON,
+      fixtureId: "phase4a3-same-tick-result",
+      homeSlug: "arsenal",
+      awaySlug: "chelsea",
+      kickoffAt: "2026-09-08T15:00:00.000Z",
+      status: "FINISHED",
+      venue: "home",
+      sourceObservation: sameTickFixtureSource,
+    });
+    const sameTickResultSource = source({
+      type: "result",
+      id: "result-feed",
+      observation: "phase4a3-same-tick-result:result:v1",
+      availableAt: tiedAt,
+      payload: { fixtureId: "phase4a3-same-tick-result", homeScore: 3, awayScore: 0 },
+    });
+    const sameTickResult = buildResultRevision({
+      season: SEASON,
+      fixtureId: "phase4a3-same-tick-result",
+      status: "FINISHED",
+      homeScore: 3,
+      awayScore: 0,
+      sourceObservation: sameTickResultSource,
+    });
+    const sameTickEvent = buildVerifiedRatingEventReference({
       ratingEventId: "phase4a3-same-tick-rating",
       fixtureId: "phase4a3-same-tick-result",
       fixtureKickoff: "2026-09-08T15:00:00.000Z",
       appliedAt: tiedAt,
       availableAt: tiedAt,
-      payload: { homeScore: 3, awayScore: 0, delta: 9 },
+      resultRevisionId: sameTickResult.resultRevisionId,
+      resultPayloadHash: sameTickResult.resultPayloadHash,
+      resultAvailableAt: sameTickResult.availableAt,
+      fixtureRevisionId: sameTickFixture.fixtureRevisionId,
+      fixturePayloadHash: sameTickFixture.fixturePayloadHash,
+      ratingUpdateInputs: {
+        homeSlug: "arsenal",
+        awaySlug: "chelsea",
+        homeScore: 3,
+        awayScore: 0,
+        venue: "home",
+        preHome: 1612,
+        preAway: 1548,
+        preHomeMatches: 3,
+        preAwayMatches: 3,
+        postHome: 1621,
+        postAway: 1539,
+        postHomeMatches: 4,
+        postAwayMatches: 4,
+        formulaVersion: "elo-pl-live-v0.2.0",
+        modelVersion: PRODUCTION_MODEL_VERSION,
+        verificationEventId: "phase4a3-same-tick-verified",
+      },
     });
     const beforeUpdate = buildFrozenRatingState({
       season: SEASON,
       asOf: tiedAt,
       availableAt: tiedAt,
       modelVersion: PRODUCTION_MODEL_VERSION,
-      formulaVersion: "elo-v1",
+      formulaVersion: "elo-pl-live-v0.2.0",
       seasonMembershipSnapshotId: membership.seasonMembershipSnapshotId,
       ratingEvents: [ratingEvent],
       state: ratingState.state,
+      ratingResultLineageStatus: "VERIFIED",
+      featureCodeVersion: modelBundle.featureCodeVersion,
+      codeCommitSha: COMMIT_SHA,
     });
     const afterUpdate = buildFrozenRatingState({
       season: SEASON,
       asOf: tiedAt,
       availableAt: tiedAt,
       modelVersion: PRODUCTION_MODEL_VERSION,
-      formulaVersion: "elo-v1",
+      formulaVersion: "elo-pl-live-v0.2.0",
       seasonMembershipSnapshotId: membership.seasonMembershipSnapshotId,
       ratingEvents: [ratingEvent, sameTickEvent],
       state: {
@@ -696,8 +865,16 @@ function main(): void {
         ratings: { arsenal: 1621, chelsea: 1539 },
         matchesPlayedSeason: { arsenal: 4, chelsea: 4 },
       },
+      ratingResultLineageStatus: "VERIFIED",
+      featureCodeVersion: modelBundle.featureCodeVersion,
+      codeCommitSha: COMMIT_SHA,
     });
-    insertProvenanceRecords([beforeUpdate, afterUpdate]);
+    insertProvenanceRecords([
+      sameTickFixture,
+      sameTickResult,
+      beforeUpdate,
+      afterUpdate,
+    ]);
     const tiedResolution = resolveProspectiveForecastInput({
       fixtureId: FIXTURE_ID,
       stage: "T2H",

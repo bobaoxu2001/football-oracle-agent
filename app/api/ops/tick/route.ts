@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { runGuardedLiveOpsTick } from "@/lib/competitions/premier-league/ops/tick";
 import { authorizeOpsTick } from "@/lib/competitions/premier-league/ops/tick-auth";
 import { durableTickFreshness } from "@/lib/competitions/premier-league/ops/durable-store";
+import {
+  publicFailureBody,
+  recordInternalOperationalError,
+  sanitizePublicOperationalPayload,
+} from "@/lib/competitions/premier-league/ops/public-errors";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -15,23 +20,24 @@ export async function GET(req: NextRequest) {
     if (req.nextUrl.searchParams.get("backup") === "1") {
       const freshness = await durableTickFreshness();
       if (freshness.fresh) {
-        return NextResponse.json({
+        return NextResponse.json(sanitizePublicOperationalPayload({
           skipped: true,
           skipReason: "primary tick is fresh",
           ...freshness,
-        });
+        }));
       }
     }
     const result = await runGuardedLiveOpsTick({
       skipObservers: req.nextUrl.searchParams.get("core") === "1",
     });
     if (result.skipped) {
-      return NextResponse.json(result, { status: 409 });
+      return NextResponse.json(sanitizePublicOperationalPayload(result), { status: 409 });
     }
-    return NextResponse.json(result);
+    return NextResponse.json(sanitizePublicOperationalPayload(result));
   } catch (err) {
+    recordInternalOperationalError("api.ops-tick", err);
     return NextResponse.json(
-      { error: "tick_failed", message: (err as Error).message },
+      publicFailureBody("tick_failed", err),
       { status: 500 }
     );
   }

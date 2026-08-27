@@ -7,7 +7,7 @@ import {
   buildForecastInputManifest,
   buildFrozenRatingState,
   buildImmutableModelBundle,
-  buildRatingEventReference,
+  buildVerifiedRatingEventReference,
   buildResultCorrection,
   buildResultRevision,
   buildSeasonMembershipSnapshot,
@@ -95,6 +95,10 @@ const membership = buildSeasonMembershipSnapshot({
   season: "2026-27",
   teamSlugs: ["chelsea", "arsenal"],
   sourceObservations: [membershipSource],
+  verificationStatus: "VERIFIED",
+  verifiedAt: "2026-08-01T09:00:00.000Z",
+  verifiedAgainst: ["independent-membership-audit"],
+  verificationArtifact: "phase4a3-membership-audit",
 });
 const fixtureSource = buildSourceObservationReference({
   sourceType: "fixture",
@@ -153,14 +157,52 @@ const correction = buildResultCorrection({
   detectedAt: "2026-08-22T08:00:00.000Z",
   availableAt: "2026-08-22T08:00:00.000Z",
 });
-const ratingEvent = buildRatingEventReference({
+const ratingFixtureSource = buildSourceObservationReference({
+  sourceType: "fixture",
+  sourceId: "fixture-feed",
+  observationId: "fixture::old-fixture::1",
+  availableAt: "2026-08-21T18:00:00.000Z",
+  payload: { status: "FINISHED", kickoffAt: "2026-08-21T19:00:00.000Z" },
+});
+const ratingFixture = buildFixtureRevision({
+  season: "2026-27",
+  fixtureId: result.fixtureId,
+  homeSlug: "arsenal",
+  awaySlug: "chelsea",
+  kickoffAt: "2026-08-21T19:00:00.000Z",
+  status: "FINISHED",
+  venue: "home",
+  sourceObservation: ratingFixtureSource,
+});
+const ratingEvent = buildVerifiedRatingEventReference({
   ratingEventId: "rating::old-fixture::2",
   fixtureId: result.fixtureId,
   fixtureKickoff: "2026-08-21T19:00:00.000Z",
   appliedAt: "2026-08-22T08:01:00.000Z",
   availableAt: "2026-08-22T08:01:00.000Z",
-  payload: { resultRevisionId: correctedResult.resultRevisionId },
   resultRevisionId: correctedResult.resultRevisionId,
+  resultPayloadHash: correctedResult.resultPayloadHash,
+  resultAvailableAt: correctedResult.availableAt,
+  fixtureRevisionId: ratingFixture.fixtureRevisionId,
+  fixturePayloadHash: ratingFixture.fixturePayloadHash,
+  ratingUpdateInputs: {
+    homeSlug: "arsenal",
+    awaySlug: "chelsea",
+    homeScore: 1,
+    awayScore: 1,
+    venue: "home",
+    preHome: 1600,
+    preAway: 1560,
+    preHomeMatches: 0,
+    preAwayMatches: 0,
+    postHome: 1610,
+    postAway: 1550,
+    postHomeMatches: 1,
+    postAwayMatches: 1,
+    formulaVersion: "elo-v1",
+    modelVersion: "pl-live-v0.2.0",
+    verificationEventId: "verified::old-fixture",
+  },
 });
 const ratingState = buildFrozenRatingState({
   season: "2026-27",
@@ -176,6 +218,9 @@ const ratingState = buildFrozenRatingState({
     ratings: { arsenal: 1610, chelsea: 1550 },
     matchesPlayedSeason: { arsenal: 1, chelsea: 1 },
   },
+  ratingResultLineageStatus: "VERIFIED",
+  featureCodeVersion: "sealed-v1",
+  codeCommitSha: commitSha,
 });
 const modelBundle = buildImmutableModelBundle({
   modelId: "premier-league-champion",
@@ -200,10 +245,13 @@ const manifest = buildForecastInputManifest({
   seasonMembership: membership,
   ratingState,
   modelBundle,
+  ratingResultRevisions: [correctedResult],
+  ratingFixtureRevisions: [ratingFixture],
 });
 
 const records: ProvenanceRecord[] = [
   fixture,
+  ratingFixture,
   result,
   correctedResult,
   correction,
