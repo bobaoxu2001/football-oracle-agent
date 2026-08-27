@@ -28,7 +28,8 @@ cd "/Users/xuao/Documents/2025 找工作/AI Projects/football-oracle-agent"
 node -p "process.version + ' ' + process.arch"   # confirm arch
 npm ci
 npm test                 # Phase 1 + 1.1 gates
-npm run backtest:pl      # held-out walk-forward + bootstrap
+npm run backtest:pl      # strict PIT readiness audit; currently fails closed at N=0
+npm run backtest:pl:legacy # explicit date-strict research reproduction, not verified PIT
 npm run dev
 ```
 
@@ -62,7 +63,8 @@ If `which node` is `/opt/homebrew/bin/node` (arm64) while `node_modules` is x64,
 | Tests | `npm test` |
 | Phase 1 core | `npm run test:phase1` |
 | Phase 1.1 gates | `npm run test:phase1-1` |
-| PL backtest | `npm run backtest:pl` |
+| PL PIT readiness audit | `npm run backtest:pl` |
+| Legacy PL research benchmark | `npm run backtest:pl:legacy` |
 | WC bracket | `npm run validate:bracket` |
 | Dev server | `npm run dev` |
 | Ingest 2026-27 | `npm run ingest:pl-2026-27` |
@@ -70,4 +72,4 @@ If `which node` is `/opt/homebrew/bin/node` (arm64) while `node_modules` is x64,
 | Freeze live forecasts | `npm run freeze:live` |
 | Phase 2A gates | `npm run test:phase2a` |
 
-No extra environment variables are required for the backtest. Snapshots write to `data/processed/predictions/snapshots.jsonl` unless `SNAPSHOT_STORE_PATH` is set (tests set a temp path).
+No extra environment variables are required for the PIT readiness audit. The legacy command is retained only to reproduce the frozen date-strict research artifact; it is not a strict PIT replay. Snapshots write to `data/processed/predictions/snapshots.jsonl` unless `SNAPSHOT_STORE_PATH` is set (tests set a temp path).

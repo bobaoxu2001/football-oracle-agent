@@ -146,8 +146,6 @@ export interface HealthReport {
     successfulSettlementEvents: null;
     eventCountStatus: "unavailable";
     eventCountNote: string;
-    failed: number;
-    pendingOrConflict: number;
     corrections: number;
   };
   ratings: {
@@ -439,8 +437,6 @@ export function buildHealthReport(now = new Date()): HealthReport {
       successfulSettlementEvents: ledgerMetrics.settlements.successfulSettlementEvents,
       eventCountStatus: ledgerMetrics.settlements.eventCountStatus,
       eventCountNote: ledgerMetrics.settlements.eventCountNote,
-      failed: 0,
-      pendingOrConflict: verifs.filter((v) => v.status === "CONFLICT" || v.status === "PROVISIONAL").length,
       corrections: corrections.length,
     },
     ratings: {

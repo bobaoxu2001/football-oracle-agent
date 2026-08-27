@@ -49,6 +49,13 @@ function fmt(m: BacktestMetrics) {
 }
 
 function main() {
+  if (!process.argv.includes("--acknowledge-date-strict-research")) {
+    throw new Error(
+      "HISTORICAL BACKTEST NOT YET ADMISSIBLE. This legacy date-strict benchmark is not a verified PIT replay. Run `npm run backtest:pl` for the readiness audit, or explicitly use `npm run backtest:pl:legacy` for frozen research reproduction."
+    );
+  }
+
+  console.log("DATE-STRICT RESEARCH BENCHMARK — NOT VERIFIED PIT REPLAY");
   const params = loadPremierLeagueParams();
   const matches = toMatches();
   const held = matches.filter((m) => m.date >= HELD_FROM && m.date <= HELD_TO);
@@ -173,6 +180,15 @@ function main() {
   }
 
   const out = {
+    evidenceClass: "DATE_STRICT_RESEARCH_BENCHMARK_NOT_VERIFIED_PIT_REPLAY",
+    historicalReplayTrack: null,
+    pitAdmissible: false,
+    pitLimitations: [
+      "historical result first-observed/availableAt timestamps are unavailable",
+      "historical kickoff-as-known and reschedule revision tapes are unavailable",
+      "historical season membership snapshots are not point-in-time versioned",
+      "the evaluated pl-baseline-v0.1.0 path is not the exact pl-live-v0.2.0 production path",
+    ],
     modelVersion: params.modelVersion,
     homeAdvantage: params.homeAdvantage,
     dcRho: params.dcRho,

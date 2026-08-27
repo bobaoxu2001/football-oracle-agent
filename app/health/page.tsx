@@ -236,7 +236,7 @@ export default async function HealthPage() {
           </li>
           <li>
             Settlement operations/events: unavailable (no durable operation-event ledger) ·
-            pending/conflict {h.settlement.pendingOrConflict} · corrections {h.settlement.corrections}
+            correction records {h.settlement.corrections}
           </li>
           <li>
             Rating state {h.ratings.modelVersion} · applied events {h.ratings.appliedEvents} · last{" "}

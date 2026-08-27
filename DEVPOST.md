@@ -1,5 +1,7 @@
 # WorldCup Oracle Agent — Devpost
 
+> **Archived hackathon submission.** This document is preserved as research history. It is not the current Football Oracle product shell, live-production claim set, model-evidence contract or deployment status. World Cup work now sits behind the research boundary.
+
 **Google Cloud Rapid Agent Hackathon · MongoDB Track**
 
 | | |

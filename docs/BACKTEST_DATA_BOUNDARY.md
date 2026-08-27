@@ -1,4 +1,6 @@
-# Backtest data boundary (Phase 1)
+# Backtest data boundary (Phase 1 legacy research)
+
+> **Phase 4A evidence correction:** this document describes the frozen, calendar-date-strict Phase 1 research benchmark. It is **not** a verified point-in-time replay because the repository lacks historical first-observed result timestamps, kickoff/reschedule observation history, PIT season-membership snapshots and full per-fixture lineage. The strict historical cohort is N=0. See `docs/PHASE4A_PIT_REPLAY_READINESS.md`.
 
 Every historical Premier League prediction is stamped with:
 
@@ -23,7 +25,7 @@ Same-date fixtures never update each other, even if a club hypothetically played
 | --- | --- | --- |
 | Walk-forward Elo rebuilt from PL results | yes | date-strict |
 | True home/away flag (schedule identity) | yes | known before kickoff |
-| Season membership (the 20 clubs) | yes | known at season start |
+| Season membership (the 20 clubs) | legacy research only | the final season file identifies the clubs, but no historically captured pre-season membership snapshot proves when that identity was known |
 | Promotion prior / season-boundary shrink | yes | uses only the previous season’s final rating |
 | Championship feeder Elo for newly promoted clubs | yes | walk-forward on E1 results with `date <` the PL season’s first date |
 | Championship-informed promotion prior | only if that club already has a pre-D rating | no current metadata |
@@ -44,7 +46,7 @@ Same-date fixtures never update each other, even if a club hypothetically played
 | Closing / live odds | not ingested |
 | Current-season aggregates that include later matches | would leak |
 
-If a feature cannot be proven to have existed at kickoff, it is not used.
+If a feature cannot be proven to have existed at cutoff, it is not used by the benchmark model. However, absence from the model is not enough to establish strict PIT provenance for the remaining inputs.
 
 ## Held-out season
 
@@ -55,3 +57,5 @@ If a feature cannot be proven to have existed at kickoff, it is not used.
 The frozen `pl-baseline-v0.1.0` benchmark is unchanged. The live 2026-27 model is a **new** version (`pl-live-v0.2.0`). Season-init coefficients for production are fit on transitions through 2024-25 only. Using 2025-26 *final ratings* as the starting state for 2026-27 is previous-season information, not a retune of HA/ρ.
 
 Genuine `LIVE_OOS` snapshots are only those frozen with `asOf < kickoff`. Reconstructions are `RETROSPECTIVE` and must never enter the live ledger.
+
+The corrected production ordering is `input.availableAt <= cutoffAt <= generatedAt < kickoffAt`. A historical replay executed later must keep its real replay execution time separate and use the isolated `HISTORICAL_REPLAY` track.

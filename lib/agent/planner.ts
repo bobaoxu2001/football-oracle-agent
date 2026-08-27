@@ -61,7 +61,7 @@ function detectGroupLetter(query: string): string | undefined {
 }
 
 // Competitions this product does not model. Premier League is IN SCOPE.
-// World Cup remains a first-class plugin. Other Big Five leagues stay out
+// World Cup remains an archived research plugin. Other Big Five leagues stay out
 // of Phase 1 on purpose.
 const OTHER_COMP_RE =
   /\b(euros?\s*(20\d\d)?|uefa euro|champions league|europa league|la liga|serie a|bundesliga|ligue\s*1|copa am[eé]rica|nations league|club world cup|olympics?|gold cup|afcon)\b/i;

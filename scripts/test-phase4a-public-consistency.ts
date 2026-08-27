@@ -158,6 +158,10 @@ async function main(): Promise<void> {
     assert.equal(health.settlement.successfulSettlementEvents, null);
     assert.equal(health.settlement.eventCountStatus, "unavailable");
     assert.equal("succeeded" in health.settlement, false);
+    assert.equal("failed" in health.settlement, false);
+    assert.equal("pendingOrConflict" in health.settlement, false);
+    assert.ok("pending" in health.results);
+    assert.ok("conflict" in health.results);
     assert.equal(live.settlements.successfulSettlementEvents, null);
   });
 
@@ -307,6 +311,7 @@ async function main(): Promise<void> {
       '"/api/live"',
       '"/api/matches/upcoming"',
       '"/api/health"',
+      '"/api/ops/:path*"',
     ]) {
       assert.ok(noStoreBlock.includes(route), `${route} must be no-store`);
     }

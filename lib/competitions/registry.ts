@@ -48,7 +48,7 @@ export function getBigFiveCompetition(id: BigFiveCompetitionId): CompetitionConf
  * Resolve which competition a query is about.
  *
  * Premier League is in-scope. Other domestic leagues / UEFA club cups stay
- * out of scope in Phase 1. World Cup remains a first-class plugin.
+ * out of scope in Phase 1. World Cup remains an archived research plugin.
  */
 export function resolveCompetitionId(
   query: string,

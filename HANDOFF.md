@@ -1,5 +1,7 @@
 # WorldCup Oracle Agent — Handoff Summary
 
+> **Archived research-era handoff.** This file is retained as historical project context and does not describe the current Football Oracle product, navigation, production URL, evidence contract or deployment state. Current public production is the Premier League product at `https://football-oracle-agent.vercel.app`.
+
 > For continuing the project from another Claude Code account/session.
 > **No secrets are in this file.** Connection strings, API keys, and tokens live only in
 > a gitignored `.env.local` and in Vercel's encrypted env store — never in the repo.
