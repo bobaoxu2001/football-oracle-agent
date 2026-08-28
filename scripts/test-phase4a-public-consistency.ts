@@ -12,6 +12,7 @@ import { GET as getShadow } from "@/app/api/shadow/route";
 import { GET as getUpcoming } from "@/app/api/matches/upcoming/route";
 import { GET as getFixtureLive } from "@/app/api/live/fixture/[id]/route";
 import { buildPublicHealthResponse } from "@/lib/competitions/premier-league/ops/public-health";
+import { evaluateFixtureForecastFreshness } from "@/lib/competitions/premier-league/ops/production-freshness";
 import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
 import { forecastFreshness } from "@/lib/match-forecast/service";
 import { listLiveSnapshots } from "@/lib/competitions/premier-league/ops/live-snapshot-reader";
@@ -350,6 +351,84 @@ async function main(): Promise<void> {
     assert.match(accuracy, /grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-5/);
     assert.match(accuracy, /min-w-0 lg:col-span-2/);
     assert.match(accuracy, /min-w-0 lg:col-span-3/);
+  });
+
+  await check("Match Room renders a missed stage after a later stage recovers", () => {
+    const recovered = evaluateFixtureForecastFreshness({
+      fixtureId: "match-room-missed-stage-regression",
+      kickoffUtc: "2026-09-10T12:00:00.000Z",
+      evaluatedAt: "2026-09-09T14:00:00.001Z",
+      expectedModelVersion: "pl-live-v0.2.0",
+      snapshots: [
+        {
+          snapshotId: "early",
+          fixtureId: "match-room-missed-stage-regression",
+          modelRole: "production",
+          modelVersion: "pl-live-v0.2.0",
+          evaluationClass: "LIVE_OOS",
+          predictionStage: "EARLY",
+          kickoffUtc: "2026-09-10T12:00:00.000Z",
+          cutoffAt: "2026-08-20T00:00:00.000Z",
+          generatedAt: "2026-08-20T00:01:00.000Z",
+        },
+        {
+          snapshotId: "t24h",
+          fixtureId: "match-room-missed-stage-regression",
+          modelRole: "production",
+          modelVersion: "pl-live-v0.2.0",
+          evaluationClass: "LIVE_OOS",
+          predictionStage: "T24H",
+          kickoffUtc: "2026-09-10T12:00:00.000Z",
+          cutoffAt: "2026-09-09T12:00:00.000Z",
+          generatedAt: "2026-09-09T12:05:00.000Z",
+          latestIncludedInputAt: "2026-09-09T11:45:00.000Z",
+        },
+      ],
+    });
+    assert.equal(recovered.status, "CURRENT_STAGE");
+    assert.equal(recovered.selectedStage, "T24H");
+    assert.deepEqual(recovered.missedStages, ["T7D"]);
+    assert.equal(
+      recovered.stages.find((stage) => stage.stage === "T7D")?.state,
+      "MISSED"
+    );
+
+    const matchRoom = fs.readFileSync(
+      path.resolve("app/match/[matchId]/page.tsx"),
+      "utf8"
+    );
+    assert.match(matchRoom, /freshness\.stages\.map\(\(stage\) => <StagePolicyCard/);
+    assert.match(matchRoom, /data-stage=\{stage\.stage\}/);
+    assert.match(matchRoom, /data-stage-state=\{stage\.state\}/);
+    assert.match(matchRoom, /state === "MISSED"/);
+  });
+
+  await check("Match Room constrains long provenance fields for narrow viewports", () => {
+    const matchRoom = fs.readFileSync(
+      path.resolve("app/match/[matchId]/page.tsx"),
+      "utf8"
+    );
+    const timelineStart = matchRoom.indexOf("function TimelineRow");
+    const timelineEnd = matchRoom.indexOf("function ContextStat", timelineStart);
+    const auditStart = matchRoom.indexOf("function AuditLine");
+    const auditEnd = matchRoom.indexOf("function UnavailableMatch", auditStart);
+    assert.ok(timelineStart >= 0 && timelineEnd > timelineStart);
+    assert.ok(auditStart >= 0 && auditEnd > auditStart);
+    const timelineRow = matchRoom.slice(timelineStart, timelineEnd);
+    const auditLine = matchRoom.slice(auditStart, auditEnd);
+
+    assert.match(matchRoom, /className="container min-w-0 py-6 md:py-10"/);
+    assert.match(matchRoom, /className="mt-5 min-w-0 glass p-5 sm:p-6"/);
+    assert.match(matchRoom, /className="mt-5 min-w-0 max-w-full rounded-2xl/);
+    assert.match(matchRoom, /grid min-w-0 grid-cols-1 gap-4 text-xs/);
+    assert.ok(timelineRow.includes("grid min-w-0 grid-cols-1"));
+    assert.ok(timelineRow.includes("sm:grid-cols-[minmax(0,1fr)_auto]"));
+    assert.ok(timelineRow.includes('<div className="min-w-0">'));
+    assert.ok((timelineRow.match(/break-all/g) ?? []).length >= 3);
+    assert.ok(timelineRow.includes("[overflow-wrap:anywhere]"));
+    assert.ok(auditLine.includes('<div className="min-w-0">'));
+    assert.ok(auditLine.includes("break-all font-mono"));
+    assert.ok(auditLine.includes("[overflow-wrap:anywhere]"));
   });
 
   console.log(`\nPhase 4A public consistency: ${passed} passed, 0 failed.`);

@@ -39,8 +39,8 @@ export default async function MatchRoomPage({ params }: Props) {
   const favoriteProbability = Math.max(...outcomes.map((outcome) => outcome.value));
 
   return (
-    <div className="container py-6 md:py-10">
-      <div className="mx-auto max-w-6xl">
+    <div className="container min-w-0 py-6 md:py-10">
+      <div className="mx-auto min-w-0 max-w-6xl">
         <Link href="/" className="mb-5 inline-flex min-h-10 items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> All forecasts</Link>
         <section className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-5 sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-muted-foreground">
@@ -157,9 +157,16 @@ export default async function MatchRoomPage({ params }: Props) {
 
         <div className="mt-5"><MatchRoomAgent matchId={match.id} home={match.home.name} away={match.away.name} /></div>
 
-        <section className="mt-5 glass p-5 sm:p-6" aria-labelledby="timeline-heading">
+        <section className="mt-5 min-w-0 glass p-5 sm:p-6" aria-labelledby="timeline-heading">
           <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neon"><Clock3 className="h-4 w-4" /> Immutable history</p>
           <h2 id="timeline-heading" className="mt-1 text-xl font-black">Production probability timeline</h2>
+          <div className="mt-4 min-w-0 rounded-xl border border-white/10 bg-black/20 p-4">
+            <p className="text-sm font-semibold">Stage policy record</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Every deterministic window remains visible. A missed stage is never backfilled or erased when a later snapshot succeeds.</p>
+            <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
+              {freshness.stages.map((stage) => <StagePolicyCard key={stage.stage} stage={stage} />)}
+            </div>
+          </div>
           {data.timeline.length === 1 ? (
             <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-sm font-semibold">One production snapshot is available.</p><p className="mt-1 text-xs text-muted-foreground">There is no verified probability change to chart. The site will not invent an earlier point or attribute movement that did not occur.</p><TimelineRow point={data.timeline[0]} home={match.home.name} away={match.away.name} /></div>
           ) : (
@@ -167,9 +174,9 @@ export default async function MatchRoomPage({ params }: Props) {
           )}
         </section>
 
-        <details className="mt-5 rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+        <details className="mt-5 min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/[0.025] p-5">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon"><span className="flex items-center gap-2"><Database className="h-4 w-4 text-neon" /> Audit forecast</span><span className="text-xs font-medium text-muted-foreground">provenance & inputs</span></summary>
-          <div className="mt-5 grid gap-4 text-xs text-muted-foreground md:grid-cols-2">
+          <div className="mt-5 grid min-w-0 grid-cols-1 gap-4 text-xs text-muted-foreground md:grid-cols-2">
             <AuditLine label="Immutable forecast ID" value={data.audit.immutableForecastId} mono />
             <AuditLine label="Cutoff" value={data.audit.cutoffAt} />
             <AuditLine label="Generated" value={data.audit.generatedAt} />
@@ -195,7 +202,7 @@ export default async function MatchRoomPage({ params }: Props) {
             <AuditLine label="Lineup state" value={`${formatStatus(data.audit.lineupStatus)}${data.audit.lineupAvailableAt ? ` · ${data.audit.lineupAvailableAt}` : ""}`} />
             <AuditLine label="Context feature usage" value={`${data.audit.contextEvidenceCounts.usedInForecast} model-used · ${data.audit.contextEvidenceCounts.informationalOnly} informational-only`} />
           </div>
-          <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4 text-xs text-muted-foreground"><p className="font-semibold text-foreground">Production inputs</p><ul className="mt-2 list-disc space-y-1 pl-5">{data.audit.inputsUsed.map((input) => <li key={input}>{input}</li>)}</ul>{data.audit.reconstructionNote ? <p className="mt-3 text-amber-100/90">{data.audit.reconstructionNote}</p> : null}</div>
+          <div className="mt-4 min-w-0 rounded-xl border border-white/10 bg-black/20 p-4 text-xs text-muted-foreground"><p className="font-semibold text-foreground">Production inputs</p><ul className="mt-2 min-w-0 list-disc space-y-1 break-words pl-5 [overflow-wrap:anywhere]">{data.audit.inputsUsed.map((input) => <li key={input}>{input}</li>)}</ul>{data.audit.reconstructionNote ? <p className="mt-3 break-words text-amber-100/90 [overflow-wrap:anywhere]">{data.audit.reconstructionNote}</p> : null}</div>
           {data.audit.inputLineage.status === "LEGACY_UNAVAILABLE" ? <p className="mt-4 text-xs text-amber-100/90">This immutable forecast predates prospective input-manifest capture. Missing IDs, hashes and availability timestamps remain unavailable; current state was not used to reconstruct them.</p> : null}
           {data.audit.inputLineage.status === "PIT_INVALID" ? <p className="mt-4 text-xs text-red-200">A manifest reference is present but its compact integrity evidence is incomplete or inconsistent. This is not labelled PIT verified.</p> : null}
           <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-neon" /> Current news, market prices, tactical profiles and shadow-model outputs are not production inputs. Only the selected forecast context is constrained to its cutoff; separately labelled latest context is prospective and never backfilled.</p>
@@ -210,7 +217,16 @@ function formatTimestamp(value: string) { return new Intl.DateTimeFormat("en-GB"
 function BigStat({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] leading-tight text-muted-foreground">{label}</p><p className="mt-2 text-3xl font-black tabular-nums">{value}</p></div>; }
 function MarketStat({ label, value }: { label: string; value: number }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-black tabular-nums">{pct(value)}</p></div>; }
 function ProbabilityPair({ label, leftLabel, left, rightLabel, right }: { label: string; leftLabel: string; left: number; rightLabel: string; right: number }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-xs font-semibold">{label}</p><div className="mt-3 grid grid-cols-2 gap-2"><div><p className="text-[10px] text-muted-foreground">{leftLabel}</p><p className="text-2xl font-black tabular-nums">{pct(left)}</p></div><div><p className="text-[10px] text-muted-foreground">{rightLabel}</p><p className="text-2xl font-black tabular-nums">{pct(right)}</p></div></div></div>; }
-function TimelineRow({ point, home, away }: { point: MatchIntelligence["timeline"][number]; home: string; away: string }) { return <div className="mt-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="flex flex-wrap items-center gap-2 font-semibold text-foreground"><span>{point.predictionStage} · {formatTimestamp(point.cutoffAt)}</span><LineageBadge status={point.inputLineage.status} compact />{point.validForCurrentKickoff ? null : <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-200">Excluded from current forecast</span>}</p><p className="mt-1 break-all text-muted-foreground">{point.forecastId}</p><p className="mt-1 text-[10px] text-muted-foreground">Context: {point.contextSnapshotId ?? "not recorded"}</p>{point.inputLineage.manifestId ? <p className="mt-1 break-all text-[10px] text-muted-foreground">Manifest: {point.inputLineage.manifestId}</p> : null}{point.validForCurrentKickoff ? null : <p className="mt-1 text-amber-200/80">{point.validityIssues.length ? `Stage validity: ${point.validityIssues.join(", ")}. ` : point.kickoffAtFreeze ? `Frozen for ${formatTimestamp(point.kickoffAtFreeze)}. ` : ""}Retained for audit history and excluded from the selected forecast.</p>}</div><p className="tabular-nums text-muted-foreground">{home} {pct(point.result.homeWin)} · Draw {pct(point.result.draw)} · {away} {pct(point.result.awayWin)}</p></div>; }
+function StagePolicyCard({ stage }: { stage: MatchIntelligence["freshness"]["stages"][number] }) {
+  return <div data-stage={stage.stage} data-stage-state={stage.state} className="min-w-0 rounded-lg border border-white/10 bg-white/[0.025] p-3 text-xs"><p className="flex min-w-0 flex-wrap items-center justify-between gap-2 font-semibold"><span>{stage.stage}</span><span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${stageStateTone(stage.state)}`}>{stage.state}</span></p><p className="mt-2 break-words text-[10px] leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">Window {formatTimestamp(stage.eligibleFrom)} – {formatTimestamp(stage.eligibleUntil)}</p><p className="mt-1 break-words text-[10px] text-muted-foreground [overflow-wrap:anywhere]">Job {stage.jobStatus ?? "not created"}{stage.snapshotId ? " · immutable snapshot recorded" : " · no snapshot"}</p></div>;
+}
+function stageStateTone(state: MatchIntelligence["freshness"]["stages"][number]["state"]) {
+  if (state === "SATISFIED") return "border-emerald-400/30 bg-emerald-400/10 text-emerald-100";
+  if (state === "MISSED" || state === "BLOCKED") return "border-amber-400/30 bg-amber-400/10 text-amber-100";
+  if (state === "DUE") return "border-sky-400/30 bg-sky-400/10 text-sky-100";
+  return "border-white/10 bg-white/[0.03] text-muted-foreground";
+}
+function TimelineRow({ point, home, away }: { point: MatchIntelligence["timeline"][number]; home: string; away: string }) { return <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div className="min-w-0"><p className="flex min-w-0 flex-wrap items-center gap-2 font-semibold text-foreground"><span>{point.predictionStage} · {formatTimestamp(point.cutoffAt)}</span><LineageBadge status={point.inputLineage.status} compact />{point.validForCurrentKickoff ? null : <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-200">Excluded from current forecast</span>}</p><p className="mt-1 break-all text-muted-foreground [overflow-wrap:anywhere]">{point.forecastId}</p><p className="mt-1 break-all text-[10px] text-muted-foreground [overflow-wrap:anywhere]">Context: {point.contextSnapshotId ?? "not recorded"}</p>{point.inputLineage.manifestId ? <p className="mt-1 break-all text-[10px] text-muted-foreground [overflow-wrap:anywhere]">Manifest: {point.inputLineage.manifestId}</p> : null}{point.validForCurrentKickoff ? null : <p className="mt-1 break-words text-amber-200/80 [overflow-wrap:anywhere]">{point.validityIssues.length ? `Stage validity: ${point.validityIssues.join(", ")}. ` : point.kickoffAtFreeze ? `Frozen for ${formatTimestamp(point.kickoffAtFreeze)}. ` : ""}Retained for audit history and excluded from the selected forecast.</p>}</div><p className="min-w-0 break-words tabular-nums text-muted-foreground [overflow-wrap:anywhere]">{home} {pct(point.result.homeWin)} · Draw {pct(point.result.draw)} · {away} {pct(point.result.awayWin)}</p></div>; }
 function ContextStat({ label, value, note }: { label: string; value: string; note: string }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p><p className="mt-2 text-lg font-black">{value}</p><p className="mt-1 text-[11px] text-muted-foreground">{note}</p></div>; }
 function contextAvailabilityLabel(data: MatchIntelligence) { const availability = data.context.atForecast.availability; if (!availability) return "NOT RECORDED"; const total = availability.home.entities.length + availability.away.entities.length; return total ? `${total} player record${total === 1 ? "" : "s"}` : "NO EVIDENCE"; }
 function contextChangeValue(value: unknown): string {
@@ -250,5 +266,5 @@ function freshnessExplanation(freshness: MatchIntelligence["freshness"]) {
   }
   return `Fixture forecast status: ${formatStatus(freshness.status)}. The selected immutable snapshot is preserved; see the audit fields for the scoped reason.`;
 }
-function AuditLine({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) { return <div><p className="text-[10px] uppercase tracking-[0.14em]">{label}</p><p className={`mt-1 break-words text-foreground ${mono ? "font-mono text-[11px]" : ""}`}>{value}</p></div>; }
+function AuditLine({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) { return <div className="min-w-0"><p className="break-words text-[10px] uppercase tracking-[0.14em] [overflow-wrap:anywhere]">{label}</p><p className={`mt-1 min-w-0 break-words text-foreground [overflow-wrap:anywhere] ${mono ? "break-all font-mono text-[11px]" : ""}`}>{value}</p></div>; }
 function UnavailableMatch({ matchId, error }: { matchId: string; error: unknown }) { const known = error instanceof MatchForecastError; return <div className="container py-16"><section className="mx-auto max-w-xl rounded-2xl border border-amber-300/20 bg-amber-300/[0.05] p-6"><AlertTriangle className="h-6 w-6 text-amber-300" /><h1 className="mt-4 text-2xl font-black">No auditable Match Room is available</h1><p className="mt-3 text-sm text-muted-foreground">{known ? error.message : "Match intelligence is temporarily unavailable."}</p><p className="mt-2 text-xs text-muted-foreground">Requested match: {matchId}. No probability is reconstructed in the browser.</p><Link href="/" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-neon px-4 text-sm font-bold text-primary-foreground">Back to forecasts</Link></section></div>; }
