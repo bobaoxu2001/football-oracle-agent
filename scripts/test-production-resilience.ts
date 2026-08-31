@@ -207,9 +207,13 @@ async function main(): Promise<void> {
     /JSON|Unexpected|position/i
   );
   const brokenBytes = fs.readFileSync(bundlePath, "utf8");
-  const { liveOpsObserversDegraded, runGuardedLiveOpsTick, runLiveOpsTick } = await import(
-    "@/lib/competitions/premier-league/ops/tick"
-  );
+  const {
+    liveOpsObserversDegraded,
+    liveOpsTickDegradationReason,
+    liveOpsTickDegraded,
+    runGuardedLiveOpsTick,
+    runLiveOpsTick,
+  } = await import("@/lib/competitions/premier-league/ops/tick");
   await assert.rejects(
     runGuardedLiveOpsTick({ skipNetwork: true }),
     /JSON|Unexpected|position/i
@@ -350,6 +354,11 @@ async function main(): Promise<void> {
   );
   assert.match(tickRouteSource, /backup/);
   assert.match(tickRouteSource, /skipObservers/);
+  assert.match(
+    tickRouteSource,
+    /if \(result\.skipped\)[\s\S]*?status: 409/
+  );
+  assert.match(tickRouteSource, /liveOpsTickDegraded\(result\) \? 503 : 200/);
   assert.equal(
     fs.existsSync(path.join(process.cwd(), "app", "api", "ops", "observers", "route.ts")),
     true
@@ -477,6 +486,74 @@ async function main(): Promise<void> {
     true
   );
 
+  const healthyCore = {
+    errors: [],
+    fixtureConflicts: [],
+    resultConflicts: [],
+    jobsFailed: 0,
+    jobsTerminalFailed: 0,
+  };
+  assert.equal(liveOpsTickDegraded(healthyCore), false);
+  assert.equal(liveOpsTickDegraded({ ...healthyCore, errors: ["source failed"] }), true);
+  assert.equal(
+    liveOpsTickDegraded({
+      ...healthyCore,
+      fixtureConflicts: [
+        {
+          kind: "fixture-kickoff",
+          fixtureId: "fixture-1",
+          sources: ["a", "b"],
+          detail: "sources disagree",
+          recordedAt: healthNow.toISOString(),
+        },
+      ],
+    }),
+    true
+  );
+  assert.equal(
+    liveOpsTickDegraded({
+      ...healthyCore,
+      resultConflicts: [
+        {
+          kind: "result-score",
+          fixtureId: "fixture-1",
+          sources: ["a", "b"],
+          detail: "sources disagree",
+          recordedAt: healthNow.toISOString(),
+        },
+      ],
+    }),
+    true
+  );
+  assert.equal(liveOpsTickDegraded({ ...healthyCore, jobsFailed: 1 }), true);
+  assert.equal(
+    liveOpsTickDegraded({ ...healthyCore, jobsTerminalFailed: 1 }),
+    true
+  );
+  assert.equal(liveOpsTickDegradationReason(healthyCore), null);
+  assert.equal(
+    liveOpsTickDegradationReason({ ...healthyCore, errors: ["evidence failed"] }),
+    "evidence failed"
+  );
+  assert.equal(
+    liveOpsTickDegradationReason({ ...healthyCore, fixtureConflicts: [{
+      kind: "fixture-kickoff",
+      fixtureId: "fixture-1",
+      sources: ["a", "b"],
+      detail: "sources disagree",
+      recordedAt: healthNow.toISOString(),
+    }] }),
+    "fixture conflicts detected: 1"
+  );
+  assert.equal(
+    liveOpsTickDegradationReason({ ...healthyCore, jobsFailed: 2 }),
+    "prediction jobs failed: 2"
+  );
+  assert.equal(
+    liveOpsTickDegradationReason({ ...healthyCore, jobsTerminalFailed: 2 }),
+    "prediction jobs exhausted retries: 2"
+  );
+
   const workflow = fs.readFileSync(
     path.join(process.cwd(), ".github", "workflows", "ops-tick.yml"),
     "utf8"
@@ -499,6 +576,11 @@ async function main(): Promise<void> {
   assert.match(workflow, /"\$REQUESTED_ROUNDS" -lt 1[\s\S]*?"\$REQUESTED_ROUNDS" -gt 60/);
   assert.match(workflow, /: > \/tmp\/tick-body/);
   assert.match(workflow, /: > \/tmp\/observer-body/);
+  assert.match(workflow, /observer_state=skipped_primary_fresh/);
+  assert.match(
+    workflow,
+    /body\.get\("skipped"\) is True[\s\S]*?body\.get\("skipReason"\) == "primary tick is fresh"/
+  );
   assert.match(workflow, /OBSERVER_CODE=[\s\S]*?--max-time 130/);
   assert.match(
     workflow,
@@ -593,10 +675,14 @@ for ((i=1; i<=$#; i++)); do
 done
 if [[ "$url" == *observers* ]]; then
   code="\${TEST_OBSERVER_CODE}"
+  body="\${TEST_OBSERVER_BODY}"
 else
   code="\${TEST_CORE_CODE}"
+  body="\${TEST_CORE_BODY}"
 fi
-printf '{}' > "$output"
+printf '%s' "$url" >> "\${TEST_CURL_LOG}"
+printf '\n' >> "\${TEST_CURL_LOG}"
+printf '%s' "$body" > "$output"
 printf '%s' "$code"
 `,
     "utf8"
@@ -614,10 +700,13 @@ printf '%s' "$code"
     rounds: string;
     coreCode: string;
     observerCode: string;
+    coreBody?: string;
+    observerBody?: string;
+    label?: string;
   }) {
     const summaryPath = path.join(
       shellRoot,
-      `summary-${input.mode}-${input.coreCode}-${input.observerCode}.md`
+      `summary-${input.label ?? `${input.mode}-${input.coreCode}-${input.observerCode}`}.md`
     );
     return spawnSync("bash", [tickScriptPath], {
       encoding: "utf8",
@@ -633,6 +722,9 @@ printf '%s' "$code"
         GITHUB_STEP_SUMMARY: summaryPath,
         TEST_CORE_CODE: input.coreCode,
         TEST_OBSERVER_CODE: input.observerCode,
+        TEST_CORE_BODY: input.coreBody ?? "{}",
+        TEST_OBSERVER_BODY: input.observerBody ?? "{}",
+        TEST_CURL_LOG: `${summaryPath}.curl.log`,
       },
     });
   }
@@ -665,6 +757,49 @@ printf '%s' "$code"
   assert.equal(oneShotObserverDegraded.status, 0, oneShotObserverDegraded.stderr);
   assert.match(oneShotObserverDegraded.stdout, /mode=once rounds=1/);
   assert.doesNotMatch(oneShotObserverDegraded.stdout, /round=2 /);
+
+  const freshBackup = runWorkflowShell({
+    mode: "once",
+    rounds: "60",
+    coreCode: "200",
+    observerCode: "503",
+    coreBody: JSON.stringify({ skipped: true, skipReason: "primary tick is fresh" }),
+    label: "fresh-backup",
+  });
+  assert.equal(freshBackup.status, 0, freshBackup.stderr);
+  assert.match(freshBackup.stdout, /observer_state=skipped_primary_fresh/);
+  assert.doesNotMatch(freshBackup.stdout, /observers_at=/);
+  const freshBackupCurlLog = fs.readFileSync(
+    path.join(shellRoot, "summary-fresh-backup.md.curl.log"),
+    "utf8"
+  );
+  assert.equal(
+    freshBackupCurlLog.trim().split("\n").filter(Boolean).length,
+    1,
+    "a fresh one-shot backup must call only the core freshness endpoint"
+  );
+
+  const lockedBackup = runWorkflowShell({
+    mode: "once",
+    rounds: "60",
+    coreCode: "409",
+    observerCode: "200",
+    coreBody: JSON.stringify({ skipped: true, skipReason: "tick already running" }),
+    label: "locked-backup",
+  });
+  assert.equal(lockedBackup.status, 0, lockedBackup.stderr);
+  assert.match(lockedBackup.stdout, /observers_at=.*status=200/);
+
+  const normalLoopWithFreshLookingBody = runWorkflowShell({
+    mode: "loop",
+    rounds: "1",
+    coreCode: "200",
+    observerCode: "200",
+    coreBody: JSON.stringify({ skipped: true, skipReason: "primary tick is fresh" }),
+    label: "normal-loop",
+  });
+  assert.equal(normalLoopWithFreshLookingBody.status, 0, normalLoopWithFreshLookingBody.stderr);
+  assert.match(normalLoopWithFreshLookingBody.stdout, /observers_at=.*status=200/);
 
   const isolatedNow = "2026-08-26T12:30:00.000Z";
   const isolatedCoreOptions: TickOptions = {

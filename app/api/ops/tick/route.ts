@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runGuardedLiveOpsTick } from "@/lib/competitions/premier-league/ops/tick";
+import {
+  liveOpsTickDegraded,
+  runGuardedLiveOpsTick,
+} from "@/lib/competitions/premier-league/ops/tick";
 import { authorizeOpsTick } from "@/lib/competitions/premier-league/ops/tick-auth";
 import { durableTickFreshness } from "@/lib/competitions/premier-league/ops/durable-store";
 import {
@@ -33,7 +36,9 @@ export async function GET(req: NextRequest) {
     if (result.skipped) {
       return NextResponse.json(sanitizePublicOperationalPayload(result), { status: 409 });
     }
-    return NextResponse.json(sanitizePublicOperationalPayload(result));
+    return NextResponse.json(sanitizePublicOperationalPayload(result), {
+      status: liveOpsTickDegraded(result) ? 503 : 200,
+    });
   } catch (err) {
     recordInternalOperationalError("api.ops-tick", err);
     return NextResponse.json(

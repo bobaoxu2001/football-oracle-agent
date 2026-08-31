@@ -138,28 +138,51 @@ jobs:
               core_consecutive_failures=0
               echo "failure_state=none"
             fi
-            : > /tmp/observer-body
-            OBSERVER_CODE="$(curl -sS -o /tmp/observer-body -w "%{http_code}" \
-              --max-time 130 \
-              -H "Authorization: Bearer ${CRON_SECRET}" \
-              -H "User-Agent: football-oracle-ops-scheduler" \
-              "$OBSERVER_URL" || true)"
-            echo "observers_at=$(date -u +%Y-%m-%dT%H:%M:%SZ) status=${OBSERVER_CODE}"
-            python3 - <<'PY'
+            skip_observers=0
+            if [ "$MODE" = "once" ] && [ "$CODE" = "200" ]; then
+              if python3 - <<'PY'
+          import json
+          from pathlib import Path
+          try:
+              body = json.loads(Path("/tmp/tick-body").read_text(errors="replace"))
+          except (OSError, json.JSONDecodeError):
+              raise SystemExit(1)
+          raise SystemExit(
+              0
+              if body.get("skipped") is True
+              and body.get("skipReason") == "primary tick is fresh"
+              else 1
+          )
+          PY
+              then
+                skip_observers=1
+                echo "observer_state=skipped_primary_fresh"
+              fi
+            fi
+            if [ "$skip_observers" -eq 0 ]; then
+              : > /tmp/observer-body
+              OBSERVER_CODE="$(curl -sS -o /tmp/observer-body -w "%{http_code}" \
+                --max-time 130 \
+                -H "Authorization: Bearer ${CRON_SECRET}" \
+                -H "User-Agent: football-oracle-ops-scheduler" \
+                "$OBSERVER_URL" || true)"
+              echo "observers_at=$(date -u +%Y-%m-%dT%H:%M:%SZ) status=${OBSERVER_CODE}"
+              python3 - <<'PY'
           from pathlib import Path
           text = Path("/tmp/observer-body").read_text(errors="replace")
           print(text[:800])
           PY
-            if [ "$OBSERVER_CODE" != "200" ] && [ "$OBSERVER_CODE" != "409" ]; then
-              observer_consecutive_failures="$(( observer_consecutive_failures + 1 ))"
-              total_failures="$(( total_failures + 1 ))"
-              echo "observer_state=http_${OBSERVER_CODE} consecutive=${observer_consecutive_failures}"
-            else
-              if [ "$observer_consecutive_failures" -gt 0 ]; then
-                echo "failure_recovery=observer previous_consecutive=${observer_consecutive_failures}"
+              if [ "$OBSERVER_CODE" != "200" ] && [ "$OBSERVER_CODE" != "409" ]; then
+                observer_consecutive_failures="$(( observer_consecutive_failures + 1 ))"
+                total_failures="$(( total_failures + 1 ))"
+                echo "observer_state=http_${OBSERVER_CODE} consecutive=${observer_consecutive_failures}"
+              else
+                if [ "$observer_consecutive_failures" -gt 0 ]; then
+                  echo "failure_recovery=observer previous_consecutive=${observer_consecutive_failures}"
+                fi
+                observer_consecutive_failures=0
+                echo "observer_state=none"
               fi
-              observer_consecutive_failures=0
-              echo "observer_state=none"
             fi
             completed_rounds="$i"
             if [ "$core_consecutive_failures" -ge "$MAX_CONSECUTIVE_FAILURES" ]; then

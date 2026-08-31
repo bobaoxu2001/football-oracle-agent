@@ -53,9 +53,19 @@ export function jobsForFixture(fixtureId: string): PredictionJob[] {
 
 function persistAll(jobs: PredictionJob[]): void {
   const state = mem();
+  const file = predictionJobPath();
+  try {
+    rewriteJsonl(file, jobs);
+  } catch (error) {
+    // Callers may already have staged rows in the warm cache. If persistence
+    // fails, invalidate that cache so no request can observe transitions that
+    // never became durable.
+    state.byId.clear();
+    state.loadedFrom = null;
+    throw error;
+  }
   state.byId = new Map(jobs.map((j) => [j.jobId, j]));
-  state.loadedFrom = predictionJobPath();
-  rewriteJsonl(predictionJobPath(), jobs);
+  state.loadedFrom = file;
 }
 
 export function upsertJob(job: PredictionJob): PredictionJob {
@@ -115,13 +125,32 @@ export function updateJob(
   jobId: string,
   patch: Partial<PredictionJob>
 ): PredictionJob {
+  return updateJobs([{ jobId, patch }])[0];
+}
+
+/** Apply related status transitions with one durable ledger rewrite. */
+export function updateJobs(
+  updates: Array<{ jobId: string; patch: Partial<PredictionJob> }>
+): PredictionJob[] {
   load();
-  const prev = mem().byId.get(jobId);
-  if (!prev) throw new Error(`Unknown job ${jobId}`);
-  const next: PredictionJob = { ...prev, ...patch, jobId: prev.jobId, updatedAt: patch.updatedAt ?? new Date().toISOString() };
-  mem().byId.set(jobId, next);
+  if (updates.length === 0) return [];
+  for (const { jobId } of updates) {
+    if (!mem().byId.has(jobId)) throw new Error(`Unknown job ${jobId}`);
+  }
+  const out: PredictionJob[] = [];
+  for (const { jobId, patch } of updates) {
+    const prev = mem().byId.get(jobId)!;
+    const next: PredictionJob = {
+      ...prev,
+      ...patch,
+      jobId: prev.jobId,
+      updatedAt: patch.updatedAt ?? new Date().toISOString(),
+    };
+    mem().byId.set(jobId, next);
+    out.push(next);
+  }
   persistAll([...mem().byId.values()]);
-  return next;
+  return out;
 }
 
 export function markJobFailed(jobId: string, reason: string, failureClass: FailureClass, at: string): PredictionJob {

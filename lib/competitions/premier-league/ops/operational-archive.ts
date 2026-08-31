@@ -75,19 +75,53 @@ export function loadOperationalLiveOos(): PredictionSnapshot[] {
   return [...byKey.values()];
 }
 
+export type ScheduledSnapshotIndex = ReadonlyMap<string, PredictionSnapshot>;
+
+function scheduledSnapshotIndexKey(input: {
+  fixtureId: string;
+  stage: string;
+  modelVersion: string;
+  plannedAsOf: string;
+}): string {
+  return JSON.stringify([
+    input.fixtureId,
+    input.stage,
+    input.modelVersion,
+    input.plannedAsOf,
+  ]);
+}
+
+/** Build once per scheduler pass so the immutable archive is parsed only once. */
+export function indexScheduledSnapshots(
+  snapshots = loadOperationalLiveOos()
+): ScheduledSnapshotIndex {
+  const index = new Map<string, PredictionSnapshot>();
+  for (const snapshot of snapshots) {
+    const stage = canonicalizePredictionStage(snapshot.predictionStage);
+    const key = scheduledSnapshotIndexKey({
+      fixtureId: snapshot.fixtureId,
+      stage,
+      modelVersion: snapshot.modelVersion,
+      plannedAsOf: snapshot.asOf,
+    });
+    // Preserve the historical first-row-wins lookup behavior.
+    if (!index.has(key)) index.set(key, snapshot);
+  }
+  return index;
+}
+
 export function findScheduledSnapshot(input: {
   fixtureId: string;
   stage: TimedStage;
   modelVersion: string;
   plannedAsOf: string;
-}): PredictionSnapshot | null {
-  const fromArchive = loadOperationalLiveOos().find((s) => {
-    if (s.fixtureId !== input.fixtureId) return false;
-    if (s.modelVersion !== input.modelVersion) return false;
-    if (canonicalizePredictionStage(s.predictionStage) !== input.stage) return false;
-    if (s.asOf === input.plannedAsOf) return true;
-    const origin = (s.sourceState as { origin?: string } | undefined)?.origin;
-    return origin === "scheduled" && s.asOf === input.plannedAsOf;
-  });
-  return fromArchive ?? null;
+}, index = indexScheduledSnapshots()): PredictionSnapshot | null {
+  return index.get(
+    scheduledSnapshotIndexKey({
+      fixtureId: input.fixtureId,
+      stage: input.stage,
+      modelVersion: input.modelVersion,
+      plannedAsOf: input.plannedAsOf,
+    })
+  ) ?? null;
 }

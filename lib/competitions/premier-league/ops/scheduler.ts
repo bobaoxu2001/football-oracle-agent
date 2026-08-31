@@ -15,11 +15,13 @@ import { PRODUCTION_MODEL_VERSION } from "../model-tracks";
 import type { PredictionJob, TimedStage } from "./types";
 import { TIMED_STAGES } from "./types";
 import { plannedAsOfIsBeforeKickoff, windowFor, windowState } from "./stage-windows";
-import { getJob, jobIdOf, jobsForFixture, listJobs, updateJob, upsertJobs } from "./job-ledger";
+import { jobIdOf, listJobs, updateJob, updateJobs, upsertJobs } from "./job-ledger";
 import { snapshotPremierLeagueFromFrozenInputs } from "@/lib/prediction-engine/sealed-snapshot";
 import {
   archiveOperationalLiveOos,
   findScheduledSnapshot,
+  indexScheduledSnapshots,
+  type ScheduledSnapshotIndex,
 } from "./operational-archive";
 import { freezeMatchContext, getFrozenMatchContext } from "./context-snapshots";
 import { getSnapshotByKey } from "@/lib/snapshots/store";
@@ -227,9 +229,18 @@ export function planPredictionJobs(input: {
   const nowMs = Date.parse(nowIso);
   const cancelled: PredictionJob[] = [];
   const planned: PredictionJob[] = [];
+  const currentJobs = listJobs();
+  const jobsById = new Map(currentJobs.map((job) => [job.jobId, job]));
+  const jobsByFixture = new Map<string, PredictionJob[]>();
+  for (const job of currentJobs) {
+    const fixtureJobs = jobsByFixture.get(job.fixtureId) ?? [];
+    fixtureJobs.push(job);
+    jobsByFixture.set(job.fixtureId, fixtureJobs);
+  }
+  let scheduledSnapshots: ScheduledSnapshotIndex | null = null;
 
   for (const fixture of input.fixtures) {
-    const existing = jobsForFixture(fixture.id);
+    const existing = jobsByFixture.get(fixture.id) ?? [];
     const kickoffUtc = fixture.kickoffUtc ?? fixture.kickoff ?? null;
     const status = canonicalizeFixtureStatus(fixture.status);
     const postponedLike = status === "POSTPONED" || status === "CANCELLED" || status === "ABANDONED";
@@ -245,6 +256,7 @@ export function planPredictionJobs(input: {
           blockedReason: postponedLike ? `cancelled: ${status}` : "cancelled: kickoff changed",
           updatedAt: nowIso,
         });
+        jobsById.set(next.jobId, next);
         cancelled.push(next);
       }
     }
@@ -253,7 +265,7 @@ export function planPredictionJobs(input: {
 
     for (const stage of TIMED_STAGES) {
       const job = buildJob(fixture, stage, nowIso, input.modelVersion);
-      const prev = getJob(job.jobId);
+      const prev = jobsById.get(job.jobId);
       if (prev?.status === "SUCCEEDED" || prev?.status === "MISSED") {
         continue;
       }
@@ -273,7 +285,7 @@ export function planPredictionJobs(input: {
         stage,
         modelVersion: job.modelVersion,
         plannedAsOf: job.plannedAsOf,
-      });
+      }, scheduledSnapshots ??= indexScheduledSnapshots());
       if (existingSnapshot) {
         try {
           assertExactScheduledContextBinding({
@@ -349,47 +361,50 @@ export function planPredictionJobs(input: {
 
 export function refreshJobStatuses(nowIso: string): PredictionJob[] {
   const nowMs = Date.parse(nowIso);
-  const out: PredictionJob[] = [];
-  for (const job of listJobs()) {
+  const jobs = listJobs();
+  const patches: Array<{ jobId: string; patch: Partial<PredictionJob> }> = [];
+  for (const job of jobs) {
     if (job.status === "SUCCEEDED" || job.status === "CANCELLED") {
-      out.push(job);
       continue;
     }
     if (job.status === "RUNNING") {
-      out.push(job);
       continue;
     }
     const ws = windowState(job.stage, job.kickoffUtc, nowMs);
     if (job.status === "MISSED") {
-      out.push(job);
       continue;
     }
     if (ws === "missed") {
-      out.push(
-        updateJob(job.jobId, {
+      patches.push({
+        jobId: job.jobId,
+        patch: {
           status: "MISSED",
           failureReason: "window closed without a successful freeze; not backfilled",
           completedAt: nowIso,
           updatedAt: nowIso,
-        })
-      );
+        },
+      });
       continue;
     }
     if (job.status === "BLOCKED") {
-      out.push(job);
       continue;
     }
     if (ws === "eligible" && job.status !== "FAILED") {
-      out.push(updateJob(job.jobId, { status: "ELIGIBLE", updatedAt: nowIso }));
+      patches.push({
+        jobId: job.jobId,
+        patch: { status: "ELIGIBLE", updatedAt: nowIso },
+      });
       continue;
     }
     if (ws === "future" && job.status !== "PENDING" && job.status !== "FAILED") {
-      out.push(updateJob(job.jobId, { status: "PENDING", updatedAt: nowIso }));
-      continue;
+      patches.push({
+        jobId: job.jobId,
+        patch: { status: "PENDING", updatedAt: nowIso },
+      });
     }
-    out.push(job);
   }
-  return out;
+  const changed = new Map(updateJobs(patches).map((job) => [job.jobId, job]));
+  return jobs.map((job) => changed.get(job.jobId) ?? job);
 }
 
 export interface FreezeContext {
@@ -412,6 +427,7 @@ export function executeEligibleJobs(input: {
   let succeeded = 0;
   let failed = 0;
   let skipped = 0;
+  let scheduledSnapshots: ScheduledSnapshotIndex | null = null;
 
   for (const job of listJobs()) {
     if (job.status !== "ELIGIBLE" && !(job.status === "FAILED" && job.retryCount < MAX_JOB_RETRIES)) {
@@ -469,7 +485,7 @@ export function executeEligibleJobs(input: {
       stage: job.stage,
       modelVersion: job.modelVersion,
       plannedAsOf: job.plannedAsOf,
-    });
+    }, scheduledSnapshots ??= indexScheduledSnapshots());
     if (existing) {
       attempted += 1;
       try {

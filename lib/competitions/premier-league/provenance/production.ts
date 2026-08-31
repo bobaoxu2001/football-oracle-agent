@@ -30,6 +30,7 @@ import {
   buildResultRevision,
   buildSeasonMembershipSnapshot,
   buildSourceObservationReference,
+  provenanceRecordId,
   assertForecastInputManifestReferences,
   assertVerifiedSeasonMembershipSnapshot,
   assertVerifiedRatingStateLineage,
@@ -55,6 +56,7 @@ import type {
   FrozenRatingStateSnapshot,
   ImmutableModelBundle,
   ManifestReferenceSet,
+  ResultCorrectionLink,
   ResultRevisionRecord,
   SeasonMembershipSnapshot,
   SourceObservationReference,
@@ -98,6 +100,64 @@ function bundleStore() {
 }
 function manifestStore() {
   return forecastInputManifestStore(provenanceManifestPath());
+}
+
+type FixtureRevisionTape = ReturnType<typeof fixtureRevisionStore>;
+type ResultRevisionTape = ReturnType<typeof resultRevisionStore>;
+type ResultCorrectionTape = ReturnType<typeof resultCorrectionStore>;
+type SeasonMembershipTape = ReturnType<typeof seasonMembershipStore>;
+type RatingStateTape = ReturnType<typeof ratingStateStore>;
+type ModelBundleTape = ReturnType<typeof modelBundleStore>;
+
+type CaptureIndexedRecord = FixtureRevisionRecord | ResultRevisionRecord;
+
+function compareProvenanceRecordIds(
+  left: CaptureIndexedRecord,
+  right: CaptureIndexedRecord
+): number {
+  return provenanceRecordId(left).localeCompare(provenanceRecordId(right));
+}
+
+function observationsByFixture(
+  observations: readonly SourceObservation[]
+): Map<string, SourceObservation[]> {
+  const indexed = new Map<string, SourceObservation[]>();
+  for (const observation of observations) {
+    if (!observation.fixtureId) continue;
+    const rows = indexed.get(observation.fixtureId);
+    if (rows) rows.push(observation);
+    else indexed.set(observation.fixtureId, [observation]);
+  }
+  return indexed;
+}
+
+function fixtureRevisionsByFixture(
+  rows: readonly FixtureRevisionRecord[]
+): Map<string, FixtureRevisionRecord[]> {
+  const indexed = new Map<string, FixtureRevisionRecord[]>();
+  for (const row of rows) {
+    const fixtureRows = indexed.get(row.fixtureId);
+    if (fixtureRows) fixtureRows.push(row);
+    else indexed.set(row.fixtureId, [row]);
+  }
+  return indexed;
+}
+
+function resultRevisionKey(fixtureId: string, sourceId: string): string {
+  return canonicalJson([fixtureId, sourceId]);
+}
+
+function resultRevisionsByFixtureAndSource(
+  rows: readonly ResultRevisionRecord[]
+): Map<string, ResultRevisionRecord[]> {
+  const indexed = new Map<string, ResultRevisionRecord[]>();
+  for (const row of rows) {
+    const key = resultRevisionKey(row.fixtureId, row.sourceObservation.sourceId);
+    const resultRows = indexed.get(key);
+    if (resultRows) resultRows.push(row);
+    else indexed.set(key, [row]);
+  }
+  return indexed;
 }
 
 function latestByAvailableAt<T extends { availableAt: string }>(rows: readonly T[]): T | null {
@@ -266,12 +326,12 @@ function matchingObservation(
 function captureFixtureRevision(
   fixture: Fixture,
   observations: readonly SourceObservation[],
-  capturedAt: string
+  capturedAt: string,
+  store: FixtureRevisionTape,
+  priorRows: FixtureRevisionRecord[]
 ): FixtureRevisionRecord | null {
   const kickoffAt = fixture.kickoffUtc ?? fixture.kickoff ?? null;
   if (!kickoffAt) return null;
-  const store = fixtureStore();
-  const priorRows = store.list().filter((row) => row.fixtureId === fixture.id);
   const observed = matchingObservation(fixture, observations);
   const evidencePayload = fixtureEvidencePayload(fixture);
   const sourceId = observed?.source ?? fixture.source ?? "prospective-current-fixture";
@@ -308,16 +368,24 @@ function captureFixtureRevision(
     sourceObservation: source,
     supersedesFixtureRevisionId: prior?.fixtureRevisionId ?? null,
   });
-  return store.insert(record).record;
+  const write = store.insert(record);
+  if (write.status === "inserted") {
+    priorRows.push(write.record);
+    priorRows.sort(compareProvenanceRecordIds);
+  }
+  return write.record;
 }
 
 function captureResultRevisions(
   fixtures: readonly Fixture[],
   observations: readonly SourceObservation[],
-  capturedAt: string
-): number {
+  capturedAt: string,
+  store: ResultRevisionTape,
+  corrections: ResultCorrectionTape
+): { inserted: number; records: ResultRevisionRecord[] } {
   const fixturesById = new Map(fixtures.map((fixture) => [fixture.id, fixture]));
-  const store = resultStore();
+  const records = store.list();
+  const indexed = resultRevisionsByFixtureAndSource(records);
   let inserted = 0;
   for (const observation of observations) {
     if (!observation.fixtureId) continue;
@@ -340,13 +408,9 @@ function captureResultRevisions(
       publishedAt: observation.sourceUpdatedAt,
       payload,
     });
-    const priorRows = store
-      .list()
-      .filter(
-        (row) =>
-          row.fixtureId === fixture.id &&
-          row.sourceObservation.sourceId === observation.source
-      );
+    const key = resultRevisionKey(fixture.id, observation.source);
+    const priorRows = indexed.get(key) ?? [];
+    if (!indexed.has(key)) indexed.set(key, priorRows);
     const same = priorRows.find(
       (row) => row.sourceObservation.payloadHash === source.payloadHash
     );
@@ -362,13 +426,18 @@ function captureResultRevisions(
       supersedesResultRevisionId: prior?.resultRevisionId ?? null,
     });
     const write = store.insert(record);
-    if (write.status === "inserted") inserted += 1;
+    if (write.status === "inserted") {
+      inserted += 1;
+      records.push(write.record);
+      priorRows.push(write.record);
+      priorRows.sort(compareProvenanceRecordIds);
+    }
     if (
       prior?.status === "FINISHED" &&
       record.status === "FINISHED" &&
       (prior.homeScore !== record.homeScore || prior.awayScore !== record.awayScore)
     ) {
-      correctionStore().insert(
+      corrections.insert(
         buildResultCorrection({
           fixtureId: fixture.id,
           previousResultRevisionId: prior.resultRevisionId,
@@ -379,7 +448,8 @@ function captureResultRevisions(
       );
     }
   }
-  return inserted;
+  records.sort(compareProvenanceRecordIds);
+  return { inserted, records };
 }
 
 /**
@@ -417,7 +487,8 @@ export function assertProductionMembershipCaptureReady(
 
 function captureMembership(
   capturedAt: string,
-  season: CompetitionSeason
+  season: CompetitionSeason,
+  store: SeasonMembershipTape
 ): SeasonMembershipSnapshot {
   assertProductionMembershipCaptureReady(season);
   const payload = {
@@ -440,7 +511,6 @@ function captureMembership(
     publishedAt: season.retrievedAt,
     payload,
   });
-  const store = membershipStore();
   const same = store.list().find(
     (row) =>
       row.verificationStatus === "VERIFIED" &&
@@ -473,14 +543,16 @@ function trainingCutoffIso(to: string): string {
   return normalizeTimestamp(candidate, "model training cutoff");
 }
 
-function captureModelBundle(capturedAt: string): ImmutableModelBundle {
+function captureModelBundle(
+  capturedAt: string,
+  store: ModelBundleTape
+): ImmutableModelBundle {
   const params = loadProductionParams();
   if (params.modelVersion !== PRODUCTION_MODEL_VERSION) {
     throw new Error("Production parameter payload has the wrong model version");
   }
   const sha = applicationCommitSha();
   const payloadHash = canonicalSha256(params);
-  const store = bundleStore();
   const same = store.list().find(
     (row) =>
       row.modelVersion === params.modelVersion &&
@@ -508,7 +580,13 @@ function captureModelBundle(capturedAt: string): ImmutableModelBundle {
 function captureRatingState(
   capturedAt: string,
   membership: SeasonMembershipSnapshot,
-  modelBundle: ImmutableModelBundle
+  modelBundle: ImmutableModelBundle,
+  inputRecords: {
+    resultRevisions: readonly ResultRevisionRecord[];
+    correctionLinks: readonly ResultCorrectionLink[];
+    fixtureRevisions: readonly FixtureRevisionRecord[];
+  },
+  store: RatingStateTape
 ): {
   ratingState: FrozenRatingStateSnapshot;
   comparison: ReturnType<typeof compareRatingStates>;
@@ -520,9 +598,9 @@ function captureRatingState(
     formulaVersion: RATING_FORMULA_VERSION,
     featureCodeVersion: modelBundle.featureCodeVersion,
     codeCommitSha: modelBundle.codeCommitSha,
-    resultRevisions: resultStore().list(),
-    correctionLinks: correctionStore().list(),
-    fixtureRevisions: fixtureStore().list(),
+    resultRevisions: inputRecords.resultRevisions,
+    correctionLinks: inputRecords.correctionLinks,
+    fixtureRevisions: inputRecords.fixtureRevisions,
     verificationEvents: liveRatingEventsAsOf(capturedAt),
   });
   const production = liveRatingsAsOf(capturedAt);
@@ -558,7 +636,6 @@ function captureRatingState(
         })`
     );
   }
-  const store = ratingStore();
   const candidate = recomputed.ratingState;
   const revisionIds = canonicalJson(candidate.orderedResultRevisionIds ?? []);
   const eventIds = canonicalJson(candidate.orderedRatingEventIds ?? []);
@@ -606,25 +683,72 @@ export function captureProspectiveProductionEvidence(input: {
   // so an unverified season cannot leave a partially captured production tick.
   const season = liveCompetitionSeason();
   assertProductionMembershipCaptureReady(season);
-  const membership = captureMembership(capturedAt, season);
-  const fixtureStoreBefore = fixtureStore().size;
+  // One validated store instance per record kind is shared for the complete
+  // capture. In particular, fixture revisions are loaded and indexed once,
+  // instead of reparsing and cloning the complete tape for every fixture.
+  const fixturesTape = fixtureStore();
+  const resultsTape = resultStore();
+  const correctionsTape = correctionStore();
+  const membershipsTape = membershipStore();
+  const ratingsTape = ratingStore();
+  const bundlesTape = bundleStore();
+  const membership = captureMembership(capturedAt, season, membershipsTape);
+  const fixtureRecords = fixturesTape.list();
+  const fixtureRecordIds = new Set(
+    fixtureRecords.map((row) => row.fixtureRevisionId)
+  );
+  const indexedFixtures = fixtureRevisionsByFixture(fixtureRecords);
+  const indexedObservations = observationsByFixture(input.observations);
+  const fixtureStoreBefore = fixtureRecords.length;
   for (const fixture of input.fixtures) {
-    captureFixtureRevision(fixture, input.observations, capturedAt);
+    const priorRows = indexedFixtures.get(fixture.id) ?? [];
+    if (!indexedFixtures.has(fixture.id)) indexedFixtures.set(fixture.id, priorRows);
+    const captured = captureFixtureRevision(
+      fixture,
+      indexedObservations.get(fixture.id) ?? [],
+      capturedAt,
+      fixturesTape,
+      priorRows
+    );
+    if (captured && !fixtureRecordIds.has(captured.fixtureRevisionId)) {
+      fixtureRecords.push(captured);
+      fixtureRecordIds.add(captured.fixtureRevisionId);
+    }
   }
-  const fixtureStoreAfter = fixtureStore().size;
-  const resultRecordsInserted = captureResultRevisions(
+  fixtureRecords.sort(compareProvenanceRecordIds);
+  const capturedResults = captureResultRevisions(
     input.fixtures,
     input.observations,
-    capturedAt
+    capturedAt,
+    resultsTape,
+    correctionsTape
   );
-  const modelBundle = captureModelBundle(capturedAt);
-  const capturedRating = captureRatingState(capturedAt, membership, modelBundle);
+  // Re-open every rating-lineage tape once after the append phase. This keeps
+  // capture O(1) in tape reads while preserving the historical fail-closed
+  // barrier: malformed or externally changed bytes must be detected before a
+  // VERIFIED rating state can be inserted.
+  const verifiedFixtureRecords = fixtureStore().list();
+  const verifiedResultRecords = resultStore().list();
+  const verifiedCorrectionLinks = correctionStore().list();
+  const fixtureStoreAfter = verifiedFixtureRecords.length;
+  const modelBundle = captureModelBundle(capturedAt, bundlesTape);
+  const capturedRating = captureRatingState(
+    capturedAt,
+    membership,
+    modelBundle,
+    {
+      resultRevisions: verifiedResultRecords,
+      correctionLinks: verifiedCorrectionLinks,
+      fixtureRevisions: verifiedFixtureRecords,
+    },
+    ratingsTape
+  );
   const ratingState = capturedRating.ratingState;
   return {
     capturedAt,
     fixturesConsidered: input.fixtures.length,
     fixtureRecordsInserted: fixtureStoreAfter - fixtureStoreBefore,
-    resultRecordsInserted,
+    resultRecordsInserted: capturedResults.inserted,
     seasonMembershipSnapshotId: membership.seasonMembershipSnapshotId,
     ratingStateId: ratingState.ratingStateId,
     ratingStateHash: ratingState.ratingStateHash,

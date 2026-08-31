@@ -7,7 +7,12 @@ import { liveFixtures, replaceLiveFixtures, resetSeasonBundleCache } from "../fi
 import { canSettle, settleFixtureDetailed } from "../settlement";
 import { officialBaselineSource, defaultLiveSources, type FixtureSource } from "./sources";
 import { collectSourceObservations, persistScheduleRevisions, syncFixturesFromObservations } from "./fixture-sync";
-import { executeEligibleJobs, planPredictionJobs, refreshJobStatuses } from "./scheduler";
+import {
+  executeEligibleJobs,
+  MAX_JOB_RETRIES,
+  planPredictionJobs,
+  refreshJobStatuses,
+} from "./scheduler";
 import { ingestAndVerifyResults } from "./result-feed";
 import { applyVerifiedRatingUpdate } from "./rating-events";
 import { listJobs } from "./job-ledger";
@@ -55,6 +60,9 @@ export interface TickResult {
   fixtureConflicts: DataConflict[];
   jobsPlanned: number;
   jobsSucceeded: number;
+  /** FAILED jobs whose automatic retry budget is exhausted and still need action. */
+  jobsTerminalFailed: number;
+  /** Failures produced by this tick's execution attempts. */
   jobsFailed: number;
   jobsMissed: number;
   resultConflicts: DataConflict[];
@@ -67,6 +75,48 @@ export interface TickResult {
   shadowErrors: string[];
   errors: string[];
   state: LiveOpsTickState;
+}
+
+/**
+ * Forecast-core outcomes that require a hosted scheduler retry/operator signal.
+ * Challenger diagnostics and cumulative missed-stage counts are deliberately
+ * excluded: neither is a failure of this production-core attempt.
+ */
+type CoreTickOutcome = Pick<
+  TickResult,
+  | "errors"
+  | "fixtureConflicts"
+  | "resultConflicts"
+  | "jobsFailed"
+  | "jobsTerminalFailed"
+>;
+
+/** A terminal FAILED row remains actionable until another transition resolves it. */
+export function unresolvedTerminalPredictionJobCount(): number {
+  return listJobs().filter(
+    (job) => job.status === "FAILED" && job.retryCount >= MAX_JOB_RETRIES
+  ).length;
+}
+
+export function liveOpsTickDegradationReason(
+  result: CoreTickOutcome
+): string | null {
+  if (result.errors.length) return result.errors.at(-1) ?? "production tick failed";
+  if (result.fixtureConflicts.length) {
+    return `fixture conflicts detected: ${result.fixtureConflicts.length}`;
+  }
+  if (result.resultConflicts.length) {
+    return `result conflicts detected: ${result.resultConflicts.length}`;
+  }
+  if (result.jobsFailed > 0) return `prediction jobs failed: ${result.jobsFailed}`;
+  if (result.jobsTerminalFailed > 0) {
+    return `prediction jobs exhausted retries: ${result.jobsTerminalFailed}`;
+  }
+  return null;
+}
+
+export function liveOpsTickDegraded(result: CoreTickOutcome): boolean {
+  return liveOpsTickDegradationReason(result) !== null;
 }
 
 export interface LiveOpsObserverResult {
@@ -291,7 +341,15 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     }
   }
 
-  if (errors.length) state.lastError = errors[errors.length - 1];
+  const jobsTerminalFailed = unresolvedTerminalPredictionJobCount();
+  const degradationReason = liveOpsTickDegradationReason({
+    errors,
+    fixtureConflicts: sync.conflicts,
+    resultConflicts: results.conflicts,
+    jobsFailed: exec.failed,
+    jobsTerminalFailed,
+  });
+  if (degradationReason) state.lastError = degradationReason;
   else {
     state.lastSuccessAt = now;
     state.lastError = null;
@@ -306,6 +364,7 @@ export async function runLiveOpsTick(options: TickOptions = {}): Promise<TickRes
     fixtureConflicts: sync.conflicts,
     jobsPlanned: planned.upserted.length,
     jobsSucceeded: exec.succeeded,
+    jobsTerminalFailed,
     jobsFailed: exec.failed,
     jobsMissed: missed,
     resultConflicts: results.conflicts,
@@ -454,6 +513,7 @@ export async function runGuardedLiveOpsTick(options: TickOptions = {}): Promise<
       fixtureConflicts: [],
       jobsPlanned: 0,
       jobsSucceeded: 0,
+      jobsTerminalFailed: 0,
       jobsFailed: 0,
       jobsMissed: 0,
       resultConflicts: [],

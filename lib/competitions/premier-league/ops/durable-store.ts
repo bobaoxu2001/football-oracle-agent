@@ -22,6 +22,7 @@ import {
 import {
   mergeProvenanceRecordsJsonl,
   parseProvenanceRecordsJsonl,
+  provenanceFilePaths,
   replaceProvenanceRecordsFromJsonl,
   serializeProvenanceRecordsJsonl,
 } from "../provenance/durable";
@@ -97,6 +98,26 @@ export type DurableBundle = Omit<
   contextSnapshots?: string;
   provenanceRecords?: string;
 };
+
+interface DurableCaptureBaseline {
+  /** Exact, already-validated logical bytes from the last hydrate/flush. */
+  bundle: DurableBundle;
+  /** Content fingerprint of the seven immutable provenance files on disk. */
+  provenanceFilesSha256: string;
+}
+
+export interface MongoJobsCompressionCache {
+  /** Exact logical string represented by the cached storage fields. */
+  logicalJobs: string;
+  jobsEncoding: typeof JOBS_ENCODING;
+  jobsGzipBase64: string;
+  jobsSha256: string;
+}
+
+interface ImmutableChildBaseline {
+  contextSnapshots: string;
+  provenanceRecords: string;
+}
 
 export function opsBackend(): OpsBackendKind {
   const forced = process.env.PL_OPS_BACKEND;
@@ -188,10 +209,32 @@ function assertJsonlObjects(text: string, label: string): void {
   }
 }
 
-/** Validate every opaque payload before any authoritative file is replaced. */
-export function validateDurableBundle(
+function validateDurableBundleField(
+  bundle: DurableBundle,
+  key: DurableBundleKey,
+  sourceLabel: string
+): void {
+  const label = `${sourceLabel}.${key}`;
+  if ((JSON_DOCUMENT_KEYS as readonly DurableBundleKey[]).includes(key)) {
+    assertJsonObject(bundle[key] ?? "", label);
+    return;
+  }
+  if ((JSONL_KEYS as readonly DurableBundleKey[]).includes(key)) {
+    assertJsonlObjects(bundle[key] ?? "", label);
+    return;
+  }
+  if (key === "contextSnapshots") {
+    parseContextSnapshotJsonl(bundle.contextSnapshots ?? "", label);
+    return;
+  }
+  if (key === "provenanceRecords") {
+    parseProvenanceRecordsJsonl(bundle.provenanceRecords ?? "", label);
+  }
+}
+
+function normalizeDurableBundleStrings(
   value: unknown,
-  sourceLabel = "durable ops bundle"
+  sourceLabel: string
 ): DurableBundle {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${sourceLabel} must be an object`);
@@ -206,20 +249,42 @@ export function validateDurableBundle(
     }
     normalized[key] = field;
   }
-  for (const key of JSON_DOCUMENT_KEYS) {
-    assertJsonObject(normalized[key], `${sourceLabel}.${key}`);
+  return normalized;
+}
+
+/** Validate every opaque payload before any authoritative file is replaced. */
+export function validateDurableBundle(
+  value: unknown,
+  sourceLabel = "durable ops bundle"
+): DurableBundle {
+  const normalized = normalizeDurableBundleStrings(value, sourceLabel);
+  for (const key of BUNDLE_KEYS) {
+    validateDurableBundleField(normalized, key, sourceLabel);
   }
-  for (const key of JSONL_KEYS) {
-    assertJsonlObjects(normalized[key], `${sourceLabel}.${key}`);
+  return normalized;
+}
+
+/**
+ * Revalidate only bytes that differ from a verified hydrate/flush baseline.
+ * Equality is exact string equality, not a semantic or hash comparison, so a
+ * skipped parser can only be observing the same serialized field that already
+ * crossed the full validation boundary.
+ */
+function validateDurableBundleAgainstBaseline(
+  value: unknown,
+  baseline: DurableBundle | null,
+  sourceLabel: string,
+  prevalidatedKeys: ReadonlySet<DurableBundleKey> = new Set()
+): DurableBundle {
+  const normalized = normalizeDurableBundleStrings(value, sourceLabel);
+  for (const key of BUNDLE_KEYS) {
+    if (prevalidatedKeys.has(key)) continue;
+    if (
+      baseline &&
+      (normalized[key] ?? "") === (baseline[key] ?? "")
+    ) continue;
+    validateDurableBundleField(normalized, key, sourceLabel);
   }
-  parseContextSnapshotJsonl(
-    normalized.contextSnapshots ?? "",
-    `${sourceLabel}.contextSnapshots`
-  );
-  parseProvenanceRecordsJsonl(
-    normalized.provenanceRecords ?? "",
-    `${sourceLabel}.provenanceRecords`
-  );
   return normalized;
 }
 
@@ -331,8 +396,14 @@ function sha256(text: string): string {
   return createHash("sha256").update(text, "utf8").digest("hex");
 }
 
-export function encodeMongoBundleForStorage(bundle: DurableBundle): MongoStoredBundle {
-  const validated = validateDurableBundle(bundle);
+function encodeValidatedMongoBundleForStorage(
+  validated: DurableBundle,
+  reusableJobs: MongoJobsCompressionCache | null = null
+): {
+  stored: MongoStoredBundle;
+  compressedJobs: MongoJobsCompressionCache;
+  jobsCompressionReused: boolean;
+} {
   const {
     jobs,
     contextSnapshots: _contextSnapshots,
@@ -345,12 +416,90 @@ export function encodeMongoBundleForStorage(bundle: DurableBundle): MongoStoredB
       `durable ops jobs payload exceeds ${MAX_JOBS_UNCOMPRESSED_BYTES} bytes`
     );
   }
+  const jobsCompressionReused = Boolean(
+    reusableJobs && reusableJobs.logicalJobs === jobs
+  );
+  const compressedJobs: MongoJobsCompressionCache =
+    jobsCompressionReused && reusableJobs
+      ? reusableJobs
+      : {
+          logicalJobs: jobs,
+          jobsEncoding: JOBS_ENCODING,
+          jobsGzipBase64: gzipSync(Buffer.from(jobs, "utf8"), { level: 9 }).toString(
+            "base64"
+          ),
+          jobsSha256: sha256(jobs),
+        };
   return {
-    ...bundleWithoutDedicatedCollections,
-    jobsEncoding: JOBS_ENCODING,
-    jobsGzipBase64: gzipSync(Buffer.from(jobs, "utf8"), { level: 9 }).toString("base64"),
-    jobsSha256: sha256(jobs),
+    compressedJobs,
+    jobsCompressionReused,
+    stored: {
+      ...bundleWithoutDedicatedCollections,
+      jobsEncoding: compressedJobs.jobsEncoding,
+      jobsGzipBase64: compressedJobs.jobsGzipBase64,
+      jobsSha256: compressedJobs.jobsSha256,
+    },
   };
+}
+
+export function encodeMongoBundleForStorage(bundle: DurableBundle): MongoStoredBundle {
+  return encodeValidatedMongoBundleForStorage(validateDurableBundle(bundle)).stored;
+}
+
+function mongoBundleForValidatedWrite(
+  validated: DurableBundle,
+  jobsCompressed: boolean,
+  reusableJobs: MongoJobsCompressionCache | null = null
+): {
+  stored: MongoStoredBundle;
+  compressedJobs: MongoJobsCompressionCache | null;
+  jobsCompressionReused: boolean;
+} {
+  if (jobsCompressed) {
+    return encodeValidatedMongoBundleForStorage(validated, reusableJobs);
+  }
+  const {
+    contextSnapshots: _contextSnapshots,
+    provenanceRecords: _provenanceRecords,
+    ...plainBundle
+  } = validated;
+  return {
+    stored: plainBundle,
+    compressedJobs: null,
+    jobsCompressionReused: false,
+  };
+}
+
+export interface MongoBundleWritePlan {
+  stored: MongoStoredBundle;
+  compressedJobs: MongoJobsCompressionCache | null;
+  jobsCompressionReused: boolean;
+}
+
+/** Pure regression/diagnostic entry point for the exact production encoder. */
+export function prepareMongoBundleForWrite(
+  bundle: DurableBundle,
+  jobsCompressed: boolean,
+  reusableJobs: MongoJobsCompressionCache | null = null
+): MongoBundleWritePlan {
+  if (reusableJobs) {
+    const decoded = decodeMongoBundleFromStorage(
+      {
+        jobsEncoding: reusableJobs.jobsEncoding,
+        jobsGzipBase64: reusableJobs.jobsGzipBase64,
+        jobsSha256: reusableJobs.jobsSha256,
+      },
+      "reusable Mongo jobs cache"
+    ).jobs;
+    if (decoded !== reusableJobs.logicalJobs) {
+      throw new Error("reusable Mongo jobs cache logical bytes mismatch");
+    }
+  }
+  return mongoBundleForValidatedWrite(
+    validateDurableBundle(bundle),
+    jobsCompressed,
+    reusableJobs
+  );
 }
 
 /** Preserve the format that was explicitly hydrated; never auto-migrate on flush. */
@@ -358,14 +507,31 @@ export function mongoBundleForWrite(
   bundle: DurableBundle,
   jobsCompressed: boolean
 ): MongoStoredBundle {
-  const validated = validateDurableBundle(bundle);
-  if (jobsCompressed) return encodeMongoBundleForStorage(validated);
-  const {
-    contextSnapshots: _contextSnapshots,
-    provenanceRecords: _provenanceRecords,
-    ...plainBundle
-  } = validated;
-  return plainBundle;
+  return mongoBundleForValidatedWrite(
+    validateDurableBundle(bundle),
+    jobsCompressed
+  ).stored;
+}
+
+function cachedCompressedJobsFromStored(
+  stored: MongoStoredBundle | null | undefined,
+  logicalJobs: string
+): MongoJobsCompressionCache | null {
+  if (
+    stored?.jobsEncoding !== JOBS_ENCODING ||
+    typeof stored.jobsGzipBase64 !== "string" ||
+    typeof stored.jobsSha256 !== "string"
+  ) {
+    return null;
+  }
+  // decodeMongoBundleFromStorage has already checked both the digest and the
+  // decompressed logical bytes before this cache is constructed.
+  return {
+    logicalJobs,
+    jobsEncoding: JOBS_ENCODING,
+    jobsGzipBase64: stored.jobsGzipBase64,
+    jobsSha256: stored.jobsSha256,
+  };
 }
 
 export function decodeMongoBundleFromStorage(
@@ -503,6 +669,84 @@ export function buildImmutableContextMongoUpserts(
   }));
 }
 
+/** Compare a Mongo read-back batch with the exact immutable contexts expected. */
+export function assertMongoContextReadback(
+  expected: readonly MatchContextSnapshot[],
+  documents: readonly Pick<
+    MongoContextSnapshotDocument,
+    "_id" | "snapshot" | "insertedAt"
+  >[],
+  sourceLabel = "saved Mongo match context collection"
+): void {
+  const expectedById = new Map<string, string>();
+  for (const [index, snapshot] of expected.entries()) {
+    const label = `${sourceLabel} expected context ${index + 1}`;
+    try {
+      assertMatchContextIntegrity(snapshot);
+    } catch (error) {
+      throw new Error(
+        `${label} failed context integrity validation: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+    const canonical = canonicalJson(snapshot);
+    const existing = expectedById.get(snapshot.contextId);
+    if (existing !== undefined && existing !== canonical) {
+      throw new Error(`Mongo match context expected collision for ${snapshot.contextId}`);
+    }
+    expectedById.set(snapshot.contextId, canonical);
+  }
+
+  const storedById = new Map<string, string>();
+  for (const [index, document] of documents.entries()) {
+    const label = `${sourceLabel} document ${index + 1}`;
+    if (!document || typeof document !== "object" || Array.isArray(document)) {
+      throw new Error(`${label} must be an object`);
+    }
+    if (typeof document._id !== "string" || !document._id) {
+      throw new Error(`${label} has no content-addressed _id`);
+    }
+    if (
+      typeof document.insertedAt !== "string" ||
+      !isIsoTimestamp(document.insertedAt)
+    ) {
+      throw new Error(`${label}.insertedAt is not a timestamp`);
+    }
+    try {
+      assertMatchContextIntegrity(document.snapshot);
+    } catch (error) {
+      throw new Error(
+        `${label} failed context integrity validation: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+    if (document._id !== document.snapshot.contextId) {
+      throw new Error(
+        `${label} has mismatched _id ${document._id}; expected ${document.snapshot.contextId}`
+      );
+    }
+    if (!expectedById.has(document._id)) {
+      throw new Error(`Mongo match context verification returned unexpected ${document._id}`);
+    }
+    if (storedById.has(document._id)) {
+      throw new Error(`Mongo match context verification duplicated ${document._id}`);
+    }
+    storedById.set(document._id, canonicalJson(document.snapshot));
+  }
+
+  for (const [contextId, expectedCanonical] of expectedById) {
+    const storedCanonical = storedById.get(contextId);
+    if (!storedCanonical) {
+      throw new Error(`Mongo match context verification missing ${contextId}`);
+    }
+    if (storedCanonical !== expectedCanonical) {
+      throw new Error(`Mongo match context immutable collision for ${contextId}`);
+    }
+  }
+}
+
 /**
  * Convert separately stored Mongo contexts back to JSONL, preferring those
  * immutable documents over matching rows left in a legacy bundle.
@@ -511,7 +755,16 @@ export function mergeMongoContextDocumentsWithLegacy(
   documents: readonly Pick<MongoContextSnapshotDocument, "_id" | "snapshot">[],
   legacyJsonl: string
 ): string {
-  const collectionJsonl = documents
+  return mergeContextSnapshotJsonl(
+    serializeMongoContextDocuments(documents),
+    legacyJsonl
+  );
+}
+
+function serializeMongoContextDocuments(
+  documents: readonly Pick<MongoContextSnapshotDocument, "_id" | "snapshot">[]
+): string {
+  const body = documents
     .slice()
     .sort((a, b) => String(a._id).localeCompare(String(b._id)))
     .map((document, index) => {
@@ -522,7 +775,7 @@ export function mergeMongoContextDocumentsWithLegacy(
       return JSON.stringify(document.snapshot);
     })
     .join("\n");
-  return mergeContextSnapshotJsonl(collectionJsonl, legacyJsonl);
+  return body ? `${body}\n` : "";
 }
 
 export interface MongoProvenanceRecordDocument {
@@ -583,7 +836,17 @@ export function buildImmutableProvenanceMongoUpserts(
   if (!isIsoTimestamp(insertedAt)) {
     throw new Error("Mongo provenance insertedAt is not a timestamp");
   }
-  return parseProvenanceRecordsJsonl(text, "captured provenance store").map((record) => ({
+  return immutableProvenanceMongoUpsertsFromRecords(
+    parseProvenanceRecordsJsonl(text, "captured provenance store"),
+    insertedAt
+  );
+}
+
+function immutableProvenanceMongoUpsertsFromRecords(
+  records: readonly ProvenanceRecord[],
+  insertedAt: string
+): AnyBulkWriteOperation<MongoProvenanceRecordDocument>[] {
+  return records.map((record) => ({
     updateOne: {
       filter: { _id: provenanceRecordId(record) },
       update: {
@@ -597,6 +860,31 @@ export function buildImmutableProvenanceMongoUpserts(
   }));
 }
 
+/** Compare a Mongo read-back batch with the exact immutable records expected. */
+export function assertMongoProvenanceReadback(
+  expected: readonly ProvenanceRecord[],
+  documents: readonly Pick<
+    MongoProvenanceRecordDocument,
+    "_id" | "record" | "insertedAt"
+  >[],
+  sourceLabel = "saved Mongo provenance collection"
+): void {
+  const stored = validatedMongoProvenanceRecords(documents, sourceLabel);
+  const storedById = new Map(
+    stored.map((record) => [provenanceRecordId(record), canonicalJson(record)])
+  );
+  for (const record of expected) {
+    const recordId = provenanceRecordId(record);
+    const storedCanonical = storedById.get(recordId);
+    if (!storedCanonical) {
+      throw new Error(`Mongo provenance insert verification missing ${recordId}`);
+    }
+    if (storedCanonical !== canonicalJson(record)) {
+      throw new Error(`Mongo provenance immutable collision for ${recordId}`);
+    }
+  }
+}
+
 /**
  * Convert immutable Mongo child documents back to JSONL and reconcile any
  * pre-migration bundle field. A same-id/content mismatch fails closed.
@@ -608,10 +896,133 @@ export function mergeMongoProvenanceDocumentsWithLegacy(
   >[],
   legacyJsonl: string
 ): string {
-  const collectionJsonl = serializeProvenanceRecordsJsonl(
+  return mergeProvenanceRecordsJsonl(
+    serializeMongoProvenanceDocuments(documents),
+    legacyJsonl
+  );
+}
+
+function serializeMongoProvenanceDocuments(
+  documents: readonly Pick<
+    MongoProvenanceRecordDocument,
+    "_id" | "record" | "insertedAt"
+  >[]
+): string {
+  return serializeProvenanceRecordsJsonl(
     validatedMongoProvenanceRecords(documents, "Mongo provenance collection")
   );
-  return mergeProvenanceRecordsJsonl(collectionJsonl, legacyJsonl);
+}
+
+export interface ImmutableChildWriteDelta {
+  /** Only context rows not present in the verified hydration baseline. */
+  contextSnapshots: string;
+  /** Only provenance rows not present in the verified hydration baseline. */
+  provenanceRecords: string;
+}
+
+function immutableChildWriteDeltaFromValidatedBundles(
+  current: DurableBundle,
+  baseline: ImmutableChildBaseline | null
+): ImmutableChildWriteDelta {
+  if (!baseline) {
+    return {
+      contextSnapshots: current.contextSnapshots ?? "",
+      provenanceRecords: current.provenanceRecords ?? "",
+    };
+  }
+
+  let contextSnapshots = "";
+  const currentContexts = current.contextSnapshots ?? "";
+  const baselineContexts = baseline.contextSnapshots ?? "";
+  if (currentContexts !== baselineContexts) {
+    const baselineRows = firstWriteContextRows([
+      { text: baselineContexts, label: "verified baseline match context store" },
+    ]);
+    const baselineById = new Map(
+      baselineRows.map((row) => [row.snapshot.contextId, canonicalJson(row.snapshot)])
+    );
+    const newRows: ParsedContextSnapshotRow[] = [];
+    const currentIds = new Set<string>();
+    for (const row of firstWriteContextRows([
+      { text: currentContexts, label: "captured match context store" },
+    ])) {
+      currentIds.add(row.snapshot.contextId);
+      const existing = baselineById.get(row.snapshot.contextId);
+      if (existing === undefined) {
+        newRows.push(row);
+      } else if (existing !== canonicalJson(row.snapshot)) {
+        throw new Error(
+          `captured match context immutable collision for ${row.snapshot.contextId}`
+        );
+      }
+    }
+    for (const contextId of baselineById.keys()) {
+      if (!currentIds.has(contextId)) {
+        throw new Error(`captured match context store removed immutable row ${contextId}`);
+      }
+    }
+    contextSnapshots = serializeContextRows(newRows);
+  }
+
+  let provenanceRecords = "";
+  const currentProvenance = current.provenanceRecords ?? "";
+  const baselineProvenance = baseline.provenanceRecords ?? "";
+  if (currentProvenance !== baselineProvenance) {
+    const baselineRecords = parseProvenanceRecordsJsonl(
+      baselineProvenance,
+      "verified baseline provenance store"
+    );
+    const baselineById = new Map(
+      baselineRecords.map((record) => [
+        provenanceRecordId(record),
+        canonicalJson(record),
+      ])
+    );
+    const newRecords: ProvenanceRecord[] = [];
+    const currentIds = new Set<string>();
+    for (const record of parseProvenanceRecordsJsonl(
+      currentProvenance,
+      "captured provenance store"
+    )) {
+      const recordId = provenanceRecordId(record);
+      currentIds.add(recordId);
+      const existing = baselineById.get(recordId);
+      if (existing === undefined) {
+        newRecords.push(record);
+      } else if (existing !== canonicalJson(record)) {
+        throw new Error(`captured provenance immutable collision for ${recordId}`);
+      }
+    }
+    for (const recordId of baselineById.keys()) {
+      if (!currentIds.has(recordId)) {
+        throw new Error(`captured provenance store removed immutable row ${recordId}`);
+      }
+    }
+    provenanceRecords = serializeProvenanceRecordsJsonl(newRecords);
+  }
+
+  return { contextSnapshots, provenanceRecords };
+}
+
+/**
+ * Public regression helper. Production calls the validated inner form so a
+ * no-change tick does not pay to parse the complete immutable collections.
+ */
+export function buildImmutableChildWriteDelta(
+  current: DurableBundle,
+  baseline: DurableBundle
+): ImmutableChildWriteDelta {
+  const validatedBaseline = validateDurableBundle(
+    baseline,
+    "baseline durable child delta bundle"
+  );
+  return immutableChildWriteDeltaFromValidatedBundles(
+    validateDurableBundle(current, "current durable child delta bundle"),
+    {
+      contextSnapshots: validatedBaseline.contextSnapshots ?? "",
+      provenanceRecords: validatedBaseline.provenanceRecords ?? "",
+    }
+  );
 }
 
 function copyCommitted(srcName: string, dest: string): void {
@@ -633,13 +1044,66 @@ export function compactDurableOpsOnDisk(): void {
   compactPersistedResultObservations();
 }
 
-export function captureBundleFromDisk(): DurableBundle {
-  compactDurableOpsOnDisk();
-  return validateDurableBundle({
+function provenanceFilesSha256(): string {
+  const digest = createHash("sha256");
+  for (const [recordKind, file] of Object.entries(provenanceFilePaths())) {
+    const bytes = readIf(file);
+    // Length-prefix both names and contents so the combined fingerprint is
+    // unambiguous even if a JSON line happens to contain a neighboring label.
+    digest.update(`${recordKind.length}:${recordKind}:${Buffer.byteLength(bytes, "utf8")}:`);
+    digest.update(bytes, "utf8");
+  }
+  return digest.digest("hex");
+}
+
+interface CapturedDurableBundle {
+  bundle: DurableBundle;
+  provenanceFilesSha256: string;
+}
+
+function captureBundleFromDiskWithBaseline(
+  baseline: DurableCaptureBaseline | null
+): CapturedDurableBundle {
+  let sourceObservations = readIf(sourceObservationPath());
+  let sourceObservationsCompacted = false;
+  if (
+    !baseline ||
+    sourceObservations !== baseline.bundle.sourceObservations
+  ) {
+    compactPersistedSourceObservations();
+    sourceObservations = readIf(sourceObservationPath());
+    sourceObservationsCompacted = true;
+  }
+  let resultObservations = readIf(resultObservationPath());
+  let resultObservationsCompacted = false;
+  if (
+    !baseline ||
+    resultObservations !== baseline.bundle.resultObservations
+  ) {
+    compactPersistedResultObservations();
+    resultObservations = readIf(resultObservationPath());
+    resultObservationsCompacted = true;
+  }
+  const currentProvenanceFilesSha256 = provenanceFilesSha256();
+  const provenanceRecords =
+    baseline &&
+    currentProvenanceFilesSha256 === baseline.provenanceFilesSha256
+      ? baseline.bundle.provenanceRecords ?? ""
+      : serializeProvenanceRecordsJsonl();
+  const prevalidatedKeys = new Set<DurableBundleKey>();
+  if (sourceObservationsCompacted) prevalidatedKeys.add("sourceObservations");
+  if (resultObservationsCompacted) prevalidatedKeys.add("resultObservations");
+  if (
+    !baseline ||
+    currentProvenanceFilesSha256 !== baseline.provenanceFilesSha256
+  ) {
+    prevalidatedKeys.add("provenanceRecords");
+  }
+  const bundle = validateDurableBundleAgainstBaseline({
     jobs: readIf(predictionJobPath()),
-    sourceObservations: readIf(sourceObservationPath()),
+    sourceObservations,
     scheduleRevisions: readIf(scheduleRevisionPath()),
-    resultObservations: readIf(resultObservationPath()),
+    resultObservations,
     resultVerifications: readIf(resultVerificationPath()),
     ratingEvents: readIf(ratingEventPath()),
     ratingState: readIf(ratingStateSnapshotPath()),
@@ -649,9 +1113,14 @@ export function captureBundleFromDisk(): DurableBundle {
     settlements: readIf(process.env.SETTLEMENT_STORE_PATH || path.join(opsDir(), "settlements.jsonl")),
     workingSnapshots: readIf(process.env.SNAPSHOT_STORE_PATH || path.join(opsDir(), "working-snapshots.jsonl")),
     contextSnapshots: readIf(contextSnapshotPath()),
-    provenanceRecords: serializeProvenanceRecordsJsonl(),
+    provenanceRecords,
     fixturesOverlay: readIf(liveFixturesPath()),
-  }, "captured durable ops bundle");
+  }, baseline?.bundle ?? null, "captured durable ops bundle", prevalidatedKeys);
+  return { bundle, provenanceFilesSha256: currentProvenanceFilesSha256 };
+}
+
+export function captureBundleFromDisk(): DurableBundle {
+  return captureBundleFromDiskWithBaseline(null).bundle;
 }
 
 export function routeDurablePaths(work = durableWorkDir()): void {
@@ -724,6 +1193,8 @@ interface LoadedMongoBundle {
   version: string;
   revision: MongoBundleRevision | null;
   jobsCompressed: boolean;
+  compressedJobs: MongoJobsCompressionCache | null;
+  immutableChildren: ImmutableChildBaseline;
 }
 
 function mongoVersionToken(
@@ -787,8 +1258,12 @@ async function loadMongoBundle(timeoutMS: number): Promise<LoadedMongoBundle> {
         .sort({ _id: 1 })
         .toArray(),
     ]);
+    const storedBundle =
+      doc?.bundle && typeof doc.bundle === "object"
+        ? (doc.bundle as MongoStoredBundle)
+        : null;
     const legacyBundle = decodeMongoBundleFromStorage(
-      doc?.bundle ?? emptyBundle(),
+      storedBundle ?? emptyBundle(),
       "Mongo durable ops bundle"
     );
     const legacyContexts = legacyBundle.contextSnapshots;
@@ -803,6 +1278,10 @@ async function loadMongoBundle(timeoutMS: number): Promise<LoadedMongoBundle> {
       doc?.updatedAt,
       "Mongo durable ops revision"
     );
+    const collectionContexts = serializeMongoContextDocuments(contextDocuments);
+    const collectionProvenance = serializeMongoProvenanceDocuments(
+      provenanceDocuments
+    );
     return {
       revision,
       version: mongoVersionToken(
@@ -811,19 +1290,22 @@ async function loadMongoBundle(timeoutMS: number): Promise<LoadedMongoBundle> {
         provenanceDocuments.length
       ),
       jobsCompressed: Boolean(
-        doc?.bundle &&
-          typeof doc.bundle === "object" &&
-          typeof (doc.bundle as MongoStoredBundle).jobsGzipBase64 === "string"
+        storedBundle && typeof storedBundle.jobsGzipBase64 === "string"
       ),
+      compressedJobs: cachedCompressedJobsFromStored(storedBundle, legacyBundle.jobs),
+      immutableChildren: {
+        contextSnapshots: collectionContexts,
+        provenanceRecords: collectionProvenance,
+      },
       bundle: {
         ...emptyBundle(),
         ...legacyBundle,
-        contextSnapshots: mergeMongoContextDocumentsWithLegacy(
-          contextDocuments,
+        contextSnapshots: mergeContextSnapshotJsonl(
+          collectionContexts,
           legacyContexts ?? ""
         ),
-        provenanceRecords: mergeMongoProvenanceDocumentsWithLegacy(
-          provenanceDocuments,
+        provenanceRecords: mergeProvenanceRecordsJsonl(
+          collectionProvenance,
           legacyProvenance ?? ""
         ),
       },
@@ -856,6 +1338,42 @@ async function saveMongoContexts(
   }
 }
 
+async function verifyMongoContexts(
+  db: Db,
+  text: string,
+  deadline: number
+): Promise<void> {
+  const snapshots = firstWriteContextRows([
+    { text, label: "captured match context verification store" },
+  ]).map((row) => row.snapshot);
+  if (!snapshots.length) return;
+  const collection = db.collection<MongoContextSnapshotDocument>(
+    CONTEXT_SNAPSHOT_COLLECTION
+  );
+  // Verify every expected immutable row, not only the inserted delta. A count
+  // probe cannot detect a same-count replacement (expected A removed while an
+  // unrelated orphan B remains), and a warm instance may otherwise advance
+  // the parent CAS without noticing that missing child.
+  for (let index = 0; index < snapshots.length; index += 100) {
+    const expected = snapshots.slice(index, index + 100);
+    const ids = expected.map((snapshot) => snapshot.contextId);
+    const documents = await collection
+      .find(
+        { _id: { $in: ids } },
+        {
+          projection: { snapshot: 1, insertedAt: 1 },
+          timeoutMS: remainingTimeoutMs(deadline),
+        }
+      )
+      .toArray();
+    assertMongoContextReadback(
+      expected,
+      documents,
+      "saved Mongo match context collection"
+    );
+  }
+}
+
 async function saveMongoProvenance(
   db: Db,
   text: string,
@@ -863,9 +1381,8 @@ async function saveMongoProvenance(
 ): Promise<void> {
   const records = parseProvenanceRecordsJsonl(text, "captured provenance store");
   if (!records.length) return;
-  const operations = buildImmutableProvenanceMongoUpserts(
-    serializeProvenanceRecordsJsonl(records)
-  );
+  const insertedAt = new Date().toISOString();
+  const operations = immutableProvenanceMongoUpsertsFromRecords(records, insertedAt);
   const collection = db.collection<MongoProvenanceRecordDocument>(
     PROVENANCE_RECORD_COLLECTION
   );
@@ -875,9 +1392,24 @@ async function saveMongoProvenance(
       timeoutMS: remainingTimeoutMs(deadline),
     });
   }
+}
 
-  // `$setOnInsert` makes retry idempotent; this read-back prevents it from
-  // silently accepting a pre-existing same-id document with different bytes.
+async function verifyMongoProvenance(
+  db: Db,
+  text: string,
+  deadline: number
+): Promise<void> {
+  const records = parseProvenanceRecordsJsonl(
+    text,
+    "captured provenance verification store"
+  );
+  if (!records.length) return;
+  const collection = db.collection<MongoProvenanceRecordDocument>(
+    PROVENANCE_RECORD_COLLECTION
+  );
+  // Verify every expected immutable row, not only the delta. This preserves
+  // detection of same-count/out-of-band mutation on a warm instance while the
+  // write path itself avoids redundant full-collection upserts.
   for (let index = 0; index < records.length; index += 100) {
     const expected = records.slice(index, index + 100);
     const ids = expected.map(provenanceRecordId);
@@ -890,23 +1422,11 @@ async function saveMongoProvenance(
         }
       )
       .toArray();
-    const stored = validatedMongoProvenanceRecords(
+    assertMongoProvenanceReadback(
+      expected,
       documents,
       "saved Mongo provenance collection"
     );
-    const storedById = new Map(
-      stored.map((record) => [provenanceRecordId(record), canonicalJson(record)])
-    );
-    for (const record of expected) {
-      const recordId = provenanceRecordId(record);
-      const storedCanonical = storedById.get(recordId);
-      if (!storedCanonical) {
-        throw new Error(`Mongo provenance insert verification missing ${recordId}`);
-      }
-      if (storedCanonical !== canonicalJson(record)) {
-        throw new Error(`Mongo provenance immutable collision for ${recordId}`);
-      }
-    }
   }
 }
 
@@ -914,19 +1434,37 @@ async function saveMongoBundle(
   bundle: DurableBundle,
   expectedRevision: MongoBundleRevision | null,
   jobsCompressed: boolean,
+  immutableChildBaseline: ImmutableChildBaseline | null,
+  reusableCompressedJobs: MongoJobsCompressionCache | null,
   timeoutMs = 20_000
 ): Promise<{
   version: string;
   revision: MongoBundleRevisionV2;
   jobsCompressed: boolean;
+  compressedJobs: MongoJobsCompressionCache | null;
 }> {
-  bundle = validateDurableBundle(bundle);
+  // flushDurableOps only passes the already-validated capture. Repeating the
+  // full JSONL parse here was pure CPU and provided no additional boundary.
+  bundle = normalizeDurableBundleStrings(bundle, "Mongo durable ops flush bundle");
   const deadline = Date.now() + timeoutMs;
   const db = await getMongoDb();
   if (!db) throw new Error("MongoDB unavailable for durable ops store");
-  await saveMongoProvenance(db, bundle.provenanceRecords ?? "", deadline);
-  await saveMongoContexts(db, bundle.contextSnapshots ?? "", deadline);
-  const bundleForMongo = mongoBundleForWrite(bundle, jobsCompressed);
+  const childDelta = immutableChildWriteDeltaFromValidatedBundles(
+    bundle,
+    immutableChildBaseline
+  );
+  // Delta upserts keep the write side cheap; complete expected-child readbacks
+  // below still fail closed before the parent CAS can expose any reference.
+  await saveMongoProvenance(db, childDelta.provenanceRecords, deadline);
+  await saveMongoContexts(db, childDelta.contextSnapshots, deadline);
+  await verifyMongoContexts(db, bundle.contextSnapshots ?? "", deadline);
+  await verifyMongoProvenance(db, bundle.provenanceRecords ?? "", deadline);
+  const encoded = mongoBundleForValidatedWrite(
+    bundle,
+    jobsCompressed,
+    reusableCompressedJobs
+  );
+  const bundleForMongo = encoded.stored;
   const revision = nextMongoBundleRevision();
   const filter = {
     _id: "current",
@@ -957,6 +1495,7 @@ async function saveMongoBundle(
     version: mongoVersionToken(revision, contextCount, provenanceCount),
     revision,
     jobsCompressed,
+    compressedJobs: encoded.compressedJobs,
   };
 }
 
@@ -969,8 +1508,10 @@ function loadFileBundle(): DurableBundle {
   );
 }
 
-function saveFileBundle(bundle: DurableBundle): void {
-  writeAuthoritative(bundlePath(), JSON.stringify(validateDurableBundle(bundle)));
+function saveValidatedFileBundle(bundle: DurableBundle): void {
+  // The only caller passes captureBundleFromDiskWithBaseline().bundle, which
+  // has already crossed either the full or exact-baseline validation path.
+  writeAuthoritative(bundlePath(), JSON.stringify(bundle));
 }
 
 interface DurableMeta {
@@ -983,6 +1524,9 @@ interface DurableMeta {
   bundleVersion: string | null;
   bundleRevision: MongoBundleRevision | null;
   jobsCompressed: boolean;
+  captureBaseline: DurableCaptureBaseline | null;
+  immutableChildBaseline: ImmutableChildBaseline | null;
+  compressedJobs: MongoJobsCompressionCache | null;
   hydrationPromise?: Promise<Error | null>;
 }
 
@@ -999,6 +1543,9 @@ function newMeta(): DurableMeta {
     bundleVersion: null,
     bundleRevision: null,
     jobsCompressed: false,
+    captureBaseline: null,
+    immutableChildBaseline: null,
+    compressedJobs: null,
   };
 }
 
@@ -1043,6 +1590,9 @@ export interface HydrateDurableOpsOptions {
 export interface DurableTickFreshness {
   fresh: boolean;
   lastTickAt: string | null;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  successConfirmed: boolean;
   ageMs: number | null;
 }
 
@@ -1349,17 +1899,52 @@ export async function durableTickFreshness(
     raw = readIf(tickStatePath());
   }
   let lastTickAt: string | null = null;
+  let lastSuccessAt: string | null = null;
+  let lastError: string | null = null;
+  let successConfirmed = false;
   try {
-    const parsed = JSON.parse(raw || "{}") as { lastTickAt?: unknown };
+    const parsed = JSON.parse(raw || "{}") as {
+      lastTickAt?: unknown;
+      lastSuccessAt?: unknown;
+      lastError?: unknown;
+    };
     lastTickAt = typeof parsed.lastTickAt === "string" ? parsed.lastTickAt : null;
+    const hasSuccessField = Object.prototype.hasOwnProperty.call(
+      parsed,
+      "lastSuccessAt"
+    );
+    lastSuccessAt =
+      typeof parsed.lastSuccessAt === "string" ? parsed.lastSuccessAt : null;
+    const errorAbsent =
+      parsed.lastError === undefined ||
+      parsed.lastError === null ||
+      (typeof parsed.lastError === "string" && !parsed.lastError.trim());
+    lastError = errorAbsent
+      ? null
+      : typeof parsed.lastError === "string"
+        ? parsed.lastError
+        : "invalid durable tick error marker";
+    // Pre-success-marker bundles remain readable and keep their historical
+    // lastTickAt behavior. Once a writer has emitted lastSuccessAt, however,
+    // freshness means the latest attempt itself succeeded and recorded no
+    // error; an older successful tick cannot suppress the hosted backup.
+    successConfirmed = hasSuccessField
+      ? Boolean(lastTickAt && lastSuccessAt === lastTickAt && errorAbsent)
+      : Boolean(lastTickAt && errorAbsent);
   } catch {
     lastTickAt = null;
+    lastSuccessAt = null;
+    lastError = null;
+    successConfirmed = false;
   }
   const tickMs = lastTickAt ? Date.parse(lastTickAt) : Number.NaN;
   const ageMs = Number.isFinite(tickMs) ? Math.max(0, now.getTime() - tickMs) : null;
   return {
-    fresh: ageMs !== null && ageMs <= maxAgeMs,
+    fresh: successConfirmed && ageMs !== null && ageMs <= maxAgeMs,
     lastTickAt,
+    lastSuccessAt,
+    lastError,
+    successConfirmed,
     ageMs,
   };
 }
@@ -1410,6 +1995,8 @@ export async function hydrateDurableOps(
             version: null,
             revision: null,
             jobsCompressed: false,
+            compressedJobs: null,
+            immutableChildren: null,
           };
       const bundle = loaded.bundle;
       applyBundleToDisk(bundle);
@@ -1419,6 +2006,19 @@ export async function hydrateDurableOps(
       state.bundleVersion = loaded.version;
       state.bundleRevision = loaded.revision;
       state.jobsCompressed = loaded.jobsCompressed;
+      state.captureBaseline = {
+        bundle: {
+          ...bundle,
+          // Hydration compacts these two legacy append-only fields. Cache the
+          // validated compacted bytes so an unchanged flush need not parse and
+          // rewrite them a second time.
+          sourceObservations: readIf(sourceObservationPath()),
+          resultObservations: readIf(resultObservationPath()),
+        },
+        provenanceFilesSha256: provenanceFilesSha256(),
+      };
+      state.immutableChildBaseline = loaded.immutableChildren;
+      state.compressedJobs = loaded.compressedJobs;
       state.lastHydrateFailedAt = null;
       state.hydrateRefreshFailed = false;
       return null;
@@ -1429,6 +2029,9 @@ export async function hydrateDurableOps(
       if (!hadHydratedState) {
         state.hydrated = false;
         state.lastHydratedAt = null;
+        state.captureBaseline = null;
+        state.immutableChildBaseline = null;
+        state.compressedJobs = null;
         routeDurablePaths();
       }
       console.warn(
@@ -1451,20 +2054,32 @@ export async function hydrateDurableOps(
 export async function flushDurableOps(): Promise<void> {
   const backend = opsBackend();
   if (backend === "file") return;
-  const bundle = captureBundleFromDisk();
   const state = meta();
+  const captured = captureBundleFromDiskWithBaseline(state.captureBaseline);
+  const bundle = captured.bundle;
   if (backend === "mongo") {
     const saved = await saveMongoBundle(
       bundle,
       state.bundleRevision,
-      state.jobsCompressed
+      state.jobsCompressed,
+      state.immutableChildBaseline,
+      state.compressedJobs
     );
     state.bundleVersion = saved.version;
     state.bundleRevision = saved.revision;
     state.jobsCompressed = saved.jobsCompressed;
+    state.compressedJobs = saved.compressedJobs;
+    state.immutableChildBaseline = {
+      contextSnapshots: bundle.contextSnapshots ?? "",
+      provenanceRecords: bundle.provenanceRecords ?? "",
+    };
   } else {
-    saveFileBundle(bundle);
+    saveValidatedFileBundle(bundle);
   }
+  state.captureBaseline = {
+    bundle,
+    provenanceFilesSha256: captured.provenanceFilesSha256,
+  };
   state.lastFlushAt = new Date().toISOString();
   state.lastHydratedAt = state.lastFlushAt;
   state.hydrated = true;
