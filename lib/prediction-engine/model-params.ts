@@ -70,9 +70,11 @@ export const PREMIER_LEAGUE_MODEL_PARAMS: ModelParams = {
 };
 
 export function paramsFor(competition: CompetitionId): ModelParams {
-  return competition === "premier-league"
-    ? loadPremierLeagueParams()
-    : WORLD_CUP_MODEL_PARAMS;
+  if (competition === "premier-league") return loadPremierLeagueParams();
+  if (competition === "world-cup") return WORLD_CUP_MODEL_PARAMS;
+  throw new Error(
+    `${competition} has no production model parameters. Research forecasts use lib/competitions/big-five/research-params.ts and are not production.`
+  );
 }
 
 /** On-disk file is the source of truth once the fit script has run. */

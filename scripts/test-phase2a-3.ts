@@ -148,11 +148,21 @@ check("prod missing header rejected", authorizeOpsTick(req({})).ok === false);
 check("prod wrong secret rejected", authorizeOpsTick(req({ authorization: "Bearer no" })).ok === false);
 check("prod valid bearer accepted", authorizeOpsTick(req({ authorization: "Bearer correct-secret" })).ok === true);
 check(
-  "prod valid query accepted",
+  "prod query secret rejected",
+  authorizeOpsTick(req({}, "http://local/api/ops/tick?secret=correct-secret")).ok === false
+);
+check(
+  "prod query secret cannot bypass a missing bearer",
+  authorizeOpsTick(
+    req({ authorization: "Bearer no" }, "http://local/api/ops/tick?secret=correct-secret")
+  ).ok === false
+);
+delete process.env.VERCEL;
+check(
+  "local query secret still accepted",
   authorizeOpsTick(req({}, "http://local/api/ops/tick?secret=correct-secret")).ok === true
 );
 delete process.env.CRON_SECRET;
-delete process.env.VERCEL;
 
 const first = await acquireTickLock("a");
 const second = await acquireTickLock("b");

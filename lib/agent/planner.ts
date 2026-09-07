@@ -60,9 +60,10 @@ function detectGroupLetter(query: string): string | undefined {
   return m ? m[1].toUpperCase() : undefined;
 }
 
-// Competitions this product does not model. Premier League is IN SCOPE.
-// World Cup remains an archived research plugin. Other Big Five leagues stay out
-// of Phase 1 on purpose.
+// Competitions this production agent does not forecast. Premier League is IN
+// SCOPE as frozen LIVE_OOS. World Cup remains an archived research plugin.
+// Other Big Five leagues have a separate labeled research board and must not
+// be answered with World Cup or Premier League production numbers.
 const OTHER_COMP_RE =
   /\b(euros?\s*(20\d\d)?|uefa euro|champions league|europa league|la liga|serie a|bundesliga|ligue\s*1|copa am[eé]rica|nations league|club world cup|olympics?|gold cup|afcon)\b/i;
 const WC_RE = /world cup|世界杯|ワールドカップ/i;

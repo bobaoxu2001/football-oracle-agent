@@ -28,13 +28,16 @@ export function isProductionRuntime(): boolean {
 export function extractPresentedSecret(req: { headers: Headers; url: string }): string {
   const header = req.headers.get("authorization") ?? "";
   const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (bearer) return bearer;
+  // Production must not accept ?secret= — access logs, CDNs, and Referer retain it.
+  if (isProductionRuntime()) return "";
   let query = "";
   try {
     query = new URL(req.url).searchParams.get("secret") ?? "";
   } catch {
     query = "";
   }
-  return bearer || query;
+  return query;
 }
 
 export function authorizeOpsTick(req: { headers: Headers; url: string }): {

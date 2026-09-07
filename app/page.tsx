@@ -98,16 +98,21 @@ export default async function Home() {
 
       <section className="mx-auto mb-12 max-w-6xl" aria-labelledby="coverage-heading">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neon">Coverage</p>
-        <h2 id="coverage-heading" className="mt-1 text-2xl font-black tracking-tight">One forecasting league. Five historical ledgers.</h2>
+        <h2 id="coverage-heading" className="mt-1 text-2xl font-black tracking-tight">One production league. Four labeled research leagues.</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="glass p-5">
             <p className="text-sm font-bold text-neon">Premier League</p>
             <p className="mt-2 text-sm text-muted-foreground">Production forecasting, Match Rooms, frozen timelines and forward settlement.</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5 md:col-span-2">
+          <div className="rounded-2xl border border-amber-300/15 bg-white/[0.025] p-5 md:col-span-2">
             <p className="text-sm font-bold">La Liga · Bundesliga · Serie A · Ligue 1</p>
-            <p className="mt-2 text-sm text-muted-foreground">Completed-match history is supported. No forecasts are served for these leagues.</p>
-            <Link href="/matches" prefetch={false} className="mt-3 inline-flex text-xs font-semibold text-neon hover:underline">Browse historical ledgers →</Link>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Completed-match history plus a labeled research 1X2 (big-five-research-v0.1.0). Unfitted domestic prior — not the Premier League champion, not a frozen LIVE_OOS snapshot.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-4">
+              <Link href="/research/big-five" prefetch={false} className="inline-flex text-xs font-semibold text-amber-200 hover:underline">Open research forecasts →</Link>
+              <Link href="/matches" prefetch={false} className="inline-flex text-xs font-semibold text-neon hover:underline">Browse historical ledgers →</Link>
+            </div>
           </div>
         </div>
       </section>
@@ -115,9 +120,10 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl border-t border-white/10 pt-8" aria-labelledby="research-heading">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Research & operations</p>
         <h2 id="research-heading" className="mt-1 text-xl font-black tracking-tight">Evidence behind the product</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <ResearchLink href="/accuracy" icon={<BarChart3 className="h-4 w-4" />} title="Track record" copy="Production, shadow and reconstruction kept separate." />
           <ResearchLink href="/shadow" icon={<FlaskConical className="h-4 w-4" />} title="Shadow evaluation" copy="Paired forward challenger evidence—never served as production." />
+          <ResearchLink href="/research/big-five" icon={<Sparkles className="h-4 w-4" />} title="Big Five research forecasts" copy="Labeled unfitted 1X2 for the four ledger leagues — never served as production." />
           <ResearchLink href="/research/world-cup" icon={<Sparkles className="h-4 w-4" />} title="World Cup research archive" copy="Historical reconstruction and agent research, isolated from production." />
           <ResearchLink href="/live" icon={<Database className="h-4 w-4" />} title="Production ledger" copy="Every immutable Premier League production snapshot and settlement status." />
         </div>

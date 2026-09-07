@@ -21,7 +21,9 @@ CANONICAL MATCH DATA        CanonicalMatch — deterministic fold of observation
         ↓                   lib/match-ledger/materialize.ts
 TEMPORAL FEATURE STORE      asOf-filtered; the leakage rule lives here
         ↓                   lib/match-ledger/features.ts
-MODEL / PREDICTION          unchanged in this phase
+RESEARCH FORECAST           big-five-research-v0.1.0 — labeled prior, not production
+        ↓                   lib/competitions/big-five/research-forecast.ts
+PRODUCTION MODEL            pl-live-v0.2.0 — Premier League only; does not read this ledger
 ```
 
 ## What was reused, not rebuilt
@@ -135,3 +137,7 @@ Manual runs:
 npm run ledger:dry-run   # report provider state, write nothing
 npm run ledger:backfill  # ingest + settle
 ```
+
+The 2026-27 file tape under `data/processed/big-five/` is tracked so research
+forecasts work from a clone. Re-ingest is idempotent. Deployed production still
+accumulates into Mongo when that backend is selected.

@@ -7,6 +7,8 @@
  * but the diagnostic itself is never copied into the public result.
  */
 
+import { redactCredentialText } from "./secrets";
+
 export const PUBLIC_OPERATIONAL_ERROR_CATEGORIES = [
   "AUTHENTICATION_FAILED",
   "UPSTREAM_RATE_LIMITED",
@@ -222,5 +224,11 @@ export function publicFailureBody(error: string, cause: unknown): {
 
 /** Raw details stay in private runtime logs, never in the returned value. */
 export function recordInternalOperationalError(scope: string, error: unknown): void {
-  console.error(`[${scope}]`, error);
+  if (error instanceof Error) {
+    const safe = new Error(redactCredentialText(error.message));
+    safe.name = error.name;
+    console.error(`[${scope}]`, safe);
+    return;
+  }
+  console.error(`[${scope}]`, redactCredentialText(String(error)));
 }

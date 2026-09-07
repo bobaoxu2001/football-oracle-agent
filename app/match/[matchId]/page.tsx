@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cache } from "react";
 import { AlertTriangle, ArrowLeft, BarChart3, Clock3, Database, Eye, ShieldCheck, Target, Users } from "lucide-react";
 import { MatchRoomAgent } from "@/components/match-room/match-agent";
+import { MatchIntelligencePanel } from "@/components/match-room/match-intelligence-panel";
 import { getMatchIntelligence, MatchForecastError } from "@/lib/match-forecast/service";
 import type { MatchIntelligence } from "@/lib/match-forecast/types";
 
@@ -154,6 +155,12 @@ export default async function MatchRoomPage({ params }: Props) {
             <p className="mt-2 text-[11px] text-muted-foreground">Context timing and probability movement are shown together without claiming that one caused the other.</p>
           </div>
         </section>
+
+        <MatchIntelligencePanel
+          report={data.matchIntelligence}
+          homeName={match.home.name}
+          awayName={match.away.name}
+        />
 
         <div className="mt-5"><MatchRoomAgent matchId={match.id} home={match.home.name} away={match.away.name} /></div>
 

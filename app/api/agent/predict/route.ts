@@ -73,13 +73,23 @@ export async function POST(req: Request) {
       () => withAiRouteTimeout(runAgent(input), 25_000)
     );
 
-    return NextResponse.json(response, {
-      headers: {
-        "Cache-Control": "private, no-store",
-        "X-RateLimit-Limit": String(rate.limit),
-        "X-RateLimit-Remaining": String(rate.remaining),
-      },
-    });
+    const headers = {
+      "Cache-Control": "private, no-store",
+      "X-RateLimit-Limit": String(rate.limit),
+      "X-RateLimit-Remaining": String(rate.remaining),
+    };
+    if (response.productionRefusal) {
+      return NextResponse.json(
+        {
+          ...response,
+          error: response.productionRefusal.code,
+          message: response.productionRefusal.message,
+        },
+        { status: response.productionRefusal.status, headers }
+      );
+    }
+
+    return NextResponse.json(response, { headers });
   } catch (err) {
     if (err instanceof RequestBodyTooLargeError) {
       return NextResponse.json({ error: "REQUEST_TOO_LARGE" }, { status: 413 });

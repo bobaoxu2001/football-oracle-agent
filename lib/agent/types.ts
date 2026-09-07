@@ -169,6 +169,28 @@ export interface GroupTableData {
   focusSlug?: string;
 }
 
+export type ProductionRefusalCode =
+  | "NO_PRODUCTION_FORECAST"
+  | "UNKNOWN_MATCH"
+  | "FORECAST_INTEGRITY"
+  | "UNSUPPORTED_PRODUCTION_QUESTION";
+
+/** Fail-closed Premier League production answer: no invented probabilities. */
+export interface ProductionRefusal {
+  code: ProductionRefusalCode;
+  message: string;
+  status: number;
+  competition: "premier-league";
+}
+
+export interface ProductionForecastRef {
+  matchId: string;
+  forecastId: string;
+  cutoffAt: string;
+  modelVersion: string;
+  modelRole: "production";
+}
+
 /** The complete answer the agent returns for one turn. */
 export interface AgentResponse {
   intent: AgentIntent;
@@ -210,6 +232,10 @@ export interface AgentResponse {
   localizationMethod?: "none" | "gemini" | "deepseek" | "template";
   /** Live tournament-state badge (Live API / Cached / Demo, eliminated count). */
   tournamentState?: TournamentStateView;
+  /** Set when a Premier League request is refused instead of inventing numbers. */
+  productionRefusal?: ProductionRefusal;
+  /** Frozen LIVE_OOS identity when Premier League match numbers are served. */
+  productionForecast?: ProductionForecastRef;
 }
 
 /** Internal: raw model bundle before narrative generation. */

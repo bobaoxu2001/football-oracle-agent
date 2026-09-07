@@ -25,7 +25,7 @@ import { loadProductionParams } from "@/lib/competitions/premier-league/model-tr
 import { liveStateFromEvents } from "@/lib/competitions/premier-league/ops/rating-events";
 import { officialFixtureId } from "@/lib/competitions/premier-league/ingest";
 import { evaluateDecimal1x2, fairSumsToOne } from "@/lib/competitions/premier-league/market/odds-math";
-import { extractH2hOdds } from "@/lib/competitions/premier-league/market/the-odds-api";
+import { extractH2hOdds, TheOddsApiMarketSource } from "@/lib/competitions/premier-league/market/the-odds-api";
 import { mapMarketEvent } from "@/lib/competitions/premier-league/market/mapping";
 import { alignMarketToModelAsOf, closingConsensus, closingObservation } from "@/lib/competitions/premier-league/market/alignment";
 import { maybeRunMarketRecorder, observationIdOf } from "@/lib/competitions/premier-league/market/recorder";
@@ -432,6 +432,44 @@ async function main() {
     force: true,
   });
   check("outage is FAILED market job", outage?.status === "FAILED");
+
+  const FAKE_ODDS_KEY = "test-odds-key-SHOULD-NOT-LEAK-9f3a";
+  const leaky = await maybeRunMarketRecorder({
+    now: "2026-08-18T17:30:00.000Z",
+    fixtures: [arsenalCoventry],
+    source: {
+      id: "the-odds-api",
+      configured: true,
+      async fetchH2h(): Promise<MarketSourceFetchResult> {
+        throw new Error(
+          `fetch failed for https://api.the-odds-api.com/v4/sports/soccer_epl/odds?apiKey=${FAKE_ODDS_KEY}`
+        );
+      },
+    },
+    origin: "TEST",
+    force: true,
+  });
+  check("persisted market error omits raw api key", Boolean(leaky?.error) && !String(leaky?.error).includes(FAKE_ODDS_KEY));
+  check(
+    "persisted market error redacts apiKey query",
+    String(leaky?.error).includes("apiKey=[redacted]")
+  );
+
+  process.env.ODDS_API_KEY = FAKE_ODDS_KEY;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    throw new Error(`getaddrinfo ENOTFOUND for ${String(input)}`);
+  }) as typeof fetch;
+  try {
+    await new TheOddsApiMarketSource().fetchH2h("2026-08-18T17:30:00.000Z");
+    check("odds source throws on fetch failure", false);
+  } catch (err) {
+    const msg = (err as Error).message;
+    check("odds source error omits raw api key", !msg.includes(FAKE_ODDS_KEY));
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.ODDS_API_KEY;
+  }
   const forecast = buildHealthReport();
   check("forecast health still a known state", ["HEALTHY", "DEGRADED", "BLOCKED"].includes(forecast.overall));
   const mh = await buildMarketHealthReport();

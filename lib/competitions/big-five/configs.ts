@@ -4,7 +4,9 @@
  * These reuse the existing CompetitionConfig contract rather than introducing a
  * second league abstraction. Premier League keeps its own config module because
  * the Phase 1/2A production model, ratings and frozen tape are already built on
- * it; the four added leagues are ledger-only for now (see docs/BIG_FIVE_LEDGER.md).
+ * it. The four added leagues have a labeled research forecast
+ * (`big-five-research-v0.1.0`) that is not production; see
+ * docs/BIG_FIVE_RESEARCH_FORECAST.md.
  *
  * Tiebreakers are the real published rules and DO differ:
  *   • England / Germany / France — goal difference before head-to-head

@@ -1,9 +1,10 @@
 import { runAgent } from "@/lib/agent";
 
 async function main() {
-  const pl = await runAgent({ query: "Who wins Arsenal vs Liverpool?", persist: false });
+  const pl = await runAgent({ query: "Who wins Arsenal vs Chelsea?", persist: false });
   console.log("=== PL match ===");
   console.log("intent", pl.intent);
+  console.log("refusal", pl.productionRefusal?.code ?? "none");
   console.log(pl.explanation);
   if (pl.prediction) {
     console.log({
@@ -12,6 +13,7 @@ async function main() {
       away: pl.prediction.teamBWin,
       expected: pl.prediction.expectedScore,
       score: pl.prediction.mostLikelyScore,
+      forecastId: pl.productionForecast?.forecastId,
     });
   }
 
@@ -21,6 +23,7 @@ async function main() {
   });
   console.log("\n=== PL title ===");
   console.log("intent", title.intent);
+  console.log("refusal", title.productionRefusal?.code ?? "none");
   console.log(title.explanation.slice(0, 600));
 
   const wc = await runAgent({ query: "Who will win the World Cup?", persist: false });

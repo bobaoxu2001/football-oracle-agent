@@ -16,6 +16,7 @@ import {
   listFrozenMatchContexts,
 } from "@/lib/competitions/premier-league/ops/context-snapshots";
 import { productionModelVersion } from "@/lib/competitions/premier-league/shadow/track";
+import { deriveMatchIntelligence } from "@/lib/competitions/premier-league/intelligence";
 import {
   diffMatchContexts,
   MATCH_CONTEXT_SCHEMA_VERSION,
@@ -60,6 +61,58 @@ export function resolvePremierLeagueFixture(matchId: string): Fixture {
     throw new MatchForecastError(`Match ${matchId} has no auditable kickoff timestamp.`, "NO_PRODUCTION_FORECAST", 409);
   }
   return fixture;
+}
+
+/**
+ * Resolve an official Premier League fixture from two club slugs.
+ * Orientation always follows the fixture (home/away), never the query order.
+ * If both home-and-away meetings exist, the next kickoff after `now` wins;
+ * otherwise the most recent past kickoff is used.
+ */
+export function resolvePremierLeagueFixtureByClubs(
+  slugA: string,
+  slugB: string,
+  now = new Date()
+): Fixture {
+  if (!slugA || !slugB || slugA === slugB) {
+    throw new MatchForecastError(
+      `No Premier League fixture matches ${slugA} vs ${slugB}.`,
+      "UNKNOWN_MATCH",
+      404
+    );
+  }
+  const pair = liveFixtures().filter(
+    (fixture) =>
+      (fixture.homeSlug === slugA && fixture.awaySlug === slugB) ||
+      (fixture.homeSlug === slugB && fixture.awaySlug === slugA)
+  );
+  if (pair.length === 0) {
+    throw new MatchForecastError(
+      `No Premier League fixture matches ${slugA} vs ${slugB}.`,
+      "UNKNOWN_MATCH",
+      404
+    );
+  }
+  const nowMs = now.getTime();
+  const dated = pair.filter((fixture) => Number.isFinite(Date.parse(fixture.kickoffUtc ?? "")));
+  if (dated.length === 0) {
+    throw new MatchForecastError(
+      `Match ${pair[0].id} has no auditable kickoff timestamp.`,
+      "NO_PRODUCTION_FORECAST",
+      409
+    );
+  }
+  const upcoming = dated
+    .filter((fixture) => Date.parse(fixture.kickoffUtc as string) > nowMs)
+    .sort(
+      (a, b) => Date.parse(a.kickoffUtc as string) - Date.parse(b.kickoffUtc as string)
+    );
+  const selected =
+    upcoming[0] ??
+    [...dated].sort(
+      (a, b) => Date.parse(b.kickoffUtc as string) - Date.parse(a.kickoffUtc as string)
+    )[0];
+  return resolvePremierLeagueFixture(selected.id);
 }
 
 export function isProductionForecastSnapshot(snapshot: PredictionSnapshot): boolean {
@@ -1059,6 +1112,41 @@ export async function getMatchIntelligence(matchId: string, now = new Date()): P
       },
       temporalRule: "availableAt <= cutoffAt",
     },
+    matchIntelligence: deriveMatchIntelligence({
+      season: fixture.season,
+      fixtureId: fixture.id,
+      homeSlug: fixture.homeSlug,
+      awaySlug: fixture.awaySlug,
+      kickoffAt: fixture.kickoffUtc as string,
+      contextCutoffAt: selectedContext.snapshot?.cutoffAt ?? forecast.cutoffAt,
+      generatedAt: forecast.generatedAt,
+      productionForecastId: forecast.provenance.immutableForecastId,
+      contextSnapshot: selectedContext.snapshot
+        ? {
+            contextId: selectedContext.snapshot.contextId,
+            cutoffAt: selectedContext.snapshot.cutoffAt,
+            lineupOverall: selectedContext.snapshot.lineup.overall,
+            evidence: selectedContext.snapshot.evidence.map((row) => ({
+              evidenceId: row.evidenceId,
+              kind: row.kind,
+              entityId: row.entityId,
+              teamSlug: row.teamSlug,
+              observedAt: row.observedAt,
+              fetchedAt: row.fetchedAt,
+              availableAt: row.availableAt,
+              sourceName: row.source.name,
+              availabilityStatus: row.availabilityStatus,
+              lineupStatus: row.lineupStatus,
+              payload:
+                row.payload && typeof row.payload === "object" && !Array.isArray(row.payload)
+                  ? (row.payload as Record<string, unknown>)
+                  : null,
+              usedInForecast: row.usedInForecast,
+            })),
+          }
+        : null,
+      sourceAuthorization: "NONE_CONFIGURED",
+    }),
     audit: forecast.provenance,
   };
 }

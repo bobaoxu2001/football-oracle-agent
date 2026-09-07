@@ -46,7 +46,6 @@ __pycache__/
 # ops bundle exports (may contain production job/settlement state)
 /ops-backups/
 
-# Big Five match ledger working copy. Production accumulates into MongoDB;
-# this local mirror is a backfill artifact that would diverge from it. The
-# audited counts live in docs/PHASE2C_BIG_FIVE_LEDGER_REPORT.md.
-/data/processed/big-five/
+# Big Five match ledger. The 2026-27 tape is tracked so research forecasts and
+# match history work from a clone. Re-ingest is idempotent. When deployed,
+# production still accumulates into MongoDB.

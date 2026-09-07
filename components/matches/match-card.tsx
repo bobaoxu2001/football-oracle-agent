@@ -98,8 +98,12 @@ export function MatchCard({ match }: { match: SerializedMatch }) {
               </>
             ) : (
               <p className="text-muted-foreground">
-                No frozen pre-kickoff forecast for this fixture. This league is currently
-                ledger-only: results are recorded, but no production model forecasts it yet.
+                No frozen production forecast for this fixture. Upcoming 1X2 for La Liga,
+                Bundesliga, Serie A and Ligue 1 is a labeled research prior on the{" "}
+                <Link href="/research/big-five" className="text-neon hover:underline">
+                  Big Five research board
+                </Link>
+                , not a LIVE_OOS snapshot.
               </p>
             )}
           </div>

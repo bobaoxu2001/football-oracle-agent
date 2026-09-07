@@ -14,6 +14,7 @@ const primaryLinks = [
 const researchLinks = [
   ["Shadow evaluation", "/shadow"],
   ["Historical data", "/matches"],
+  ["Big Five research forecasts", "/research/big-five"],
   ["World Cup research archive", "/research/world-cup"],
 ] as const;
 

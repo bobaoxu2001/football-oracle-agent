@@ -24,7 +24,7 @@ Other material is deliberately separated:
 
 - The shadow model is an experimental challenger and is never served as production.
 - World Cup pages are a historical research archive, not Premier League production evidence.
-- Big Five league pages outside the Premier League are completed-match history only.
+- Big Five league pages outside the Premier League keep completed-match history. Labeled research 1X2 (`big-five-research-v0.1.0`) for La Liga, Bundesliga, Serie A and Ligue 1 is an unfitted domestic prior, computed on read from the ledger, and is never served as production.
 - Bookmaker observations are stored as an external observational data track and never enter the production forecasting model.
 
 ## Observational model-vs-market benchmark (Phase 4B0)
@@ -70,6 +70,8 @@ The current champion, `pl-live-v0.2.0`, has no validated player-impact or lineup
 The Match Room distinguishes the selected frozen context from the latest prospectively recorded context, compares only the exact legal snapshot pair, and avoids causal attribution. Player or tactical what-if requests return `UNSUPPORTED_SCENARIO` without a probability and never enter the LIVE_OOS ledger.
 
 Public context responses expose hashed source-record references but omit raw provider URLs, whose paths may contain credentials or internal identifiers. Match Room answers are rendered from deterministic audited tools only; the champion has no generative narration path.
+
+Match Room may also show **Match Intelligence V1**, a separate research layer for availability, replacements, units, and tactical matchups. It is labeled as not included in `pl-live-v0.2.0`. Missing player/lineup sources stay `UNKNOWN`; they never mint or rewrite production probabilities.
 
 No structured Premier League injury or lineup provider is currently configured. Provider constraints and the proposed prospective-only adapter boundary are documented in `docs/PHASE4B_CONTEXT_SOURCE_AUDIT.md`.
 
@@ -171,6 +173,7 @@ retrieval). It is never inferred from a rating cutoff or match kickoff.
 | `/shadow` | Experimental paired shadow evaluation |
 | `/matches` | Completed-match historical ledgers |
 | `/market` | Time-aligned external benchmark plus raw observational market status |
+| `/research/big-five` | Labeled research 1X2 for La Liga, Bundesliga, Serie A and Ligue 1 |
 | `/research/world-cup` | Isolated World Cup research archive |
 
 Relevant JSON APIs:
@@ -184,6 +187,7 @@ Relevant JSON APIs:
 - `GET /api/market/benchmark`
 - `GET /api/market/health`
 - `GET /api/matches/upcoming`
+- `GET /api/research/big-five`
 - `GET /api/matches/:matchId/intelligence`
 - `POST /api/matches/:matchId/agent`
 - `POST /api/matches/:matchId/scenario` (deterministic fail-closed boundary)
@@ -202,7 +206,7 @@ npm run dev
 
 Open `http://localhost:3000` locally.
 
-The deterministic forecast and research paths run without paid model keys. Durable serverless operations require the configured production store; see `.env.example` and `docs/OPS_BACKUP_AND_RESTORE.md`.
+The deterministic forecast and research paths run without paid model keys. The tracked 2026-27 Big Five tape under `data/processed/big-five/` is enough for labeled research 1X2 and match history. Refresh it with `FOOTBALL_DATA_API_KEY=… npm run ledger:backfill`. Durable serverless operations require the configured production store; see `.env.example` and `docs/OPS_BACKUP_AND_RESTORE.md`.
 
 ## Verification
 

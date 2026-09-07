@@ -1,0 +1,1250 @@
+{
+  "premier-league::57": {
+    "competition": "premier-league",
+    "providerTeamId": "57",
+    "slug": "arsenal",
+    "name": "Arsenal FC",
+    "shortName": "Arsenal",
+    "tla": "ARS",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Arsenal FC"
+    ]
+  },
+  "premier-league::1076": {
+    "competition": "premier-league",
+    "providerTeamId": "1076",
+    "slug": "coventry",
+    "name": "Coventry City FC",
+    "shortName": "Coventry City",
+    "tla": "COV",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Coventry City FC"
+    ]
+  },
+  "premier-league::322": {
+    "competition": "premier-league",
+    "providerTeamId": "322",
+    "slug": "hull",
+    "name": "Hull City AFC",
+    "shortName": "Hull City",
+    "tla": "HUL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Hull City AFC"
+    ]
+  },
+  "premier-league::66": {
+    "competition": "premier-league",
+    "providerTeamId": "66",
+    "slug": "manchester-united",
+    "name": "Manchester United FC",
+    "shortName": "Man United",
+    "tla": "MUN",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Manchester United FC"
+    ]
+  },
+  "premier-league::349": {
+    "competition": "premier-league",
+    "providerTeamId": "349",
+    "slug": "ipswich",
+    "name": "Ipswich Town FC",
+    "shortName": "Ipswich Town",
+    "tla": "IPS",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Ipswich Town FC"
+    ]
+  },
+  "premier-league::71": {
+    "competition": "premier-league",
+    "providerTeamId": "71",
+    "slug": "sunderland",
+    "name": "Sunderland AFC",
+    "shortName": "Sunderland",
+    "tla": "SUN",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Sunderland AFC"
+    ]
+  },
+  "premier-league::351": {
+    "competition": "premier-league",
+    "providerTeamId": "351",
+    "slug": "nottingham-forest",
+    "name": "Nottingham Forest FC",
+    "shortName": "Nottingham",
+    "tla": "NOT",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Nottingham Forest FC"
+    ]
+  },
+  "premier-league::341": {
+    "competition": "premier-league",
+    "providerTeamId": "341",
+    "slug": "leeds",
+    "name": "Leeds United FC",
+    "shortName": "Leeds United",
+    "tla": "LEE",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Leeds United FC"
+    ]
+  },
+  "premier-league::62": {
+    "competition": "premier-league",
+    "providerTeamId": "62",
+    "slug": "everton",
+    "name": "Everton FC",
+    "shortName": "Everton",
+    "tla": "EVE",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Everton FC"
+    ]
+  },
+  "premier-league::354": {
+    "competition": "premier-league",
+    "providerTeamId": "354",
+    "slug": "crystal-palace",
+    "name": "Crystal Palace FC",
+    "shortName": "Crystal Palace",
+    "tla": "CRY",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Crystal Palace FC"
+    ]
+  },
+  "premier-league::402": {
+    "competition": "premier-league",
+    "providerTeamId": "402",
+    "slug": "brentford",
+    "name": "Brentford FC",
+    "shortName": "Brentford",
+    "tla": "BRE",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Brentford FC"
+    ]
+  },
+  "premier-league::73": {
+    "competition": "premier-league",
+    "providerTeamId": "73",
+    "slug": "tottenham",
+    "name": "Tottenham Hotspur FC",
+    "shortName": "Tottenham",
+    "tla": "TOT",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Tottenham Hotspur FC"
+    ]
+  },
+  "premier-league::65": {
+    "competition": "premier-league",
+    "providerTeamId": "65",
+    "slug": "manchester-city",
+    "name": "Manchester City FC",
+    "shortName": "Man City",
+    "tla": "MCI",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Manchester City FC"
+    ]
+  },
+  "premier-league::1044": {
+    "competition": "premier-league",
+    "providerTeamId": "1044",
+    "slug": "bournemouth",
+    "name": "AFC Bournemouth",
+    "shortName": "Bournemouth",
+    "tla": "BOU",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "AFC Bournemouth"
+    ]
+  },
+  "premier-league::397": {
+    "competition": "premier-league",
+    "providerTeamId": "397",
+    "slug": "brighton",
+    "name": "Brighton & Hove Albion FC",
+    "shortName": "Brighton Hove",
+    "tla": "BHA",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Brighton & Hove Albion FC"
+    ]
+  },
+  "premier-league::58": {
+    "competition": "premier-league",
+    "providerTeamId": "58",
+    "slug": "aston-villa",
+    "name": "Aston Villa FC",
+    "shortName": "Aston Villa",
+    "tla": "AVL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Aston Villa FC"
+    ]
+  },
+  "premier-league::67": {
+    "competition": "premier-league",
+    "providerTeamId": "67",
+    "slug": "newcastle",
+    "name": "Newcastle United FC",
+    "shortName": "Newcastle",
+    "tla": "NEW",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Newcastle United FC"
+    ]
+  },
+  "premier-league::64": {
+    "competition": "premier-league",
+    "providerTeamId": "64",
+    "slug": "liverpool",
+    "name": "Liverpool FC",
+    "shortName": "Liverpool",
+    "tla": "LIV",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Liverpool FC"
+    ]
+  },
+  "premier-league::63": {
+    "competition": "premier-league",
+    "providerTeamId": "63",
+    "slug": "fulham",
+    "name": "Fulham FC",
+    "shortName": "Fulham",
+    "tla": "FUL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Fulham FC"
+    ]
+  },
+  "premier-league::61": {
+    "competition": "premier-league",
+    "providerTeamId": "61",
+    "slug": "chelsea",
+    "name": "Chelsea FC",
+    "shortName": "Chelsea",
+    "tla": "CHE",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Chelsea FC"
+    ]
+  },
+  "la-liga::263": {
+    "competition": "la-liga",
+    "providerTeamId": "263",
+    "slug": "deportivo-alaves",
+    "name": "Deportivo Alavés",
+    "shortName": "Alavés",
+    "tla": "ALA",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Deportivo Alavés"
+    ]
+  },
+  "la-liga::82": {
+    "competition": "la-liga",
+    "providerTeamId": "82",
+    "slug": "getafe",
+    "name": "Getafe CF",
+    "shortName": "Getafe",
+    "tla": "GET",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Getafe CF"
+    ]
+  },
+  "la-liga::559": {
+    "competition": "la-liga",
+    "providerTeamId": "559",
+    "slug": "sevilla",
+    "name": "Sevilla FC",
+    "shortName": "Sevilla FC",
+    "tla": "SEV",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Sevilla FC"
+    ]
+  },
+  "la-liga::87": {
+    "competition": "la-liga",
+    "providerTeamId": "87",
+    "slug": "rayo-vallecano-madrid",
+    "name": "Rayo Vallecano de Madrid",
+    "shortName": "Rayo Vallecano",
+    "tla": "RAY",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Rayo Vallecano de Madrid"
+    ]
+  },
+  "la-liga::5335": {
+    "competition": "la-liga",
+    "providerTeamId": "5335",
+    "slug": "real-racing-santander",
+    "name": "Real Racing Club de Santander",
+    "shortName": "Santander",
+    "tla": "SAN",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Real Racing Club de Santander"
+    ]
+  },
+  "la-liga::94": {
+    "competition": "la-liga",
+    "providerTeamId": "94",
+    "slug": "villarreal",
+    "name": "Villarreal CF",
+    "shortName": "Villarreal",
+    "tla": "VIL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Villarreal CF"
+    ]
+  },
+  "la-liga::80": {
+    "competition": "la-liga",
+    "providerTeamId": "80",
+    "slug": "espanyol-barcelona",
+    "name": "RCD Espanyol de Barcelona",
+    "shortName": "Espanyol",
+    "tla": "ESP",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "RCD Espanyol de Barcelona"
+    ]
+  },
+  "la-liga::88": {
+    "competition": "la-liga",
+    "providerTeamId": "88",
+    "slug": "levante",
+    "name": "Levante UD",
+    "shortName": "Levante",
+    "tla": "LEV",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Levante UD"
+    ]
+  },
+  "la-liga::560": {
+    "competition": "la-liga",
+    "providerTeamId": "560",
+    "slug": "deportivo-la-coruna",
+    "name": "RC Deportivo La Coruña",
+    "shortName": "Deportivo",
+    "tla": "DEP",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "RC Deportivo La Coruña"
+    ]
+  },
+  "la-liga::285": {
+    "competition": "la-liga",
+    "providerTeamId": "285",
+    "slug": "elche",
+    "name": "Elche CF",
+    "shortName": "Elche",
+    "tla": "ELC",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Elche CF"
+    ]
+  },
+  "la-liga::78": {
+    "competition": "la-liga",
+    "providerTeamId": "78",
+    "slug": "atletico-madrid",
+    "name": "Club Atlético de Madrid",
+    "shortName": "Atleti",
+    "tla": "ATL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Club Atlético de Madrid"
+    ]
+  },
+  "la-liga::84": {
+    "competition": "la-liga",
+    "providerTeamId": "84",
+    "slug": "malaga",
+    "name": "Málaga CF",
+    "shortName": "Málaga",
+    "tla": "MAL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Málaga CF"
+    ]
+  },
+  "la-liga::90": {
+    "competition": "la-liga",
+    "providerTeamId": "90",
+    "slug": "real-betis-balompie",
+    "name": "Real Betis Balompié",
+    "shortName": "Real Betis",
+    "tla": "BET",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Real Betis Balompié"
+    ]
+  },
+  "la-liga::92": {
+    "competition": "la-liga",
+    "providerTeamId": "92",
+    "slug": "real-sociedad-futbol",
+    "name": "Real Sociedad de Fútbol",
+    "shortName": "Real Sociedad",
+    "tla": "RSO",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Real Sociedad de Fútbol"
+    ]
+  },
+  "la-liga::77": {
+    "competition": "la-liga",
+    "providerTeamId": "77",
+    "slug": "athletic",
+    "name": "Athletic Club",
+    "shortName": "Athletic",
+    "tla": "ATH",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Athletic Club"
+    ]
+  },
+  "la-liga::95": {
+    "competition": "la-liga",
+    "providerTeamId": "95",
+    "slug": "valencia",
+    "name": "Valencia CF",
+    "shortName": "Valencia",
+    "tla": "VAL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Valencia CF"
+    ]
+  },
+  "la-liga::558": {
+    "competition": "la-liga",
+    "providerTeamId": "558",
+    "slug": "celta-vigo",
+    "name": "RC Celta de Vigo",
+    "shortName": "Celta",
+    "tla": "CEL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "RC Celta de Vigo"
+    ]
+  },
+  "la-liga::86": {
+    "competition": "la-liga",
+    "providerTeamId": "86",
+    "slug": "real-madrid",
+    "name": "Real Madrid CF",
+    "shortName": "Real Madrid",
+    "tla": "RMA",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Real Madrid CF"
+    ]
+  },
+  "la-liga::81": {
+    "competition": "la-liga",
+    "providerTeamId": "81",
+    "slug": "barcelona",
+    "name": "FC Barcelona",
+    "shortName": "Barça",
+    "tla": "FCB",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "FC Barcelona"
+    ]
+  },
+  "la-liga::79": {
+    "competition": "la-liga",
+    "providerTeamId": "79",
+    "slug": "ca-osasuna",
+    "name": "CA Osasuna",
+    "shortName": "Osasuna",
+    "tla": "OSA",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "CA Osasuna"
+    ]
+  },
+  "bundesliga::5": {
+    "competition": "bundesliga",
+    "providerTeamId": "5",
+    "slug": "bayern-munchen",
+    "name": "FC Bayern München",
+    "shortName": "Bayern",
+    "tla": "FCB",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "FC Bayern München"
+    ]
+  },
+  "bundesliga::10": {
+    "competition": "bundesliga",
+    "providerTeamId": "10",
+    "slug": "stuttgart",
+    "name": "VfB Stuttgart",
+    "shortName": "Stuttgart",
+    "tla": "VFB",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "VfB Stuttgart"
+    ]
+  },
+  "bundesliga::721": {
+    "competition": "bundesliga",
+    "providerTeamId": "721",
+    "slug": "rb-leipzig",
+    "name": "RB Leipzig",
+    "shortName": "RB Leipzig",
+    "tla": "RBL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "RB Leipzig"
+    ]
+  },
+  "bundesliga::18": {
+    "competition": "bundesliga",
+    "providerTeamId": "18",
+    "slug": "borussia-monchengladbach",
+    "name": "Borussia Mönchengladbach",
+    "shortName": "M'gladbach",
+    "tla": "BMG",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Borussia Mönchengladbach"
+    ]
+  },
+  "bundesliga::15": {
+    "competition": "bundesliga",
+    "providerTeamId": "15",
+    "slug": "1-mainz-05",
+    "name": "1. FSV Mainz 05",
+    "shortName": "Mainz",
+    "tla": "M05",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "1. FSV Mainz 05"
+    ]
+  },
+  "bundesliga::29": {
+    "competition": "bundesliga",
+    "providerTeamId": "29",
+    "slug": "paderborn-07",
+    "name": "SC Paderborn 07",
+    "shortName": "SC Paderborn",
+    "tla": "SCP",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "SC Paderborn 07"
+    ]
+  },
+  "bundesliga::28": {
+    "competition": "bundesliga",
+    "providerTeamId": "28",
+    "slug": "1-union-berlin",
+    "name": "1. FC Union Berlin",
+    "shortName": "Union Berlin",
+    "tla": "UNB",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "1. FC Union Berlin"
+    ]
+  },
+  "bundesliga::19": {
+    "competition": "bundesliga",
+    "providerTeamId": "19",
+    "slug": "eintracht-frankfurt",
+    "name": "Eintracht Frankfurt",
+    "shortName": "Frankfurt",
+    "tla": "SGE",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Eintracht Frankfurt"
+    ]
+  },
+  "bundesliga::719": {
+    "competition": "bundesliga",
+    "providerTeamId": "719",
+    "slug": "07-elversberg",
+    "name": "SV 07 Elversberg",
+    "shortName": "Elversberg",
+    "tla": "ELV",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "SV 07 Elversberg"
+    ]
+  },
+  "bundesliga::3": {
+    "competition": "bundesliga",
+    "providerTeamId": "3",
+    "slug": "bayer-04-leverkusen",
+    "name": "Bayer 04 Leverkusen",
+    "shortName": "Leverkusen",
+    "tla": "B04",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Bayer 04 Leverkusen"
+    ]
+  },
+  "bundesliga::1": {
+    "competition": "bundesliga",
+    "providerTeamId": "1",
+    "slug": "1-koln",
+    "name": "1. FC Köln",
+    "shortName": "1. FC Köln",
+    "tla": "KOE",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "1. FC Köln"
+    ]
+  },
+  "bundesliga::2": {
+    "competition": "bundesliga",
+    "providerTeamId": "2",
+    "slug": "1899-hoffenheim",
+    "name": "TSG 1899 Hoffenheim",
+    "shortName": "Hoffenheim",
+    "tla": "TSG",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "TSG 1899 Hoffenheim"
+    ]
+  },
+  "bundesliga::4": {
+    "competition": "bundesliga",
+    "providerTeamId": "4",
+    "slug": "borussia-dortmund",
+    "name": "Borussia Dortmund",
+    "shortName": "Dortmund",
+    "tla": "BVB",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Borussia Dortmund"
+    ]
+  },
+  "bundesliga::7": {
+    "competition": "bundesliga",
+    "providerTeamId": "7",
+    "slug": "hamburger",
+    "name": "Hamburger SV",
+    "shortName": "HSV",
+    "tla": "HSV",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Hamburger SV"
+    ]
+  },
+  "bundesliga::17": {
+    "competition": "bundesliga",
+    "providerTeamId": "17",
+    "slug": "freiburg",
+    "name": "SC Freiburg",
+    "shortName": "Freiburg",
+    "tla": "SCF",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "SC Freiburg"
+    ]
+  },
+  "bundesliga::12": {
+    "competition": "bundesliga",
+    "providerTeamId": "12",
+    "slug": "werder-bremen",
+    "name": "SV Werder Bremen",
+    "shortName": "Bremen",
+    "tla": "SVW",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "SV Werder Bremen"
+    ]
+  },
+  "bundesliga::16": {
+    "competition": "bundesliga",
+    "providerTeamId": "16",
+    "slug": "augsburg",
+    "name": "FC Augsburg",
+    "shortName": "Augsburg",
+    "tla": "FCA",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "FC Augsburg"
+    ]
+  },
+  "bundesliga::6": {
+    "competition": "bundesliga",
+    "providerTeamId": "6",
+    "slug": "schalke-04",
+    "name": "FC Schalke 04",
+    "shortName": "Schalke",
+    "tla": "S04",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "FC Schalke 04"
+    ]
+  },
+  "serie-a::115": {
+    "competition": "serie-a",
+    "providerTeamId": "115",
+    "slug": "udinese",
+    "name": "Udinese Calcio",
+    "shortName": "Udinese",
+    "tla": "UDI",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Udinese Calcio"
+    ]
+  },
+  "serie-a::7397": {
+    "competition": "serie-a",
+    "providerTeamId": "7397",
+    "slug": "como-1907",
+    "name": "Como 1907",
+    "shortName": "Como 1907",
+    "tla": "COM",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Como 1907"
+    ]
+  },
+  "serie-a::108": {
+    "competition": "serie-a",
+    "providerTeamId": "108",
+    "slug": "internazionale-milano",
+    "name": "FC Internazionale Milano",
+    "shortName": "Inter",
+    "tla": "INT",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "FC Internazionale Milano"
+    ]
+  },
+  "serie-a::5911": {
+    "competition": "serie-a",
+    "providerTeamId": "5911",
+    "slug": "monza",
+    "name": "AC Monza",
+    "shortName": "Monza",
+    "tla": "MON",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "AC Monza"
+    ]
+  },
+  "serie-a::107": {
+    "competition": "serie-a",
+    "providerTeamId": "107",
+    "slug": "genoa-cfc",
+    "name": "Genoa CFC",
+    "shortName": "Genoa",
+    "tla": "GEN",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Genoa CFC"
+    ]
+  },
+  "serie-a::113": {
+    "competition": "serie-a",
+    "providerTeamId": "113",
+    "slug": "napoli",
+    "name": "SSC Napoli",
+    "shortName": "Napoli",
+    "tla": "NAP",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "SSC Napoli"
+    ]
+  },
+  "serie-a::112": {
+    "competition": "serie-a",
+    "providerTeamId": "112",
+    "slug": "parma-1913",
+    "name": "Parma Calcio 1913",
+    "shortName": "Parma",
+    "tla": "PAR",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Parma Calcio 1913"
+    ]
+  },
+  "serie-a::104": {
+    "competition": "serie-a",
+    "providerTeamId": "104",
+    "slug": "cagliari",
+    "name": "Cagliari Calcio",
+    "shortName": "Cagliari",
+    "tla": "CAG",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Cagliari Calcio"
+    ]
+  },
+  "serie-a::470": {
+    "competition": "serie-a",
+    "providerTeamId": "470",
+    "slug": "frosinone",
+    "name": "Frosinone Calcio",
+    "shortName": "Frosinone",
+    "tla": "FRO",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Frosinone Calcio"
+    ]
+  },
+  "serie-a::109": {
+    "competition": "serie-a",
+    "providerTeamId": "109",
+    "slug": "juventus",
+    "name": "Juventus FC",
+    "shortName": "Juventus",
+    "tla": "JUV",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Juventus FC"
+    ]
+  },
+  "serie-a::454": {
+    "competition": "serie-a",
+    "providerTeamId": "454",
+    "slug": "venezia",
+    "name": "Venezia FC",
+    "shortName": "Venezia FC",
+    "tla": "VEN",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Venezia FC"
+    ]
+  },
+  "serie-a::5890": {
+    "competition": "serie-a",
+    "providerTeamId": "5890",
+    "slug": "us-lecce",
+    "name": "US Lecce",
+    "shortName": "Lecce",
+    "tla": "USL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "US Lecce"
+    ]
+  },
+  "serie-a::102": {
+    "competition": "serie-a",
+    "providerTeamId": "102",
+    "slug": "atalanta-bc",
+    "name": "Atalanta BC",
+    "shortName": "Atalanta",
+    "tla": "ATA",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Atalanta BC"
+    ]
+  },
+  "serie-a::471": {
+    "competition": "serie-a",
+    "providerTeamId": "471",
+    "slug": "us-sassuolo",
+    "name": "US Sassuolo Calcio",
+    "shortName": "Sassuolo",
+    "tla": "SAS",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "US Sassuolo Calcio"
+    ]
+  },
+  "serie-a::586": {
+    "competition": "serie-a",
+    "providerTeamId": "586",
+    "slug": "torino",
+    "name": "Torino FC",
+    "shortName": "Torino",
+    "tla": "TOR",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Torino FC"
+    ]
+  },
+  "serie-a::98": {
+    "competition": "serie-a",
+    "providerTeamId": "98",
+    "slug": "milan",
+    "name": "AC Milan",
+    "shortName": "Milan",
+    "tla": "MIL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "AC Milan"
+    ]
+  },
+  "serie-a::103": {
+    "competition": "serie-a",
+    "providerTeamId": "103",
+    "slug": "bologna-1909",
+    "name": "Bologna FC 1909",
+    "shortName": "Bologna",
+    "tla": "BOL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Bologna FC 1909"
+    ]
+  },
+  "serie-a::110": {
+    "competition": "serie-a",
+    "providerTeamId": "110",
+    "slug": "ss-lazio",
+    "name": "SS Lazio",
+    "shortName": "Lazio",
+    "tla": "LAZ",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "SS Lazio"
+    ]
+  },
+  "serie-a::100": {
+    "competition": "serie-a",
+    "providerTeamId": "100",
+    "slug": "roma",
+    "name": "AS Roma",
+    "shortName": "Roma",
+    "tla": "ROM",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "AS Roma"
+    ]
+  },
+  "serie-a::99": {
+    "competition": "serie-a",
+    "providerTeamId": "99",
+    "slug": "acf-fiorentina",
+    "name": "ACF Fiorentina",
+    "shortName": "Fiorentina",
+    "tla": "FIO",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "ACF Fiorentina"
+    ]
+  },
+  "ligue-1::516": {
+    "competition": "ligue-1",
+    "providerTeamId": "516",
+    "slug": "olympique-marseille",
+    "name": "Olympique de Marseille",
+    "shortName": "Marseille",
+    "tla": "MAR",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Olympique de Marseille"
+    ]
+  },
+  "ligue-1::576": {
+    "competition": "ligue-1",
+    "providerTeamId": "576",
+    "slug": "strasbourg-alsace",
+    "name": "RC Strasbourg Alsace",
+    "shortName": "Strasbourg",
+    "tla": "RC ",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "RC Strasbourg Alsace"
+    ]
+  },
+  "ligue-1::546": {
+    "competition": "ligue-1",
+    "providerTeamId": "546",
+    "slug": "racing-lens",
+    "name": "Racing Club de Lens",
+    "shortName": "RC Lens",
+    "tla": "RCL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Racing Club de Lens"
+    ]
+  },
+  "ligue-1::519": {
+    "competition": "ligue-1",
+    "providerTeamId": "519",
+    "slug": "aj-auxerre",
+    "name": "AJ Auxerre",
+    "shortName": "Auxerre",
+    "tla": "AJA",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "AJ Auxerre"
+    ]
+  },
+  "ligue-1::535": {
+    "competition": "ligue-1",
+    "providerTeamId": "535",
+    "slug": "le-mans",
+    "name": "Le Mans FC",
+    "shortName": "Le Mans",
+    "tla": "LMF",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Le Mans FC"
+    ]
+  },
+  "ligue-1::512": {
+    "competition": "ligue-1",
+    "providerTeamId": "512",
+    "slug": "stade-brestois-29",
+    "name": "Stade Brestois 29",
+    "shortName": "Brest",
+    "tla": "BRE",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Stade Brestois 29"
+    ]
+  },
+  "ligue-1::531": {
+    "competition": "ligue-1",
+    "providerTeamId": "531",
+    "slug": "es-troyes",
+    "name": "ES Troyes AC",
+    "shortName": "Troyes",
+    "tla": "ETR",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "ES Troyes AC"
+    ]
+  },
+  "ligue-1::1045": {
+    "competition": "ligue-1",
+    "providerTeamId": "1045",
+    "slug": "paris",
+    "name": "Paris FC",
+    "shortName": "Paris FC",
+    "tla": "PFC",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Paris FC"
+    ]
+  },
+  "ligue-1::522": {
+    "competition": "ligue-1",
+    "providerTeamId": "522",
+    "slug": "ogc-nice",
+    "name": "OGC Nice",
+    "shortName": "Nice",
+    "tla": "NIC",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "OGC Nice"
+    ]
+  },
+  "ligue-1::525": {
+    "competition": "ligue-1",
+    "providerTeamId": "525",
+    "slug": "lorient",
+    "name": "FC Lorient",
+    "shortName": "Lorient",
+    "tla": "FCL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "FC Lorient"
+    ]
+  },
+  "ligue-1::511": {
+    "competition": "ligue-1",
+    "providerTeamId": "511",
+    "slug": "toulouse",
+    "name": "Toulouse FC",
+    "shortName": "Toulouse",
+    "tla": "TOU",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Toulouse FC"
+    ]
+  },
+  "ligue-1::523": {
+    "competition": "ligue-1",
+    "providerTeamId": "523",
+    "slug": "olympique-lyonnais",
+    "name": "Olympique Lyonnais",
+    "shortName": "Olympique Lyon",
+    "tla": "LYO",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Olympique Lyonnais"
+    ]
+  },
+  "ligue-1::532": {
+    "competition": "ligue-1",
+    "providerTeamId": "532",
+    "slug": "angers-sco",
+    "name": "Angers SCO",
+    "shortName": "Angers SCO",
+    "tla": "ANG",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Angers SCO"
+    ]
+  },
+  "ligue-1::521": {
+    "competition": "ligue-1",
+    "providerTeamId": "521",
+    "slug": "lille-osc",
+    "name": "Lille OSC",
+    "shortName": "Lille",
+    "tla": "LIL",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Lille OSC"
+    ]
+  },
+  "ligue-1::533": {
+    "competition": "ligue-1",
+    "providerTeamId": "533",
+    "slug": "le-havre",
+    "name": "Le Havre AC",
+    "shortName": "Le Havre",
+    "tla": "HAC",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Le Havre AC"
+    ]
+  },
+  "ligue-1::548": {
+    "competition": "ligue-1",
+    "providerTeamId": "548",
+    "slug": "monaco",
+    "name": "AS Monaco FC",
+    "shortName": "Monaco",
+    "tla": "ASM",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "AS Monaco FC"
+    ]
+  },
+  "ligue-1::524": {
+    "competition": "ligue-1",
+    "providerTeamId": "524",
+    "slug": "paris-saint-germain",
+    "name": "Paris Saint-Germain FC",
+    "shortName": "PSG",
+    "tla": "PSG",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Paris Saint-Germain FC"
+    ]
+  },
+  "ligue-1::529": {
+    "competition": "ligue-1",
+    "providerTeamId": "529",
+    "slug": "stade-rennais-1901",
+    "name": "Stade Rennais FC 1901",
+    "shortName": "Stade Rennais",
+    "tla": "REN",
+    "firstSeenAt": "2026-08-22T02:51:34.327Z",
+    "lastSeenAt": "2026-09-07T06:09:04.468Z",
+    "observedNames": [
+      "Stade Rennais FC 1901"
+    ]
+  }
+}

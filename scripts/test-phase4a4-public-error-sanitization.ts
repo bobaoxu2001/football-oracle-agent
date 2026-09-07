@@ -20,6 +20,7 @@ import {
   sanitizePublicOperationalPayload,
   sanitizePublicShadowReport,
 } from "@/lib/competitions/premier-league/ops/public-errors";
+import { redactCredentialText } from "@/lib/competitions/premier-league/ops/secrets";
 
 const SECRET_URI =
   "mongodb+srv://admin:hunter2@cluster0.invalid/oracle?authSource=admin";
@@ -185,6 +186,14 @@ function hostileMarketReport(): MarketHealthReport {
 }
 
 async function main(): Promise<void> {
+  await check("odds API keys are stripped from operator diagnostics", () => {
+    const key = "test-odds-key-SHOULD-NOT-LEAK-9f3a";
+    const raw = `the-odds-api request failed: fetch failed for https://api.the-odds-api.com/v4/sports/soccer_epl/odds?apiKey=${key}`;
+    const redacted = redactCredentialText(raw, [key]);
+    assert.equal(redacted.includes(key), false);
+    assert.match(redacted, /apiKey=\[redacted\]/);
+  });
+
   await check("credential diagnostics map to a bounded authentication category", () => {
     assert.equal(
       classifyPublicOperationalError(PRIVATE_TOKEN).category,

@@ -14,6 +14,7 @@
  *   x-requests-remaining, x-requests-used, x-requests-last
  */
 
+import { redactCredentialText } from "@/lib/competitions/premier-league/ops/secrets";
 import type { MarketDataSource, MarketSourceEvent, MarketSourceFetchResult } from "./types";
 import { MARKET_SOURCE_THE_ODDS_API, MARKET_TYPE_H2H } from "./types";
 
@@ -60,6 +61,8 @@ export class TheOddsApiMarketSource implements MarketDataSource {
   async fetchH2h(nowIso: string): Promise<MarketSourceFetchResult> {
     const key = process.env.ODDS_API_KEY ?? "";
     if (!key) throw new Error("ODDS_API_KEY is not configured");
+    // The Odds API v4 requires apiKey as a query parameter (MISSING_KEY if
+    // omitted). Keep it out of diagnostics; see redactCredentialText.
     const url = new URL(`${ODDS_API_HOST}/v4/sports/${ODDS_API_SPORT}/odds`);
     url.searchParams.set("apiKey", key);
     url.searchParams.set("regions", ODDS_API_REGION);
@@ -74,10 +77,15 @@ export class TheOddsApiMarketSource implements MarketDataSource {
       res = await fetch(url.toString(), {
         method: "GET",
         signal: controller.signal,
-        headers: { Accept: "application/json", "User-Agent": "football-oracle-market-recorder" },
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "football-oracle-market-recorder",
+        },
       });
     } catch (err) {
-      throw new Error(`the-odds-api request failed: ${(err as Error).message}`);
+      throw new Error(
+        `the-odds-api request failed: ${redactCredentialText((err as Error).message, [key])}`
+      );
     } finally {
       clearTimeout(timer);
     }
@@ -90,7 +98,8 @@ export class TheOddsApiMarketSource implements MarketDataSource {
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(`the-odds-api HTTP ${res.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+      const safeBody = body ? redactCredentialText(body.slice(0, 200), [key]) : "";
+      throw new Error(`the-odds-api HTTP ${res.status}${safeBody ? `: ${safeBody}` : ""}`);
     }
 
     const payload = (await res.json()) as RawEvent[];

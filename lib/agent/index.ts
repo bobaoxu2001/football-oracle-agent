@@ -23,21 +23,17 @@ import {
   getCompletedFixture,
   completedFixtureNote,
 } from "@/lib/prediction-engine";
-import { predictPremierLeagueMatch } from "@/lib/prediction-engine/league-engine";
-import { getClub } from "@/lib/competitions/premier-league/clubs";
-import { remainingPremierLeagueFixtures } from "@/lib/competitions/premier-league/season";
-import { ratingsAsOf } from "@/lib/competitions/premier-league/ratings";
-import { simulateLeagueSeason } from "@/lib/competitions/premier-league/simulate";
-import { loadProductionParams } from "@/lib/competitions/premier-league/model-tracks";
-import {
-  currentHonestyText,
-  currentSeasonDisclaimer,
-  modelInputHonesty,
-} from "@/lib/competitions/premier-league/honesty";
-import { seasonDataVersion } from "@/lib/competitions/premier-league/data-gate";
-import { liveFixtures } from "@/lib/competitions/premier-league/fixture-store";
-import { PREMIER_LEAGUE_CURRENT_SEASON } from "@/lib/competitions/premier-league/config";
 import { freshnessFootnote } from "@/lib/data-truth/freshness";
+import {
+  explanationFromFrozenForecast,
+  loadFrozenPremierLeagueForecast,
+  predictionFromFrozenForecast,
+  productionRefusalFromError,
+  refusedPremierLeagueResponse,
+  simulationFromFrozenForecast,
+  unsupportedPremierLeagueScenarioRefusal,
+  unsupportedPremierLeagueTitleRefusal,
+} from "./production-truth";
 import {
   getTournamentState,
   gateChampionOdds,
@@ -97,7 +93,6 @@ import type {
   ChampionAnswer,
   NewsImpactReport,
   StructuredResult,
-  TeamRef,
 } from "./types";
 
 export interface AgentInput {
@@ -109,6 +104,8 @@ export interface AgentInput {
   persist?: boolean;
   /** Global Voice Mode: language to localize the answer to (BCP-47). */
   language?: string;
+  /** Evaluation clock for frozen-forecast selection. Production callers omit this. */
+  now?: Date;
 }
 
 function step(
@@ -275,7 +272,7 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
   const persist = input.persist ?? true;
   const hasContextMatchup = input.contextTeams?.length === 2;
   const plan = planQuery(query, input.isFollowUp, hasContextMatchup);
-  const createdAt = new Date();
+  const createdAt = input.now ?? new Date();
   const lang: LangCode = isLangCode(input.language) ? input.language : "en-US";
 
   // Out-of-scope competitions (Euros, CL, …) must never be silently answered
@@ -767,67 +764,20 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
   }
 
   // ---- PREMIER LEAGUE TITLE ODDS ----------------------------------------
+  // There is no frozen production title artifact. Do not mix live fixtures
+  // with historical-tape Elo or ad-hoc season simulation.
   if (
     plan.competition === "premier-league" &&
     plan.intent === "champion-odds" &&
     plan.teamSlugs.length < 2
   ) {
-    const params = loadProductionParams();
-    const field = remainingPremierLeagueFixtures();
-    const asOf = new Date().toISOString();
-    const ratings = ratingsAsOf(asOf.slice(0, 10)).ratings;
-    const sim = simulateLeagueSeason({
-      ratings,
-      played: field.played,
-      remaining: field.remaining,
-      clubSlugs: field.clubSlugs,
-      sims: 4000,
-      simulationAsOf: asOf,
-      seasonDataVersion: seasonDataVersion(),
-    });
-    const answer: ChampionAnswer = {
-      simulationsRun: sim.sims,
-      contenders: sim.clubs.slice(0, 8).map((c) => ({
-        slug: c.slug,
-        name: c.name,
-        flag: "⚽️",
-        champion: c.champion,
-        elo: Math.round(c.elo),
-      })),
-    };
-    const steps: ReasoningStep[] = [
-      step("plan", "Plan the analysis", "Premier League title question."),
-      step("data", "Load walk-forward club Elo", `As-of ${asOf}. ${field.clubSlugs.length} clubs. Model ${params.modelVersion}.`),
-      step(
-        "sim",
-        "Simulate the league table",
-        `${sim.sims.toLocaleString()} season paths. Remaining fixtures sampled from the Dixon-Coles grid. No World Cup bracket.`
-      ),
-      step("report", "Rank title odds", `${answer.contenders[0]?.name ?? "—"} leads the title board.`),
-    ];
-    const lines = sim.clubs.slice(0, 8).map((c, i) =>
-      `${i + 1}. ${c.name} — ${(c.champion * 100).toFixed(1)}% title · expected finish ${c.expectedPosition.toFixed(1)}`
-    );
-    const caveat = currentSeasonDisclaimer();
-    const explanation =
-      (caveat ? `${caveat}\n\n` : `${currentHonestyText()}\n\n`) +
-      `Premier League title probabilities (${params.modelVersion}). ` +
-      `This is a league-table Monte Carlo of remaining fixtures with completed results fixed, not a knockout tournament.\n` +
-      `Simulation as-of ${sim.simulationAsOf}; ${sim.completedFixturesIncluded} completed fixtures fixed; ${sim.remainingFixtureCount} remaining simulated.\n\n` +
-      lines.join("\n") +
-      `\n\n${modelInputHonesty()}\nProbability estimate, not a guaranteed outcome.`;
-    return {
-      intent: "champion-odds",
+    return refusedPremierLeagueResponse({
       query,
-      reasoningSteps: steps,
-      champions: answer,
-      explanation,
-      fanInsight: `⚽️ ${answer.contenders[0]?.name ?? "The field"} lead the Premier League title board at ${((answer.contenders[0]?.champion ?? 0) * 100).toFixed(1)}%.`,
-      llmEnhanced: false,
-      persisted: "none",
-      createdAt: createdAt.toISOString(),
+      intent: plan.intent,
+      refusal: unsupportedPremierLeagueTitleRefusal(),
+      createdAt,
       language: lang,
-    };
+    });
   }
 
   // ---- CHAMPION ODDS ----------------------------------------------------
@@ -965,92 +915,89 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
   }
 
   if (slugs.length === 2 && plan.competition === "premier-league") {
-    const params = loadProductionParams();
-    const asOf = new Date().toISOString();
-    const scheduled =
-      liveFixtures().find((f) => f.homeSlug === slugs[0] && f.awaySlug === slugs[1]) ??
-      liveFixtures().find((f) => f.homeSlug === slugs[1] && f.awaySlug === slugs[0]);
-    const homeSlug = scheduled?.homeSlug ?? slugs[0];
-    const awaySlug = scheduled?.awaySlug ?? slugs[1];
-    const pred = predictPremierLeagueMatch(homeSlug, awaySlug, {
-      asOf,
-      kickoff: scheduled?.kickoffUtc ?? undefined,
-      fixtureId: scheduled?.id,
-      season: PREMIER_LEAGUE_CURRENT_SEASON,
-    });
-    // Interactive questions are calculations, not production observations.
-    // Only the deterministic operations scheduler may mint a LIVE_OOS row,
-    // because that path first freezes and validates the complete PIT manifest.
-    const home = getClub(homeSlug);
-    const away = getClub(awaySlug);
-    const teamA: TeamRef = { slug: home.slug, name: home.name, flag: "⚽️", elo: pred.eloA };
-    const teamB: TeamRef = { slug: away.slug, name: away.name, flag: "⚽️", elo: pred.eloB };
-    const simulation = runSimulation(teamA, teamB, {
-      eloA: pred.eloA,
-      eloB: pred.eloB,
-      homeBonus: params.homeAdvantage,
-      applyWorldCupDraw: false,
-      rho: params.dcRho,
-      awayHomeShare: params.awayHomeShare,
-    });
-    const bundle: PredictionBundle = { prediction: pred, teamA, teamB, simulation };
-    const result = toPredictionResult(bundle);
-    const steps: ReasoningStep[] = [
-      step("plan", "Plan the analysis", "Premier League match prediction."),
-      step("data", "Walk-forward club Elo", `As-of ${asOf}. Home ${home.name} ${Math.round(pred.eloA)}, away ${away.name} ${Math.round(pred.eloB)}.`),
-      step(
-        "model",
-        "Dixon-Coles 1X2",
-        `True home advantage +${params.homeAdvantage} Elo. ρ = ${params.dcRho}. Model ${params.modelVersion}.`
-      ),
-      step("sim", "Sample the same scoreline grid", simulation.summary),
-    ];
-    const honesty = currentHonestyText();
-    const fixtureLine = scheduled
-      ? `${home.name} (home) vs ${away.name} (away) — official ${PREMIER_LEAGUE_CURRENT_SEASON} fixture, kickoff ${scheduled.kickoffLocal ?? scheduled.kickoffUtc ?? scheduled.date} (${scheduled.timezone ?? "Europe/London"}).`
-      : `${home.name} (home) vs ${away.name} (away) — requested orientation; no matching official fixture was resolved.`;
-    const explanation =
-      `${honesty}\n\n` +
-      `${fixtureLine}\n` +
-      `Home ${(pred.teamAWinProbability * 100).toFixed(1)}% · Draw ${(pred.drawProbability * 100).toFixed(1)}% · Away ${(pred.teamBWinProbability * 100).toFixed(1)}%\n` +
-      `Goal expectation ${pred.expectedScore}. Most likely score ${pred.mostLikelyScoreline}.\n` +
-      `Model ${params.modelVersion}. ${modelInputHonesty()}\n` +
-      `Probability estimate, not a guaranteed outcome.`;
-    return {
-      intent: "match-prediction",
-      query,
-      reasoningSteps: steps,
-      prediction: result,
-      simulation,
-      explanation,
-      fanInsight: `${home.name} ${(pred.teamAWinProbability * 100).toFixed(0)}% / draw ${(pred.drawProbability * 100).toFixed(0)}% / ${away.name} ${(pred.teamBWinProbability * 100).toFixed(0)}%.`,
-      llmEnhanced: false,
-      persisted: persist
-        ? await savePrediction({
-            userQuery: query,
-            intent: "match-prediction",
-            teams: slugs,
-            prediction: {
-              teamAWin: pred.teamAWinProbability,
-              draw: pred.drawProbability,
-              teamBWin: pred.teamBWinProbability,
-              confidence: pred.confidenceScore,
-            },
-            simulationResult: {
-              simulationsRun: simulation.simulationsRun,
-              mostLikelyScore: simulation.mostLikelyScore,
-              upsetProbability: simulation.upsetProbability,
-              summary: simulation.summary,
-            },
-            reasoningSteps: steps.map((s) => s.title),
-            explanation,
-            followUpContext: `${home.name} vs ${away.name}`,
-            createdAt,
-          })
-        : "none",
-      createdAt: createdAt.toISOString(),
-      language: lang,
-    };
+    if (plan.intent === "scenario") {
+      return refusedPremierLeagueResponse({
+        query,
+        intent: plan.intent,
+        refusal: unsupportedPremierLeagueScenarioRefusal(),
+        createdAt,
+        language: lang,
+      });
+    }
+    try {
+      const forecast = await loadFrozenPremierLeagueForecast(slugs[0], slugs[1], createdAt);
+      const result = predictionFromFrozenForecast(forecast);
+      const simulation = simulationFromFrozenForecast(forecast);
+      const explanation = explanationFromFrozenForecast(forecast, result);
+      const steps: ReasoningStep[] = [
+        step("plan", "Plan the analysis", "Premier League match prediction from frozen production truth."),
+        step(
+          "snapshot",
+          "Load immutable LIVE_OOS forecast",
+          `${forecast.matchId} · ${forecast.provenance.immutableForecastId} · cutoff ${forecast.cutoffAt}.`
+        ),
+        step(
+          "report",
+          "Copy frozen 1X2",
+          `Home ${result.teamA.name} ${(result.teamAWin * 100).toFixed(1)}% · Draw ${(result.draw * 100).toFixed(1)}% · Away ${result.teamB.name} ${(result.teamBWin * 100).toFixed(1)}%.`
+        ),
+      ];
+      const productionForecast = {
+        matchId: forecast.matchId,
+        forecastId: forecast.provenance.immutableForecastId,
+        cutoffAt: forecast.cutoffAt,
+        modelVersion: forecast.modelVersion,
+        modelRole: "production" as const,
+      };
+      return {
+        intent: "match-prediction",
+        query,
+        reasoningSteps: steps,
+        prediction: result,
+        simulation,
+        explanation,
+        fanInsight: `${result.teamA.name} ${(result.teamAWin * 100).toFixed(0)}% / draw ${(result.draw * 100).toFixed(0)}% / ${result.teamB.name} ${(result.teamBWin * 100).toFixed(0)}%.`,
+        llmEnhanced: false,
+        persisted: persist
+          ? await savePrediction({
+              userQuery: query,
+              intent: "match-prediction",
+              teams: [result.teamA.slug, result.teamB.slug],
+              prediction: {
+                teamAWin: result.teamAWin,
+                draw: result.draw,
+                teamBWin: result.teamBWin,
+                confidence: result.confidenceScore,
+              },
+              simulationResult: {
+                simulationsRun: simulation.simulationsRun,
+                mostLikelyScore: simulation.mostLikelyScore,
+                upsetProbability: simulation.upsetProbability,
+                summary: simulation.summary,
+              },
+              reasoningSteps: steps.map((s) => s.title),
+              explanation,
+              followUpContext: `${result.teamA.name} vs ${result.teamB.name}`,
+              createdAt,
+            })
+          : "none",
+        createdAt: createdAt.toISOString(),
+        language: lang,
+        productionForecast,
+      };
+    } catch (error) {
+      const refusal = productionRefusalFromError(error);
+      if (refusal) {
+        return refusedPremierLeagueResponse({
+          query,
+          intent: "match-prediction",
+          refusal,
+          createdAt,
+          language: lang,
+        });
+      }
+      throw error;
+    }
   }
 
   if (slugs.length < 2) {
@@ -1079,7 +1026,7 @@ export async function runAgent(input: AgentInput): Promise<AgentResponse> {
         ? `**${nonQualified.zh}** 不在本模型的 2026 世界杯 48 强决赛圈名单中，因此无法夺冠，也无法参与对阵模拟。可以问我已晋级的球队（如阿根廷、西班牙、法国）。\n\n`
         : `**${nonQualified.en}** is not in the 2026 World Cup finals field (48 teams) in this model, so it can't win the tournament or be simulated in a matchup. Ask about a qualified team (e.g. Argentina, Spain, France).\n\n`
       : outOfScope
-        ? "This agent models the **Premier League** and the **FIFA World Cup 2026**. I don't model other competitions (Euros, Champions League, La Liga, …) in Phase 1.\n\n"
+        ? "This production agent serves frozen **Premier League** `pl-live-v0.2.0` forecasts and the archived **FIFA World Cup 2026** research plugin. It does not emit production numbers for Euros, Champions League, or the other Big Five leagues. Labeled research 1X2 for La Liga, Bundesliga, Serie A and Ligue 1 lives on `/research/big-five` as an unfitted prior, not as production truth.\n\n"
         : "";
     const explanationEn =
       scopeNote +

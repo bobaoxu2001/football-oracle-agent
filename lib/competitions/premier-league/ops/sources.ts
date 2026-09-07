@@ -12,6 +12,7 @@ import { officialFixtureId } from "../ingest";
 import { utcIsoToLondonLocal } from "../timezone";
 import { classifyOfficialKickoffCertainty } from "../kickoff-certainty";
 import { PREMIER_LEAGUE_CURRENT_SEASON } from "../config";
+import { redactCredentialText } from "./secrets";
 import type { MatchStatus, NormalizedSourceFixture, SourceObservation } from "./types";
 
 export const SOURCE_OFFICIAL = "premier-league-official";
@@ -220,12 +221,12 @@ async function fetchJson(url: string, headers: Record<string, string>, timeoutMs
   try {
     const res = await fetch(url, { headers, signal: controller.signal });
     if (!res.ok) {
-      console.warn(`[pl-ops] ${url} HTTP ${res.status}`);
+      console.warn(`[pl-ops] ${redactCredentialText(url)} HTTP ${res.status}`);
       return null;
     }
     return await res.json();
   } catch (err) {
-    console.warn("[pl-ops] fetch error:", (err as Error)?.message);
+    console.warn("[pl-ops] fetch error:", redactCredentialText((err as Error)?.message ?? ""));
     return null;
   } finally {
     clearTimeout(timeout);

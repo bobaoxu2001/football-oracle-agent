@@ -1,3 +1,4 @@
+import type { PremierLeagueMatchIntelligenceReport } from "@/lib/competitions/premier-league/intelligence";
 import type { PredictionStage } from "@/lib/snapshots/types";
 import type {
   MatchAvailabilityContext,
@@ -284,6 +285,8 @@ export interface MatchIntelligence {
     };
     temporalRule: "availableAt <= cutoffAt";
   };
+  /** Research intelligence. Never mutates `forecast` and is never a champion input. */
+  matchIntelligence: PremierLeagueMatchIntelligenceReport;
   audit: ForecastProvenance;
 }
 

@@ -70,9 +70,10 @@ const PREMIER_LEAGUE_QUERY =
 /**
  * Query hints for the four ledger-only leagues.
  *
- * These route MATCH-HISTORY questions, not forecasts: no production model is
- * fitted for them yet, so resolveCompetitionId still refuses to send a
- * prediction request their way (see resolveLedgerCompetitionId).
+ * These route MATCH-HISTORY questions. Production forecasting stays Premier
+ * League-only: resolveCompetitionId still refuses to send a production
+ * prediction request their way. Labeled research 1X2 lives on
+ * /research/big-five and is not returned by this resolver.
  */
 const LEDGER_LEAGUE_QUERY: [Exclude<BigFiveCompetitionId, "premier-league">, RegExp][] = [
   ["la-liga", /la ?liga|primera divisi[oó]n|spanish league|西甲/i],

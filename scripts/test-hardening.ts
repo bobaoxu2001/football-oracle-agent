@@ -238,6 +238,22 @@ check("bearer secret accepted", authorizeOpsTick(req({ authorization: "Bearer co
 check("near-miss secret rejected", !authorizeOpsTick(req({ authorization: "Bearer correct-secrez" })).ok);
 check("malformed authorization rejected", !authorizeOpsTick(req({ authorization: "correct-secret" })).ok);
 check("malformed URL does not throw", !authorizeOpsTick(req({}, "not a url")).ok);
+check(
+  "local query secret accepted outside production",
+  authorizeOpsTick(req({}, "http://local/api/ops/tick?secret=correct-secret")).ok
+);
+process.env.VERCEL = "1";
+check(
+  "production query secret rejected",
+  !authorizeOpsTick(req({}, "http://local/api/ops/tick?secret=correct-secret")).ok
+);
+check(
+  "production bearer still accepted when a query secret is also present",
+  authorizeOpsTick(
+    req({ authorization: "Bearer correct-secret" }, "http://local/api/ops/tick?secret=wrong")
+  ).ok
+);
+delete process.env.VERCEL;
 delete process.env.CRON_SECRET;
 
 // ── The Gemini key must never travel in a URL ─────────────────────────────

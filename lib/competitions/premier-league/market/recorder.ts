@@ -4,6 +4,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { redactCredentialText } from "@/lib/competitions/premier-league/ops/secrets";
 import type { Fixture } from "@/lib/identity/types";
 import { liveFixtures } from "../fixture-store";
 import { canonicalizeFixtureStatus } from "../ingest";
@@ -270,7 +271,7 @@ export async function maybeRunMarketRecorder(options: {
       consensusWritten: 0,
       quotaCost: null,
       quotaRemaining: state.lastQuota.remaining,
-      error: (err as Error).message,
+      error: redactCredentialText((err as Error).message),
     };
     await insertPollJob(job);
     await saveMarketState({
