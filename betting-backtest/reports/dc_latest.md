@@ -1,4 +1,4 @@
-# Ridge Dixon-Coles backtest — results through 2026-09-18
+# Ridge Dixon-Coles backtest — results through 2026-09-19
 
 _Auto-generated nightly by `dc_model.py`. Do not edit by hand._
 
