@@ -27,6 +27,13 @@ yarn-error.log*
 __pycache__/
 *.pyc
 
+# independent Python EV tooling
+.pytest_cache/
+.ruff_cache/
+src/*.egg-info/
+.venv-sports-ev/
+dist/
+
 # env files
 .env
 .env.local
@@ -49,3 +56,6 @@ __pycache__/
 # Big Five match ledger. The 2026-27 tape is tracked so research forecasts and
 # match history work from a clone. Re-ingest is idempotent. When deployed,
 # production still accumulates into MongoDB.
+
+# Local source videos for content production
+/*.mp4

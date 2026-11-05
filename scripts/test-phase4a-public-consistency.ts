@@ -199,8 +199,8 @@ async function main(): Promise<void> {
     );
   });
 
-  await check("headline estimates and intervals cannot leak through an EARLY_EVIDENCE payload", () => {
-    assert.equal(live.productionPerformance.evaluationMaturity.status, "EARLY_EVIDENCE");
+  await check("headline estimates and intervals follow the independent-fixture reporting gate", () => {
+    const allowed = live.productionPerformance.evaluationMaturity.provisionalReportingAllowed;
     for (const metric of [
       "brier",
       "rps",
@@ -209,24 +209,30 @@ async function main(): Promise<void> {
       "pooledReliabilityMae",
       "topPickAccuracy",
     ]) {
-      assert.equal(live.productionPerformance[metric], null);
+      if (allowed) {
+        assert.ok(Number.isFinite(live.productionPerformance[metric]), metric);
+      } else {
+        assert.equal(live.productionPerformance[metric], null, metric);
+      }
     }
-    assert.ok(
-      Object.values(live.productionPerformance.uncertainty.pointEstimates).every(
-        (value) => value === null
-      )
-    );
-    assert.equal(live.productionPerformance.uncertainty.intervals, null);
-    assert.notEqual(live.productionPerformance.uncertainty.intervalStatus, "AVAILABLE");
+    for (const value of Object.values(live.productionPerformance.uncertainty.pointEstimates)) {
+      assert.ok(allowed ? typeof value === "number" && Number.isFinite(value) : value === null);
+    }
+    if (!allowed) {
+      assert.equal(live.productionPerformance.uncertainty.intervals, null);
+      assert.notEqual(live.productionPerformance.uncertainty.intervalStatus, "AVAILABLE");
+    }
 
-    assert.equal(shadow.evaluationMaturity.status, "EARLY_EVIDENCE");
-    assert.equal(shadow.metrics, null);
-    assert.ok(
-      Object.values(shadow.uncertainty.pointEstimates).every(
-        (value) => value === null
-      )
-    );
-    assert.equal(shadow.uncertainty.intervals, null);
+    // The committed ledger grows. EARLY_EVIDENCE boundary cases are exercised
+    // with fixed observations in test-phase4a2-evidence-integrity.ts; this API
+    // contract must also remain valid once the real ledger reaches PROVISIONAL.
+    if (!shadow.evaluationMaturity.provisionalReportingAllowed) {
+      assert.equal(shadow.metrics, null);
+      assert.ok(
+        Object.values(shadow.uncertainty.pointEstimates).every((value) => value === null)
+      );
+      assert.equal(shadow.uncertainty.intervals, null);
+    }
   });
 
   await check("health market failure keeps a stable full shape and unknown counts", async () => {

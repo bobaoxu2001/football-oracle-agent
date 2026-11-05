@@ -301,7 +301,7 @@ function withManifest(
 function main(): void {
   clearSnapshotsForTests();
   const artifact = scoreArtifact();
-  const legacy = createSnapshot({
+  const legacy: PredictionSnapshot = { ...createSnapshot({
     fixtureId: fixture.id,
     competition: "premier-league",
     season: fixture.season,
@@ -330,7 +330,10 @@ function main(): void {
       fixtureRetrievedAt: "2026-08-01T00:00:00.000Z",
       latestEvidenceObservedAt: "2026-08-31T10:00:00.000Z",
     },
-  });
+  }), createdAt: "2026-09-01T12:00:00.000Z" };
+  // This fixture represents a historically recorded manual snapshot. Its store
+  // creation time must be fixed as well as its cutoff; otherwise the timeline
+  // correctly excludes it as post-kickoff once the suite runs after October.
 
   const legacySummary = inputLineageSummary(legacy);
   check("legacy snapshot is explicitly unavailable", () => {

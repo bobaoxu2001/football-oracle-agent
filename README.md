@@ -238,6 +238,31 @@ The regression suites cover:
 
 The committed Premier League LIVE_OOS tape is append-protected and hash-gated by the test suite.
 
+## Independent football EV and prediction log
+
+The optional Python package in `src/sports_ev` keeps team-based predictions
+separate from market-price evaluation. See [the Chinese methodology](football/METHODOLOGY.md)
+and [the prediction log](football/predictions_log.csv). The log currently contains
+nine prospective, uncalibrated manual forecasts for 14 October 2026 in Beijing
+time; results and market prices are blank until recorded. These do not change
+the Premier League production model.
+
+The CLI evaluates all six Yes/No directions, applies the requested conservative
+whole-cent fee estimate, and shares a 2% bankroll cap across one match. Single
+Yes prices imply a hypothetical zero-spread No price; pass actual No asks or
+Yes bids to account for the spread. No orders are placed.
+
+```bash
+python scripts/football_ev.py ev --probs 0.35 0.31 0.34 --prices 30.5 28.5 47.8
+python scripts/football_ev.py ev --probs 0.35 0.31 0.34 --prices 30.5 28.5 47.8 --bids 28 26 42 --bankroll 1000
+python scripts/football_ev.py score football/predictions_log.csv
+```
+
+For Python development, install `python -m pip install -e '.[dev]'`, then run
+`python -m pytest` and `ruff check src/sports_ev scripts/football_ev.py tests`.
+The Python tooling has no runtime dependencies; the existing Node commands
+continue to verify the web application.
+
 ## Deployment and operations
 
 The app is deployed on Vercel. The scheduled operations endpoints are authenticated and persist state through the configured durable backend in production.

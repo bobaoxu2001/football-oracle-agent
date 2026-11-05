@@ -1,0 +1,14 @@
+{
+  "label": "User-provided calculation example; historical match result not verified",
+  "home": "Coventry City",
+  "away": "Newcastle United",
+  "probability_source": "User specification in this conversation",
+  "price_source": "User-reported Rotowire American odds; not an executable order book",
+  "american_odds": [228, 251, 109],
+  "match_probs": {"home": 0.35, "draw": 0.31, "away": 0.34},
+  "yes_reference_prices_cents": {"home": 30.5, "draw": 28.5, "away": 47.8},
+  "fee_mode": "whole_cent_conservative_compatibility",
+  "historical_result": null,
+  "historical_half_time_result": null,
+  "verified_historical_accuracy": false
+}

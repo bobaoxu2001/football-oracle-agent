@@ -4,6 +4,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { mock } from "node:test";
 
 process.env.MATCH_AGENT_LLM_ENABLED = "0";
 
@@ -45,6 +46,10 @@ async function predictJson(query: string, forwardedFor: string) {
 }
 
 async function main() {
+  // The direct agent calls and HTTP handler must evaluate the same historical
+  // ledger instant. The HTTP route obtains its own Date rather than accepting
+  // a client-supplied clock, so freeze Date for this offline contract test.
+  mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-09-03T12:00:00.000Z") });
   console.log("\n── Frozen production match path ───────────────────────────────────");
   const now = new Date("2026-09-03T12:00:00.000Z");
   const fixture = resolvePremierLeagueFixtureByClubs("arsenal", "chelsea", now);
@@ -240,4 +245,4 @@ async function main() {
   console.log("\nAll agent production-truth checks passed.");
 }
 
-void main();
+void main().finally(() => mock.timers.reset());
